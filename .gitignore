@@ -1,0 +1,23 @@
+# Ignore everything by default
+/*
+
+# But track these:
+!.gitignore
+!wp-content/
+
+# Inside wp-content, ignore everything except our custom work
+wp-content/*
+!wp-content/themes/
+!wp-content/mu-plugins/
+
+# Inside themes, only track the child theme
+wp-content/themes/*
+!wp-content/themes/twentytwentyfive-child/
+
+# Ignore node_modules if any
+node_modules/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+desktop.ini

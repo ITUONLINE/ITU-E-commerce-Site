@@ -1,0 +1,1122 @@
+/*
+Theme Name: Twenty Twenty-Five Child
+Theme URI: https://ituonline.com/
+Description: ITU Online child theme — grayscale foundation with selective accent color. Built for full layout control while preserving WordPress/WooCommerce functionality.
+Author: ITU Team
+Author URI: https://ituonline.com/
+Template: twentytwentyfive
+Version: 1.0.0
+Requires at least: 6.7
+Requires PHP: 7.4
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: itu-theme
+*/
+
+/* ==========================================================================
+   DESIGN TOKENS / CUSTOM PROPERTIES
+   ========================================================================== */
+
+:root {
+	--itu-accent: var(--wp--preset--color--accent-1);
+	--itu-accent-dark: var(--wp--preset--color--accent-2);
+	--itu-accent-light: var(--wp--preset--color--accent-3);
+	--itu-black: var(--wp--preset--color--contrast);
+	--itu-white: var(--wp--preset--color--base);
+	--itu-gray-100: var(--wp--preset--color--gray-100);
+	--itu-gray-200: var(--wp--preset--color--gray-200);
+	--itu-gray-400: var(--wp--preset--color--gray-400);
+	--itu-gray-600: var(--wp--preset--color--gray-600);
+	--itu-gray-800: var(--wp--preset--color--gray-800);
+	--itu-transition: 200ms ease;
+	--itu-radius: 0;
+}
+
+/* ==========================================================================
+   BASE / RESET OVERRIDES
+   ========================================================================== */
+
+body {
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+img {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+
+/* ==========================================================================
+   UTILITY CLASSES — COLOR SPLASHES
+   Use these on any block to break out of the grayscale palette.
+   ========================================================================== */
+
+.has-accent-color { color: var(--itu-accent) !important; }
+.has-accent-dark-color { color: var(--itu-accent-dark) !important; }
+.has-accent-light-color { color: var(--itu-accent-light) !important; }
+.has-accent-background { background-color: var(--itu-accent) !important; color: var(--itu-white) !important; }
+
+/* ==========================================================================
+   LAYOUT UTILITIES
+   ========================================================================== */
+
+.full-bleed {
+	width: 100vw;
+	margin-left: calc(-50vw + 50%);
+}
+
+.itu-grid {
+	display: grid;
+	gap: var(--wp--preset--spacing--50);
+}
+
+.itu-grid--2 { grid-template-columns: repeat(2, 1fr); }
+.itu-grid--3 { grid-template-columns: repeat(3, 1fr); }
+.itu-grid--4 { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 781px) {
+	.itu-grid--2,
+	.itu-grid--3,
+	.itu-grid--4 {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ==========================================================================
+   HEADER
+   ========================================================================== */
+
+/* ==========================================================================
+   TOP BAR
+   ========================================================================== */
+
+.itu-topbar {
+	background: var(--itu-black);
+	padding: 8px var(--wp--preset--spacing--50);
+}
+
+.itu-topbar__inner {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+.itu-topbar__contact,
+.itu-topbar__actions {
+	display: flex;
+	align-items: center;
+	gap: 24px;
+}
+
+.itu-topbar__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-family: var(--wp--preset--font-family--manrope);
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--itu-white);
+	text-decoration: none;
+	transition: opacity var(--itu-transition);
+}
+
+.itu-topbar__link:hover {
+	opacity: 0.7;
+}
+
+.itu-topbar__link svg,
+.itu-topbar__hours svg {
+	flex-shrink: 0;
+}
+
+.itu-topbar__hours {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-family: var(--wp--preset--font-family--manrope);
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--itu-white);
+}
+
+.itu-topbar__cart {
+	padding-left: 24px;
+	border-left: 1px solid var(--itu-gray-800);
+}
+
+@media (max-width: 781px) {
+	.itu-topbar__contact {
+		display: none;
+	}
+
+	.itu-topbar__inner {
+		justify-content: flex-end;
+	}
+}
+
+/* ==========================================================================
+   HEADER
+   ========================================================================== */
+
+.itu-header {
+	position: relative;
+	z-index: 10;
+	background: var(--itu-white);
+	border-bottom: 1px solid var(--itu-gray-200);
+	text-align: center;
+	padding: var(--wp--preset--spacing--40) var(--wp--preset--spacing--50);
+}
+
+.itu-header__brand {
+	margin-bottom: var(--wp--preset--spacing--30);
+}
+
+.itu-header__logo {
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 400;
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	color: var(--itu-gray-400);
+	text-decoration: none;
+}
+
+.itu-header__logo:hover {
+	color: var(--itu-black);
+}
+
+.itu-header__nav {
+	display: flex;
+	justify-content: center;
+	gap: var(--wp--preset--spacing--50);
+	flex-wrap: wrap;
+}
+
+.itu-header__nav-item {
+	text-decoration: none;
+	text-align: center;
+	transition: color var(--itu-transition);
+}
+
+.itu-header__nav-label {
+	display: block;
+	font-size: var(--wp--preset--font-size--large);
+	font-weight: 800;
+	color: var(--itu-black);
+	letter-spacing: -0.02em;
+	transition: color var(--itu-transition);
+}
+
+.itu-header__nav-label em {
+	font-style: normal;
+	color: #C026D3;
+}
+
+.itu-header__nav-item:hover .itu-header__nav-label {
+	color: #C026D3;
+}
+
+.itu-header__nav-sub {
+	display: block;
+	font-size: 0.6875rem;
+	color: var(--itu-gray-400);
+	margin-top: 2px;
+	transition: color var(--itu-transition);
+}
+
+.itu-header__nav-item:hover .itu-header__nav-sub {
+	color: var(--itu-gray-600);
+}
+
+/* Search toggle in nav */
+.itu-header__search-toggle {
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 0;
+}
+
+.itu-header__search-toggle .itu-header__nav-label {
+	display: flex;
+	justify-content: center;
+}
+
+.itu-header__search-toggle .itu-header__nav-label svg {
+	color: var(--itu-black);
+	transition: color var(--itu-transition);
+}
+
+.itu-header__search-toggle:hover .itu-header__nav-label svg {
+	color: #C026D3;
+}
+
+/* Search dropdown */
+.itu-header__search {
+	display: none;
+	padding: var(--wp--preset--spacing--30) 0 0;
+}
+
+.itu-header__search.is-open {
+	display: block;
+}
+
+.itu-header__search-form {
+	display: flex;
+	max-width: 600px;
+	margin: 0 auto;
+	gap: 8px;
+}
+
+.itu-header__search-input {
+	flex: 1;
+	background: var(--itu-gray-100);
+	border: 1px solid var(--itu-gray-200);
+	color: var(--itu-black);
+	padding: 10px 16px;
+	font-family: var(--wp--preset--font-family--manrope);
+	font-size: 0.875rem;
+	outline: none;
+	border-radius: 0;
+}
+
+.itu-header__search-input::placeholder {
+	color: var(--itu-gray-400);
+}
+
+.itu-header__search-input:focus {
+	border-color: #C026D3;
+}
+
+.itu-header__search-submit {
+	background: var(--itu-black);
+	color: var(--itu-white);
+	border: none;
+	padding: 10px 24px;
+	font-family: var(--wp--preset--font-family--manrope);
+	font-size: 0.8125rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	cursor: pointer;
+	border-radius: 0;
+	border-top-right-radius: 12px;
+	transition: background var(--itu-transition);
+}
+
+.itu-header__search-submit:hover {
+	background: #C026D3;
+}
+
+/* Header responsive */
+@media (max-width: 960px) {
+	.itu-header__nav {
+		gap: var(--wp--preset--spacing--40);
+	}
+
+	.itu-header__nav-label {
+		font-size: var(--wp--preset--font-size--medium);
+	}
+
+	.itu-header__nav-sub {
+		display: none;
+	}
+}
+
+@media (max-width: 600px) {
+	.itu-header__nav {
+		gap: var(--wp--preset--spacing--30);
+	}
+
+	.itu-header__nav-label {
+		font-size: var(--wp--preset--font-size--small);
+	}
+}
+
+/* ==========================================================================
+   HERO SECTION
+   ========================================================================== */
+
+.itu-hero {
+	position: relative;
+	background: var(--itu-white);
+}
+
+.itu-hero__inner {
+	display: grid;
+	grid-template-columns: auto auto;
+	align-items: center;
+	margin: 0 auto;
+	width: fit-content;
+	min-width: 80%;
+}
+
+.itu-hero__content {
+	padding: var(--wp--preset--spacing--70) 0;
+}
+
+.itu-hero__image {
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+}
+
+.itu-hero__image img {
+	width: auto;
+	height: auto;
+	max-height: 700px;
+	max-width: 100%;
+
+}
+
+.itu-hero__label {
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: var(--wp--preset--font-size--small);
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	color: var(--itu-gray-400);
+	margin-bottom: var(--wp--preset--spacing--30);
+}
+
+.itu-hero__heading {
+	font-size: clamp(2.75rem, 6vw, 5.5rem);
+	font-weight: 900;
+	line-height: 0.88;
+	letter-spacing: -0.04em;
+	text-transform: uppercase;
+	color: var(--itu-black);
+	margin: 0 0 var(--wp--preset--spacing--40);
+}
+
+.itu-hero__heading span {
+	color: var(--itu-accent);
+}
+
+.itu-hero__heading span em {
+	color: #C026D3;
+	font-style: normal;
+}
+
+/* Chamfered top-right corner on buttons */
+.wp-block-button__link,
+.wp-element-button,
+.woocommerce .button {
+	border-radius: 0 0 0 0;
+	border-top-right-radius: 12px;
+}
+
+.itu-hero__rule {
+	width: 48px;
+	height: 3px;
+	background: var(--itu-gray-200);
+	border: 0;
+	margin: var(--wp--preset--spacing--40) 0;
+}
+
+.itu-hero__description {
+	font-size: var(--wp--preset--font-size--medium);
+	line-height: 1.55;
+	color: var(--itu-gray-600);
+	max-width: 480px;
+}
+
+/* Terminal tag decoration */
+.itu-hero__tag {
+	position: absolute;
+	top: var(--wp--preset--spacing--50);
+	left: var(--wp--preset--spacing--40);
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: 0.6875rem;
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	color: var(--itu-gray-200);
+	writing-mode: vertical-rl;
+	transform: rotate(180deg);
+}
+
+/* Hero responsive */
+@media (max-width: 1200px) {
+	.itu-hero__inner {
+		max-width: 85%;
+	}
+}
+
+@media (max-width: 960px) {
+	.itu-hero {
+		height: auto;
+		padding: var(--wp--preset--spacing--50) var(--wp--preset--spacing--50);
+	}
+
+	.itu-hero__inner {
+		grid-template-columns: 1fr;
+		max-width: 100%;
+		text-align: center;
+	}
+
+	.itu-hero__content {
+		order: 1;
+	}
+
+	.itu-hero__image {
+		display: none;
+	}
+
+	.itu-hero__heading {
+		font-size: clamp(2.25rem, 10vw, 3.5rem);
+		line-height: 0.9;
+	}
+
+	.itu-hero__description {
+		max-width: 100%;
+		margin: 0 auto;
+	}
+
+	.itu-hero__rule {
+		margin-left: auto;
+		margin-right: auto;
+	}
+
+	.itu-hero__tag {
+		display: none;
+	}
+}
+
+@media (max-width: 480px) {
+	.itu-hero {
+		padding: var(--wp--preset--spacing--50) var(--wp--preset--spacing--40);
+	}
+
+	.itu-hero__heading {
+		font-size: clamp(2rem, 12vw, 2.75rem);
+	}
+}
+
+/* ==========================================================================
+   STAT CARDS (Status / Security / OS row from mockup)
+   ========================================================================== */
+
+.itu-stats {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	border-top: 1px solid var(--itu-gray-200);
+	background: var(--itu-gray-100);
+}
+
+.itu-stats__item {
+	padding: var(--wp--preset--spacing--50);
+	border-right: 1px solid var(--itu-gray-200);
+}
+
+.itu-stats__item:last-child {
+	border-right: 0;
+}
+
+.itu-stats__label {
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: 0.6875rem;
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	color: var(--itu-accent);
+	font-weight: 500;
+	margin-bottom: 8px;
+}
+
+.itu-stats__value {
+	font-size: var(--wp--preset--font-size--large);
+	font-weight: 700;
+	color: var(--itu-black);
+}
+
+@media (max-width: 600px) {
+	.itu-stats {
+		grid-template-columns: 1fr;
+	}
+	.itu-stats__item {
+		border-right: 0;
+		border-bottom: 1px solid var(--itu-gray-200);
+	}
+	.itu-stats__item:last-child {
+		border-bottom: 0;
+	}
+}
+
+/* ==========================================================================
+   SECTION STYLES
+   ========================================================================== */
+
+/* Universal inner container — any section with [class*="__inner"] gets centered */
+[class$="__inner"],
+[class*="__inner "] {
+	max-width: 1200px;
+	margin-left: auto;
+	margin-right: auto;
+	padding-left: var(--wp--preset--spacing--50);
+	padding-right: var(--wp--preset--spacing--50);
+}
+
+.itu-section {
+	padding: var(--wp--preset--spacing--70) 0;
+}
+
+.itu-section--dark {
+	background: var(--itu-black);
+	color: var(--itu-white);
+}
+
+.itu-section--gray {
+	background: var(--itu-gray-100);
+}
+
+.itu-section__eyebrow {
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: var(--wp--preset--font-size--small);
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	color: var(--itu-accent);
+	margin-bottom: var(--wp--preset--spacing--30);
+}
+
+/* ==========================================================================
+   CARD COMPONENT (generic)
+   ========================================================================== */
+
+.itu-card {
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	padding: var(--wp--preset--spacing--50);
+	transition: border-color var(--itu-transition), box-shadow var(--itu-transition);
+}
+
+.itu-card:hover {
+	border-color: var(--itu-accent);
+	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+.itu-card__title {
+	font-size: var(--wp--preset--font-size--large);
+	font-weight: 700;
+	margin-bottom: var(--wp--preset--spacing--30);
+}
+
+/* ==========================================================================
+   CERTIFICATIONS SECTION
+   ========================================================================== */
+
+.itu-certs {
+	background: var(--itu-gray-100);
+	padding: var(--wp--preset--spacing--70) var(--wp--preset--spacing--50);
+	padding-top: calc(var(--wp--preset--spacing--70) + 50px);
+	position: relative;
+}
+
+.itu-certs__inner {
+	display: grid;
+	grid-template-columns: 320px 1fr;
+	gap: var(--wp--preset--spacing--60);
+	max-width: 1200px;
+	margin: 0 auto;
+	align-items: start;
+}
+
+/* Left: cert info panel */
+.itu-certs__info {
+	position: sticky;
+	top: 100px;
+	min-height: 420px;
+}
+
+.itu-certs__logo {
+	width: 180px;
+	height: 180px;
+	margin-top: -50px;
+	margin-bottom: var(--wp--preset--spacing--40);
+	position: relative;
+}
+
+.itu-certs__logo img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	transition: opacity 300ms ease;
+	filter: grayscale(100%);
+}
+
+.itu-certs__title {
+	font-size: var(--wp--preset--font-size--x-large);
+	font-weight: 800;
+	line-height: 1.15;
+	letter-spacing: -0.02em;
+	color: var(--itu-black);
+	margin: 0 0 var(--wp--preset--spacing--30);
+}
+
+.itu-certs__description {
+	font-size: var(--wp--preset--font-size--medium);
+	line-height: 1.6;
+	color: var(--itu-gray-600);
+	margin: 0 0 var(--wp--preset--spacing--30);
+}
+
+.itu-certs__link {
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: var(--itu-black);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	transition: color var(--itu-transition);
+}
+
+.itu-certs__link:hover {
+	color: #C026D3;
+}
+
+/* Right: card carousel */
+.itu-certs__carousel {
+	overflow: hidden;
+}
+
+.itu-certs__track {
+	display: flex;
+	gap: 24px;
+	will-change: transform;
+}
+
+.itu-certs__card {
+	flex: 0 0 260px;
+	min-width: 260px;
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	border-radius: 12px;
+	padding: 24px;
+	scroll-snap-align: start;
+	cursor: pointer;
+	transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+}
+
+.itu-certs__card:hover,
+.itu-certs__card.is-active {
+	border-color: var(--itu-gray-400);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+	transform: translateY(-2px);
+}
+
+.itu-certs__card-label {
+	display: inline-block;
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: 0.6875rem;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	color: var(--itu-gray-400);
+	margin-bottom: 16px;
+	font-weight: 500;
+}
+
+.itu-certs__card-image {
+	width: 100%;
+	aspect-ratio: 16 / 10;
+	border-radius: 8px;
+	overflow: hidden;
+	margin-bottom: 16px;
+	background: var(--itu-gray-100);
+}
+
+.itu-certs__card-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	filter: grayscale(100%);
+	transition: filter var(--itu-transition);
+}
+
+.itu-certs__card:hover .itu-certs__card-image img {
+	filter: grayscale(50%);
+}
+
+.itu-certs__card-title {
+	font-size: 0.9375rem;
+	font-weight: 700;
+	line-height: 1.35;
+	color: var(--itu-black);
+	margin: 0 0 8px;
+}
+
+.itu-certs__card-meta {
+	font-size: 0.75rem;
+	color: var(--itu-gray-400);
+	margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 960px) {
+	.itu-certs__inner {
+		grid-template-columns: 1fr;
+	}
+
+	.itu-certs__info {
+		position: static;
+		text-align: center;
+	}
+
+	.itu-certs__logo {
+		margin-left: auto;
+		margin-right: auto;
+	}
+}
+
+@media (max-width: 480px) {
+	.itu-certs__card {
+		flex: 0 0 220px;
+		padding: 16px;
+	}
+}
+
+/* ==========================================================================
+   TEAM TRAINING SECTION
+   ========================================================================== */
+
+.itu-teams {
+	background: var(--itu-white);
+	padding: var(--wp--preset--spacing--70) var(--wp--preset--spacing--50);
+}
+
+.itu-teams__inner {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	align-items: center;
+	gap: var(--wp--preset--spacing--60);
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+.itu-teams__eyebrow {
+	display: inline-block;
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: var(--wp--preset--font-size--small);
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	color: var(--itu-gray-400);
+	margin-bottom: var(--wp--preset--spacing--30);
+}
+
+.itu-teams__title {
+	font-size: var(--wp--preset--font-size--xx-large);
+	font-weight: 800;
+	line-height: 1.1;
+	letter-spacing: -0.02em;
+	color: var(--itu-black);
+	margin: 0 0 var(--wp--preset--spacing--40);
+}
+
+.itu-teams__title em {
+	color: #C026D3;
+	font-style: normal;
+}
+
+.itu-teams__description {
+	font-size: var(--wp--preset--font-size--medium);
+	line-height: 1.6;
+	color: var(--itu-gray-600);
+	margin: 0 0 var(--wp--preset--spacing--50);
+}
+
+.itu-teams__outcomes {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 24px 40px;
+	margin-bottom: var(--wp--preset--spacing--50);
+}
+
+.itu-teams__outcome {
+	display: flex;
+	gap: 14px;
+	align-items: flex-start;
+}
+
+.itu-teams__outcome-number {
+	flex-shrink: 0;
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: #C026D3;
+	line-height: 1.2;
+	padding-top: 1px;
+}
+
+.itu-teams__outcome-title {
+	font-size: 0.875rem;
+	font-weight: 700;
+	color: var(--itu-black);
+	margin: 0 0 4px;
+}
+
+.itu-teams__outcome-desc {
+	font-size: 0.8125rem;
+	line-height: 1.5;
+	color: var(--itu-gray-400);
+	margin: 0;
+}
+
+.itu-teams__cta {
+	display: flex;
+	align-items: center;
+	gap: var(--wp--preset--spacing--40);
+}
+
+.itu-teams__button {
+	display: inline-block;
+	padding: 0.875rem 2rem;
+	background: var(--itu-black);
+	color: var(--itu-white);
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+	text-decoration: none;
+	border-top-right-radius: 12px;
+	transition: background var(--itu-transition);
+}
+
+.itu-teams__button:hover {
+	background: #C026D3;
+	color: var(--itu-white);
+}
+
+.itu-teams__link {
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: var(--itu-gray-600);
+	text-decoration: none;
+	transition: color var(--itu-transition);
+}
+
+.itu-teams__link:hover {
+	color: var(--itu-black);
+}
+
+.itu-teams__image {
+	position: relative;
+}
+
+.itu-teams__image img {
+	width: 100%;
+	height: auto;
+}
+
+/* Teams responsive */
+@media (max-width: 960px) {
+	.itu-teams__inner {
+		grid-template-columns: 1fr;
+	}
+
+	.itu-teams__image {
+		order: -1;
+		max-width: 500px;
+		margin: 0 auto;
+	}
+
+	.itu-teams__outcomes {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 480px) {
+	.itu-teams__cta {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}
+
+/* ==========================================================================
+   RESELLER SECTION
+   ========================================================================== */
+
+.itu-reseller {
+	background: var(--itu-black);
+	color: var(--itu-white);
+	padding: var(--wp--preset--spacing--80) var(--wp--preset--spacing--50);
+}
+
+.itu-reseller__inner {
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+.itu-reseller__headline {
+	text-align: center;
+	max-width: 700px;
+	margin: 0 auto var(--wp--preset--spacing--60);
+}
+
+.itu-reseller__eyebrow {
+	display: inline-block;
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: var(--wp--preset--font-size--small);
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	color: var(--itu-gray-400);
+	margin-bottom: var(--wp--preset--spacing--30);
+}
+
+.itu-reseller__title {
+	font-size: var(--wp--preset--font-size--xx-large);
+	font-weight: 800;
+	line-height: 1.1;
+	letter-spacing: -0.02em;
+	color: var(--itu-white);
+	margin: 0 0 var(--wp--preset--spacing--30);
+}
+
+.itu-reseller__title em {
+	color: #C026D3;
+	font-style: normal;
+}
+
+.itu-reseller__subtitle {
+	font-size: var(--wp--preset--font-size--medium);
+	line-height: 1.6;
+	color: var(--itu-gray-400);
+	margin: 0;
+}
+
+.itu-reseller__grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1px;
+	background: var(--itu-gray-800);
+	margin-bottom: var(--wp--preset--spacing--60);
+}
+
+.itu-reseller__card {
+	background: var(--itu-black);
+	padding: var(--wp--preset--spacing--50);
+}
+
+.itu-reseller__card-number {
+	display: block;
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: #C026D3;
+	margin-bottom: var(--wp--preset--spacing--30);
+}
+
+.itu-reseller__card-title {
+	font-size: var(--wp--preset--font-size--medium);
+	font-weight: 700;
+	color: var(--itu-white);
+	margin: 0 0 8px;
+}
+
+.itu-reseller__card-desc {
+	font-size: 0.8125rem;
+	line-height: 1.6;
+	color: var(--itu-gray-400);
+	margin: 0;
+}
+
+.itu-reseller__cta {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: var(--wp--preset--spacing--40);
+}
+
+.itu-reseller__button {
+	display: inline-block;
+	padding: 0.875rem 2rem;
+	background: var(--itu-white);
+	color: var(--itu-black);
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+	text-decoration: none;
+	border-top-right-radius: 12px;
+	transition: background var(--itu-transition), color var(--itu-transition);
+}
+
+.itu-reseller__button:hover {
+	background: #C026D3;
+	color: var(--itu-white);
+}
+
+.itu-reseller__link {
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: var(--itu-gray-400);
+	text-decoration: none;
+	transition: color var(--itu-transition);
+}
+
+.itu-reseller__link:hover {
+	color: var(--itu-white);
+}
+
+/* Reseller responsive */
+@media (max-width: 960px) {
+	.itu-reseller__grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (max-width: 600px) {
+	.itu-reseller__grid {
+		grid-template-columns: 1fr;
+	}
+
+	.itu-reseller__cta {
+		flex-direction: column;
+	}
+}
+
+/* ==========================================================================
+   WOOCOMMERCE OVERRIDES
+   ========================================================================== */
+
+.woocommerce .products .product {
+	border: 1px solid var(--itu-gray-200);
+	padding: var(--wp--preset--spacing--40);
+	transition: border-color var(--itu-transition);
+}
+
+.woocommerce .products .product:hover {
+	border-color: var(--itu-accent);
+}
+
+.woocommerce .price {
+	color: var(--itu-black) !important;
+	font-weight: 700;
+}
+
+.woocommerce .button,
+.woocommerce .added_to_cart {
+	background: var(--itu-black) !important;
+	color: var(--itu-white) !important;
+	border-radius: 0 !important;
+	font-size: var(--wp--preset--font-size--small) !important;
+	font-weight: 600 !important;
+	letter-spacing: 0.5px !important;
+	text-transform: uppercase !important;
+	transition: background var(--itu-transition) !important;
+}
+
+.woocommerce .button:hover,
+.woocommerce .added_to_cart:hover {
+	background: var(--itu-accent) !important;
+}
+
+.woocommerce .star-rating span::before {
+	color: var(--itu-accent) !important;
+}
+
+.woocommerce-message,
+.woocommerce-info {
+	border-top-color: var(--itu-accent) !important;
+}
+
+.woocommerce-message::before,
+.woocommerce-info::before {
+	color: var(--itu-accent) !important;
+}
