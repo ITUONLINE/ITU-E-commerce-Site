@@ -44,6 +44,37 @@ add_action('wp_enqueue_scripts', function () {
         wp_get_theme()->get('Version'),
         true
     );
+
+    // Category course carousel arrows
+    wp_enqueue_script(
+        'itu-cat-carousel',
+        get_stylesheet_directory_uri() . '/assets/js/cat-carousel.js',
+        [],
+        wp_get_theme()->get('Version'),
+        true
+    );
+
+    // Course catalog filter
+    wp_enqueue_script(
+        'itu-course-catalog',
+        get_stylesheet_directory_uri() . '/assets/js/course-catalog.js',
+        [],
+        wp_get_theme()->get('Version'),
+        true
+    );
+    wp_localize_script('itu-course-catalog', 'ituCatalog', [
+        'ajaxUrl' => admin_url('admin-ajax.php'),
+        'restUrl' => rest_url('itu/v1/carousel'),
+    ]);
+
+    // Spotlight hover interaction
+    wp_enqueue_script(
+        'itu-spotlight',
+        get_stylesheet_directory_uri() . '/assets/js/spotlight.js',
+        [],
+        wp_get_theme()->get('Version'),
+        true
+    );
 });
 
 /**
@@ -130,14 +161,973 @@ add_action('init', function () {
     ]);
 });
 
+/**
+ * Get a single course stat from the LMS database (cached via transients).
+ */
+function itu_get_course_stat($sku, $transient_key, $procedure, $field) {
+    $transient_name = $transient_key . '_' . $sku;
+    $row = get_transient($transient_name);
+    if ($row === false) {
+        global $lmsdb;
+        if (!$lmsdb) return null;
+        $query = 'CALL ' . $procedure . '("' . esc_sql($sku) . '")';
+        $results = $lmsdb->get_results($query);
+        if (empty($results)) return null;
+        $row = $results[0];
+        set_transient($transient_name, $row, 7 * DAY_IN_SECONDS);
+    }
+    return isset($row->$field) ? $row->$field : null;
+}
+
+/**
+ * Course Category Carousel Shortcode.
+ *
+ * Usage: [itu_course_carousel category="comptia" title="CompTIA" description="..." limit="12"]
+ */
+add_shortcode('itu_course_carousel', function ($atts) {
+    $atts = shortcode_atts([
+        'category'    => '',
+        'title'       => '',
+        'description' => '',
+        'limit'       => 10,
+    ], $atts);
+
+    if (empty($atts['category'])) return '';
+
+    // Check transient cache
+    $cache_key = 'itu_carousel_' . md5($atts['category'] . $atts['limit']);
+    $cached = get_transient($cache_key);
+    if ($cached !== false) return $cached;
+
+    // Auto-populate description from category term if not provided
+    if (empty($atts['description'])) {
+        $term = get_term_by('slug', $atts['category'], 'product_cat');
+        if ($term && !is_wp_error($term) && !empty($term->description)) {
+            $atts['description'] = $term->description;
+        }
+    }
+
+    // Query one extra to know if there are more than the limit
+    $query_limit = intval($atts['limit']);
+    $products = wc_get_products([
+        'status'     => 'publish',
+        'limit'      => $query_limit + 1,
+        'category'   => [$atts['category']],
+        'orderby'    => 'date',
+        'order'      => 'DESC',
+        'visibility' => 'visible',
+    ]);
+
+    if (empty($products)) return '';
+
+    // Filter out products with no name or no image
+    $products = array_values(array_filter($products, function ($p) {
+        return !empty(trim($p->get_name())) && $p->get_image_id();
+    }));
+
+    if (empty($products)) return '';
+
+    $has_more = count($products) > $query_limit;
+    if ($has_more) {
+        $products = array_slice($products, 0, $query_limit);
+    }
+
+    ob_start();
+    ?>
+    <section class="itu-cat-row">
+        <div class="itu-cat-row__header">
+            <div>
+                <span class="itu-cat-row__eyebrow">[ <?php echo esc_html($atts['title']); ?> ]</span>
+                <?php if (!empty($atts['description'])) : ?>
+                    <p class="itu-cat-row__desc"><?php echo esc_html($atts['description']); ?></p>
+                <?php endif; ?>
+            </div>
+        </div>
+        <div class="itu-cat-row__carousel-wrap">
+            <button class="itu-cat-row__arrow itu-cat-row__arrow--prev" aria-label="Scroll left">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <button class="itu-cat-row__arrow itu-cat-row__arrow--next" aria-label="Scroll right">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <div class="itu-cat-row__carousel">
+                <div class="itu-cat-row__track">
+                <?php foreach ($products as $product) :
+                    $image = wp_get_attachment_image_url($product->get_image_id(), 'woocommerce_thumbnail');
+                    $price = $product->get_price_html();
+                ?>
+                <div class="itu-certs__card">
+                    <span class="itu-certs__card-label"><?php echo esc_html($atts['title']); ?></span>
+                    <a href="<?php echo esc_url($product->get_permalink()); ?>" class="itu-certs__card-image">
+                        <?php if ($image) : ?>
+                            <img loading="lazy" src="<?php echo esc_url($image); ?>" alt="<?php echo esc_attr($product->get_name()); ?>" />
+                        <?php else : ?>
+                            <div class="itu-certs__card-placeholder"></div>
+                        <?php endif; ?>
+                    </a>
+                    <a href="<?php echo esc_url($product->get_permalink()); ?>" class="itu-certs__card-title"><?php echo esc_html($product->get_name()); ?></a>
+
+                    <?php
+                    $sku = $product->get_sku();
+                    if ($sku) :
+                        $hours = itu_get_course_stat($sku, 'video_hours', 'ec_get_course_video_hours', 'total_hours');
+                        $videos = itu_get_course_stat($sku, 'video_count', 'ec_get_course_video_count', 'total_videos');
+                        $questions = itu_get_course_stat($sku, 'question_count', 'ec_get_course_prep_question_count', 'content_test_question_count');
+                    ?>
+                    <div class="itu-certs__card-badges">
+                        <?php if ($hours) : ?>
+                            <span class="itu-certs__card-badge"><?php echo esc_html($hours); ?></span>
+                        <?php endif; ?>
+                        <?php if ($videos) : ?>
+                            <span class="itu-certs__card-badge"><?php echo esc_html(number_format($videos)); ?> Videos</span>
+                        <?php endif; ?>
+                        <?php if ($questions) : ?>
+                            <span class="itu-certs__card-badge"><?php echo esc_html(number_format($questions)); ?> Questions</span>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+
+                </div>
+                <?php endforeach; ?>
+                <?php if ($has_more) : ?>
+                <a href="/product-category/<?php echo esc_attr($atts['category']); ?>/" class="itu-certs__card itu-certs__card--viewall">
+                    <div class="itu-certs__card-viewall-inner">
+                        <span class="itu-certs__card-viewall-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </span>
+                        <span class="itu-certs__card-viewall-text">View All <?php echo esc_html($atts['title']); ?> Courses</span>
+                    </div>
+                </a>
+                <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <a href="/product-category/<?php echo esc_attr($atts['category']); ?>/" class="itu-cat-row__viewall">View All <?php echo esc_html($atts['title']); ?> Courses &raquo;</a>
+    </section>
+    <?php
+    $output = ob_get_clean();
+    // Strip empty <p> tags injected by wpautop
+    $output = str_replace(['<p></p>', '<p> </p>'], '', $output);
+
+    // Cache for 30 days
+    set_transient($cache_key, $output, 30 * DAY_IN_SECONDS);
+
+    return $output;
+});
 
 
 
 
 
+/**
+ * Catalog term meta — adds "Default in catalog" and "Hide from catalog"
+ * checkboxes to the WooCommerce product category edit screen.
+ */
+// Add fields to the "Add New Category" form
+add_action('product_cat_add_form_fields', function () {
+    ?>
+    <div class="form-field">
+        <label><input type="checkbox" name="itu_catalog_default" value="1" /> Default in catalog</label>
+        <p class="description">Pre-check this category on the courses page.</p>
+    </div>
+    <div class="form-field">
+        <label><input type="checkbox" name="itu_catalog_hidden" value="1" /> Hide from catalog</label>
+        <p class="description">Completely hide this category from the courses page filter.</p>
+    </div>
+    <?php
+});
 
+// Add fields to the "Edit Category" form
+add_action('product_cat_edit_form_fields', function ($term) {
+    $default = get_term_meta($term->term_id, 'itu_catalog_default', true);
+    $hidden  = get_term_meta($term->term_id, 'itu_catalog_hidden', true);
+    ?>
+    <tr class="form-field">
+        <th scope="row"><label>Catalog options</label></th>
+        <td>
+            <label><input type="checkbox" name="itu_catalog_default" value="1" <?php checked($default, '1'); ?> /> Default in catalog</label>
+            <p class="description">Pre-check this category on the courses page.</p>
+            <br>
+            <label><input type="checkbox" name="itu_catalog_hidden" value="1" <?php checked($hidden, '1'); ?> /> Hide from catalog</label>
+            <p class="description">Completely hide this category from the courses page filter.</p>
+        </td>
+    </tr>
+    <?php
+});
 
+// Save the fields
+add_action('created_product_cat', 'itu_save_catalog_term_meta');
+add_action('edited_product_cat', 'itu_save_catalog_term_meta');
+function itu_save_catalog_term_meta($term_id) {
+    update_term_meta($term_id, 'itu_catalog_default', isset($_POST['itu_catalog_default']) ? '1' : '0');
+    update_term_meta($term_id, 'itu_catalog_hidden', isset($_POST['itu_catalog_hidden']) ? '1' : '0');
+}
 
+// Add columns to the product_cat list table
+add_filter('manage_edit-product_cat_columns', function ($columns) {
+    $columns['itu_catalog_default'] = 'Catalog Default';
+    $columns['itu_catalog_hidden']  = 'Catalog Hidden';
+    return $columns;
+});
+
+// Render column values
+add_filter('manage_product_cat_custom_column', function ($content, $column, $term_id) {
+    if ($column === 'itu_catalog_default') {
+        $val = get_term_meta($term_id, 'itu_catalog_default', true);
+        return $val === '1'
+            ? '<span class="itu-cat-flag" data-field="itu_catalog_default" data-value="1">&#10003;</span>'
+            : '<span class="itu-cat-flag" data-field="itu_catalog_default" data-value="0">&mdash;</span>';
+    }
+    if ($column === 'itu_catalog_hidden') {
+        $val = get_term_meta($term_id, 'itu_catalog_hidden', true);
+        return $val === '1'
+            ? '<span class="itu-cat-flag" data-field="itu_catalog_hidden" data-value="1">&#10003;</span>'
+            : '<span class="itu-cat-flag" data-field="itu_catalog_hidden" data-value="0">&mdash;</span>';
+    }
+    return $content;
+}, 10, 3);
+
+// Add fields to quick edit form
+add_action('quick_edit_custom_box', function ($column, $screen, $taxonomy) {
+    if ($taxonomy !== 'product_cat') return;
+    if ($column === 'itu_catalog_default') {
+        ?>
+        <fieldset>
+            <div class="inline-edit-col">
+                <label>
+                    <input type="checkbox" name="itu_catalog_default" value="1" />
+                    <span class="checkbox-title">Default in catalog</span>
+                </label>
+            </div>
+        </fieldset>
+        <?php
+    }
+    if ($column === 'itu_catalog_hidden') {
+        ?>
+        <fieldset>
+            <div class="inline-edit-col">
+                <label>
+                    <input type="checkbox" name="itu_catalog_hidden" value="1" />
+                    <span class="checkbox-title">Hide from catalog</span>
+                </label>
+            </div>
+        </fieldset>
+        <?php
+    }
+}, 10, 3);
+
+// Inline JS to populate quick edit checkboxes with current values
+add_action('admin_footer-edit-tags.php', function () {
+    $screen = get_current_screen();
+    if (!$screen || $screen->taxonomy !== 'product_cat') return;
+    ?>
+    <script>
+    (function($) {
+        var origInlineEdit = window.inlineEditTax ? inlineEditTax.edit : null;
+        if (!origInlineEdit) return;
+
+        inlineEditTax.edit = function(id) {
+            origInlineEdit.apply(this, arguments);
+
+            if (typeof id === 'object') id = this.getId(id);
+
+            var row = $('#tag-' + id);
+            var editRow = $('#edit-' + id);
+
+            var catDefault = row.find('[data-field="itu_catalog_default"]').data('value');
+            var catHidden  = row.find('[data-field="itu_catalog_hidden"]').data('value');
+
+            editRow.find('input[name="itu_catalog_default"]').prop('checked', catDefault == 1);
+            editRow.find('input[name="itu_catalog_hidden"]').prop('checked', catHidden == 1);
+        };
+    })(jQuery);
+    </script>
+    <?php
+});
+
+/**
+ * Course Catalog — sidebar filter + lazy-loaded carousels.
+ * Uses term meta flags for default/hidden state.
+ */
+add_shortcode('itu_course_catalog', function () {
+    $categories = get_terms([
+        'taxonomy'   => 'product_cat',
+        'hide_empty' => true,
+        'parent'     => 0,
+        'exclude'    => [get_option('default_product_cat')], // exclude "Uncategorized"
+        'orderby'    => 'name',
+        'order'      => 'ASC',
+    ]);
+
+    if (empty($categories) || is_wp_error($categories)) return '';
+
+    // Exclude categories with zero products or marked hidden
+    $categories = array_values(array_filter($categories, function ($cat) {
+        if ($cat->count <= 0) return false;
+        if (get_term_meta($cat->term_id, 'itu_catalog_hidden', true) === '1') return false;
+        return true;
+    }));
+
+    ob_start();
+    ?>
+    <div class="itu-catalog">
+        <button class="itu-catalog__filter-toggle" aria-label="Filter categories">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="16" y2="12"/><line x1="4" y1="18" x2="12" y2="18"/></svg>
+            Filter Categories
+        </button>
+        <div class="itu-catalog__overlay"></div>
+        <aside class="itu-catalog__sidebar">
+            <button class="itu-catalog__sidebar-close" aria-label="Close filters">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <span class="itu-catalog__sidebar-eyebrow">[ Categories ]</span>
+            <ul class="itu-catalog__filter-list">
+                <?php foreach ($categories as $cat) :
+                    $checked = get_term_meta($cat->term_id, 'itu_catalog_default', true) === '1';
+                ?>
+                <li class="itu-catalog__filter-item">
+                    <label class="itu-catalog__filter-label">
+                        <input
+                            type="checkbox"
+                            class="itu-catalog__filter-checkbox"
+                            value="<?php echo esc_attr($cat->slug); ?>"
+                            data-title="<?php echo esc_attr($cat->name); ?>"
+                            data-count="<?php echo esc_attr($cat->count); ?>"
+                            <?php echo $checked ? 'checked' : ''; ?>
+                        />
+                        <span class="itu-catalog__filter-name"><?php echo esc_html($cat->name); ?></span>
+                    </label>
+                    <a href="<?php echo esc_url(get_term_link($cat)); ?>" class="itu-catalog__filter-open" aria-label="View <?php echo esc_attr($cat->name); ?>">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </a>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+        </aside>
+        <div class="itu-catalog__content">
+            <?php
+            // Render default-checked carousels server-side
+            foreach ($categories as $cat) {
+                if (get_term_meta($cat->term_id, 'itu_catalog_default', true) === '1') {
+                    echo do_shortcode('[itu_course_carousel category="' . esc_attr($cat->slug) . '" title="' . esc_attr($cat->name) . '"]');
+                }
+            }
+            ?>
+        </div>
+    </div>
+    <?php
+    $output = ob_get_clean();
+    $output = str_replace(['<p></p>', '<p> </p>'], '', $output);
+    return $output;
+});
+
+/**
+ * AJAX handler — returns a single category carousel HTML.
+ */
+function itu_ajax_load_carousel() {
+    $category = isset($_GET['category']) ? sanitize_text_field($_GET['category']) : '';
+    $title    = isset($_GET['title']) ? sanitize_text_field($_GET['title']) : '';
+
+    if (empty($category)) {
+        wp_send_json_error('Missing category');
+    }
+
+    $html = do_shortcode('[itu_course_carousel category="' . esc_attr($category) . '" title="' . esc_attr($title) . '"]');
+    wp_send_json_success($html);
+}
+add_action('wp_ajax_itu_load_carousel', 'itu_ajax_load_carousel');
+add_action('wp_ajax_nopriv_itu_load_carousel', 'itu_ajax_load_carousel');
+
+// Faster REST API endpoint for carousel loading
+add_action('rest_api_init', function () {
+    register_rest_route('itu/v1', '/carousel', [
+        'methods'             => 'GET',
+        'callback'            => function ($request) {
+            $category = sanitize_text_field($request->get_param('category'));
+            $title    = sanitize_text_field($request->get_param('title'));
+            if (empty($category)) {
+                return new WP_Error('missing_category', 'Missing category', ['status' => 400]);
+            }
+            $html = do_shortcode('[itu_course_carousel category="' . esc_attr($category) . '" title="' . esc_attr($title) . '"]');
+            return ['success' => true, 'data' => $html];
+        },
+        'permission_callback' => '__return_true',
+    ]);
+});
+
+/**
+ * Breadcrumbs shortcode — renders Home >> Courses >> Category Name style breadcrumbs.
+ */
+add_shortcode('itu_breadcrumbs', 'itu_render_breadcrumbs');
+
+function itu_render_breadcrumbs() {
+    if (is_front_page() || is_home()) return '';
+
+    $crumbs = [];
+    $crumbs[] = '<a href="/" class="itu-breadcrumbs__link">Home</a>';
+
+    if (is_product_category()) {
+        $crumbs[] = '<a href="/it-courses/" class="itu-breadcrumbs__link">Courses</a>';
+        $term = get_queried_object();
+        if ($term->parent) {
+            $parent = get_term($term->parent, 'product_cat');
+            if ($parent && !is_wp_error($parent)) {
+                $crumbs[] = '<a href="' . esc_url(get_term_link($parent)) . '" class="itu-breadcrumbs__link">' . esc_html($parent->name) . '</a>';
+            }
+        }
+        $crumbs[] = '<span class="itu-breadcrumbs__current">' . esc_html($term->name) . '</span>';
+    } elseif (is_product()) {
+        $crumbs[] = '<a href="/it-courses/" class="itu-breadcrumbs__link">Courses</a>';
+        $cats = wp_get_post_terms(get_the_ID(), 'product_cat', ['orderby' => 'parent']);
+        if (!empty($cats) && !is_wp_error($cats)) {
+            $cat = $cats[0];
+            $crumbs[] = '<a href="' . esc_url(get_term_link($cat)) . '" class="itu-breadcrumbs__link">' . esc_html($cat->name) . '</a>';
+        }
+        $crumbs[] = '<span class="itu-breadcrumbs__current">' . esc_html(get_the_title()) . '</span>';
+    } elseif (is_page()) {
+        // Check for parent page
+        $post = get_queried_object();
+        if ($post->post_parent) {
+            $parent = get_post($post->post_parent);
+            $crumbs[] = '<a href="' . esc_url(get_permalink($parent)) . '" class="itu-breadcrumbs__link">' . esc_html($parent->post_title) . '</a>';
+        }
+        $crumbs[] = '<span class="itu-breadcrumbs__current">' . esc_html(get_the_title()) . '</span>';
+    } elseif (is_singular('post')) {
+        $crumbs[] = '<a href="/resources/" class="itu-breadcrumbs__link">Resources</a>';
+        $crumbs[] = '<span class="itu-breadcrumbs__current">' . esc_html(get_the_title()) . '</span>';
+    } elseif (is_archive()) {
+        $crumbs[] = '<span class="itu-breadcrumbs__current">' . esc_html(get_the_archive_title()) . '</span>';
+    } elseif (is_search()) {
+        $crumbs[] = '<span class="itu-breadcrumbs__current">Search results</span>';
+    } else {
+        $crumbs[] = '<span class="itu-breadcrumbs__current">' . esc_html(get_the_title()) . '</span>';
+    }
+
+    $separator = '<span class="itu-breadcrumbs__sep">&raquo;</span>';
+    return '<nav class="itu-breadcrumbs" aria-label="Breadcrumb">' . implode($separator, $crumbs) . '</nav>';
+}
+
+/**
+ * Category Grid — displays all products in the current product category
+ * as a 4-column card grid reusing the same card markup as the carousel.
+ */
+add_shortcode('itu_category_grid', function () {
+    $term = get_queried_object();
+    if (!$term || !isset($term->taxonomy) || $term->taxonomy !== 'product_cat') return '';
+
+    // Check transient cache
+    $cache_key = 'itu_catgrid_' . $term->slug;
+    $cached = get_transient($cache_key);
+    if ($cached !== false) return $cached;
+
+    $products = wc_get_products([
+        'status'     => 'publish',
+        'limit'      => -1,
+        'category'   => [$term->slug],
+        'orderby'    => 'title',
+        'order'      => 'ASC',
+        'visibility' => 'visible',
+    ]);
+
+    // Filter out products with no name or no image
+    $products = array_values(array_filter($products, function ($p) {
+        return !empty(trim($p->get_name())) && $p->get_image_id();
+    }));
+
+    ob_start();
+    ?>
+    <section class="itu-catgrid">
+        <div class="itu-catgrid__header">
+            <h1 class="itu-catgrid__title"><?php echo esc_html($term->name); ?></h1>
+            <?php if (!empty($term->description)) : ?>
+                <p class="itu-catgrid__desc"><?php echo esc_html($term->description); ?></p>
+            <?php endif; ?>
+        </div>
+
+        <?php if (!empty($products)) : ?>
+        <div class="itu-catgrid__grid">
+            <?php foreach ($products as $product) :
+                $image = wp_get_attachment_image_url($product->get_image_id(), 'woocommerce_thumbnail');
+                $cats = wp_get_post_terms($product->get_id(), 'product_cat', ['fields' => 'names']);
+                $cat_label = !empty($cats) ? $cats[0] : '';
+            ?>
+            <div class="itu-certs__card">
+                <span class="itu-certs__card-label"><?php echo esc_html($cat_label); ?></span>
+                <a href="<?php echo esc_url($product->get_permalink()); ?>" class="itu-certs__card-image">
+                    <?php if ($image) : ?>
+                        <img loading="lazy" src="<?php echo esc_url($image); ?>" alt="<?php echo esc_attr($product->get_name()); ?>" />
+                    <?php else : ?>
+                        <div class="itu-certs__card-placeholder"></div>
+                    <?php endif; ?>
+                </a>
+                <a href="<?php echo esc_url($product->get_permalink()); ?>" class="itu-certs__card-title"><?php echo esc_html($product->get_name()); ?></a>
+
+                <?php
+                $sku = $product->get_sku();
+                if ($sku) :
+                    $hours = itu_get_course_stat($sku, 'video_hours', 'ec_get_course_video_hours', 'total_hours');
+                    $videos = itu_get_course_stat($sku, 'video_count', 'ec_get_course_video_count', 'total_videos');
+                    $questions = itu_get_course_stat($sku, 'question_count', 'ec_get_course_prep_question_count', 'content_test_question_count');
+                ?>
+                <div class="itu-certs__card-badges">
+                    <?php if ($hours) : ?>
+                        <span class="itu-certs__card-badge"><?php echo esc_html($hours); ?></span>
+                    <?php endif; ?>
+                    <?php if ($videos) : ?>
+                        <span class="itu-certs__card-badge"><?php echo esc_html(number_format($videos)); ?> Videos</span>
+                    <?php endif; ?>
+                    <?php if ($questions) : ?>
+                        <span class="itu-certs__card-badge"><?php echo esc_html(number_format($questions)); ?> Questions</span>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php else : ?>
+            <p class="itu-catgrid__empty">No courses found in this category.</p>
+        <?php endif; ?>
+    </section>
+    <?php
+    $output = ob_get_clean();
+    $output = str_replace(['<p></p>', '<p> </p>'], '', $output);
+
+    // Cache for 30 days
+    set_transient($cache_key, $output, 30 * DAY_IN_SECONDS);
+
+    return $output;
+});
+
+/**
+ * Certification Spotlight — admin-managed featured courses section.
+ * Data stored in wp_option 'itu_spotlight_items'.
+ * Each item: { product_id, title, logo_id, description }
+ */
+
+// Admin page
+add_action('admin_menu', function () {
+    add_menu_page(
+        'Certification Spotlight',
+        'Spotlight',
+        'manage_options',
+        'itu-spotlight',
+        'itu_spotlight_admin_page',
+        'dashicons-star-filled',
+        58
+    );
+});
+
+add_action('admin_enqueue_scripts', function ($hook) {
+    if ($hook !== 'toplevel_page_itu-spotlight') return;
+    wp_enqueue_media();
+    wp_enqueue_script('jquery');
+    wp_enqueue_style('wp-jquery-ui-dialog');
+    wp_enqueue_script('jquery-ui-sortable');
+});
+
+// AJAX product search for the admin page
+add_action('wp_ajax_itu_search_products', function () {
+    $search = sanitize_text_field($_GET['q'] ?? '');
+    $products = wc_get_products([
+        'status' => 'publish',
+        'limit'  => 20,
+        's'      => $search,
+    ]);
+    $results = [];
+    foreach ($products as $p) {
+        $results[] = [
+            'id'    => $p->get_id(),
+            'name'  => $p->get_name(),
+            'image' => wp_get_attachment_image_url($p->get_image_id(), 'thumbnail'),
+            'sku'   => $p->get_sku(),
+        ];
+    }
+    wp_send_json($results);
+});
+
+function itu_spotlight_admin_page() {
+    $panels = get_option('itu_spotlight_panels', []);
+    $active_id = get_option('itu_spotlight_active', '');
+
+    // Migrate legacy single-panel data if present
+    $legacy = get_option('itu_spotlight_items', null);
+    if ($legacy !== null && !empty($legacy) && empty($panels)) {
+        $panel_id = uniqid();
+        $panels[$panel_id] = ['name' => 'Default Spotlight', 'items' => $legacy];
+        $active_id = $panel_id;
+        update_option('itu_spotlight_panels', $panels);
+        update_option('itu_spotlight_active', $active_id);
+        delete_option('itu_spotlight_items');
+    }
+
+    // Handle actions
+    if (isset($_POST['itu_spotlight_save_panel']) && check_admin_referer('itu_spotlight_nonce')) {
+        $panel_id = sanitize_text_field($_POST['panel_id'] ?? '');
+        $panel_name = sanitize_text_field($_POST['panel_name'] ?? 'Untitled');
+        $items = [];
+        $ids = $_POST['spotlight_product_id'] ?? [];
+        $titles = $_POST['spotlight_title'] ?? [];
+        $logos = $_POST['spotlight_logo_id'] ?? [];
+        $descs = $_POST['spotlight_description'] ?? [];
+
+        foreach ($ids as $i => $product_id) {
+            if (empty($product_id)) continue;
+            $items[] = [
+                'product_id'  => intval($product_id),
+                'title'       => sanitize_text_field($titles[$i] ?? ''),
+                'logo_id'     => intval($logos[$i] ?? 0),
+                'description' => sanitize_textarea_field($descs[$i] ?? ''),
+            ];
+        }
+
+        if (empty($panel_id)) $panel_id = uniqid();
+        $panels[$panel_id] = ['name' => $panel_name, 'items' => $items];
+        update_option('itu_spotlight_panels', $panels);
+        delete_transient('itu_spotlight_html');
+        echo '<div class="notice notice-success is-dismissible"><p>Panel "' . esc_html($panel_name) . '" saved.</p></div>';
+    }
+
+    if (isset($_POST['itu_spotlight_set_active']) && check_admin_referer('itu_spotlight_nonce')) {
+        $active_id = sanitize_text_field($_POST['active_panel_id']);
+        update_option('itu_spotlight_active', $active_id);
+        delete_transient('itu_spotlight_html');
+        $panels = get_option('itu_spotlight_panels', []);
+        $name = isset($panels[$active_id]) ? $panels[$active_id]['name'] : '';
+        echo '<div class="notice notice-success is-dismissible"><p>"' . esc_html($name) . '" is now the active spotlight.</p></div>';
+    }
+
+    if (isset($_POST['itu_spotlight_deactivate']) && check_admin_referer('itu_spotlight_nonce')) {
+        update_option('itu_spotlight_active', '');
+        delete_transient('itu_spotlight_html');
+        echo '<div class="notice notice-info is-dismissible"><p>Spotlight section deactivated. No panel is displayed.</p></div>';
+        $active_id = '';
+    }
+
+    if (isset($_POST['itu_spotlight_delete_panel']) && check_admin_referer('itu_spotlight_nonce')) {
+        $del_id = sanitize_text_field($_POST['delete_panel_id']);
+        $del_name = isset($panels[$del_id]) ? $panels[$del_id]['name'] : '';
+        unset($panels[$del_id]);
+        update_option('itu_spotlight_panels', $panels);
+        if ($active_id === $del_id) {
+            update_option('itu_spotlight_active', '');
+            $active_id = '';
+        }
+        delete_transient('itu_spotlight_html');
+        echo '<div class="notice notice-warning is-dismissible"><p>Panel "' . esc_html($del_name) . '" deleted.</p></div>';
+    }
+
+    // Refresh
+    $panels = get_option('itu_spotlight_panels', []);
+    $active_id = get_option('itu_spotlight_active', '');
+    $editing = isset($_GET['edit']) ? sanitize_text_field($_GET['edit']) : '';
+
+    // LIST VIEW
+    if (empty($editing)) :
+    ?>
+    <div class="wrap">
+        <h1>Certification Spotlight</h1>
+        <p>Create and manage spotlight panels. The active panel is displayed on the home page.</p>
+
+        <p><a href="<?php echo esc_url(admin_url('admin.php?page=itu-spotlight&edit=new')); ?>" class="button button-primary">+ Create New Panel</a></p>
+
+        <?php if (empty($panels)) : ?>
+            <p style="color:#999;">No panels created yet.</p>
+        <?php else : ?>
+        <table class="widefat striped" style="max-width:800px;">
+            <thead>
+                <tr>
+                    <th>Panel Name</th>
+                    <th>Courses</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($panels as $pid => $panel) :
+                    $is_active = ($pid === $active_id);
+                    $count = count($panel['items'] ?? []);
+                ?>
+                <tr>
+                    <td><strong><?php echo esc_html($panel['name']); ?></strong></td>
+                    <td><?php echo intval($count); ?> course<?php echo $count !== 1 ? 's' : ''; ?></td>
+                    <td>
+                        <?php if ($is_active) : ?>
+                            <span style="color:#00a32a; font-weight:600;">&#9679; Active</span>
+                        <?php else : ?>
+                            <span style="color:#999;">Inactive</span>
+                        <?php endif; ?>
+                    </td>
+                    <td>
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=itu-spotlight&edit=' . $pid)); ?>" class="button button-small">Edit</a>
+
+                        <?php if (!$is_active) : ?>
+                        <form method="post" style="display:inline;">
+                            <?php wp_nonce_field('itu_spotlight_nonce'); ?>
+                            <input type="hidden" name="active_panel_id" value="<?php echo esc_attr($pid); ?>" />
+                            <button type="submit" name="itu_spotlight_set_active" class="button button-small" style="color:#00a32a;">Set Active</button>
+                        </form>
+                        <?php else : ?>
+                        <form method="post" style="display:inline;">
+                            <?php wp_nonce_field('itu_spotlight_nonce'); ?>
+                            <button type="submit" name="itu_spotlight_deactivate" class="button button-small">Deactivate</button>
+                        </form>
+                        <?php endif; ?>
+
+                        <form method="post" style="display:inline;" onsubmit="return confirm('Delete this panel?');">
+                            <?php wp_nonce_field('itu_spotlight_nonce'); ?>
+                            <input type="hidden" name="delete_panel_id" value="<?php echo esc_attr($pid); ?>" />
+                            <button type="submit" name="itu_spotlight_delete_panel" class="button button-small" style="color:#a00;">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php endif; ?>
+    </div>
+    <?php
+    // EDIT VIEW
+    else :
+        $is_new = ($editing === 'new');
+        $panel_id = $is_new ? '' : $editing;
+        $panel = $is_new ? ['name' => '', 'items' => []] : ($panels[$panel_id] ?? ['name' => '', 'items' => []]);
+        $items = $panel['items'];
+    ?>
+    <div class="wrap">
+        <h1><?php echo $is_new ? 'Create New Panel' : 'Edit Panel: ' . esc_html($panel['name']); ?></h1>
+        <p><a href="<?php echo esc_url(admin_url('admin.php?page=itu-spotlight')); ?>">&larr; Back to all panels</a></p>
+
+        <form method="post" id="itu-spotlight-form">
+            <?php wp_nonce_field('itu_spotlight_nonce'); ?>
+            <input type="hidden" name="panel_id" value="<?php echo esc_attr($panel_id); ?>" />
+
+            <table class="form-table">
+                <tr>
+                    <th><label for="panel_name">Panel Name</label></th>
+                    <td><input type="text" id="panel_name" name="panel_name" value="<?php echo esc_attr($panel['name']); ?>" style="width:300px;" placeholder="e.g. CompTIA Spotlight, Q1 Featured" required /></td>
+                </tr>
+            </table>
+
+            <h2>Courses in this Panel</h2>
+            <div id="itu-spotlight-items" style="margin-bottom: 20px;">
+                <?php foreach ($items as $i => $item) :
+                    $product = wc_get_product($item['product_id']);
+                    $product_name = $product ? $product->get_name() : '(Product #' . $item['product_id'] . ')';
+                    $logo_url = $item['logo_id'] ? wp_get_attachment_image_url($item['logo_id'], 'thumbnail') : '';
+                ?>
+                <div class="itu-spotlight-item" style="background:#fff; border:1px solid #ccd0d4; border-radius:4px; padding:16px; margin-bottom:12px;">
+                    <div style="display:flex; gap:16px; align-items:flex-start;">
+                        <span class="dashicons dashicons-menu" style="cursor:grab; margin-top:4px; color:#999;" title="Drag to reorder"></span>
+                        <div style="flex:1;">
+                            <input type="hidden" name="spotlight_product_id[]" value="<?php echo esc_attr($item['product_id']); ?>" />
+                            <p><strong>Product:</strong> <?php echo esc_html($product_name); ?></p>
+                            <p><label><strong>Spotlight Title:</strong></label><br>
+                            <input type="text" name="spotlight_title[]" value="<?php echo esc_attr($item['title']); ?>" style="width:100%; max-width:400px;" placeholder="e.g. Start here. Go anywhere." /></p>
+                            <p><label><strong>Description:</strong></label><br>
+                            <textarea name="spotlight_description[]" rows="3" style="width:100%; max-width:600px;" placeholder="Description shown on hover"><?php echo esc_textarea($item['description']); ?></textarea></p>
+                            <p><label><strong>Logo (optional):</strong></label><br>
+                            <input type="hidden" name="spotlight_logo_id[]" value="<?php echo esc_attr($item['logo_id']); ?>" class="itu-logo-id" />
+                            <img src="<?php echo esc_url($logo_url); ?>" class="itu-logo-preview" style="max-height:50px; <?php echo $logo_url ? '' : 'display:none;'; ?>" />
+                            <button type="button" class="button itu-upload-logo">Choose Logo</button>
+                            <button type="button" class="button itu-remove-logo" style="<?php echo $logo_url ? '' : 'display:none;'; ?>">Remove</button></p>
+                        </div>
+                        <button type="button" class="button itu-remove-item" style="color:#a00;" title="Remove">&times;</button>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+
+            <div style="margin-bottom:20px; position:relative;">
+                <input type="text" id="itu-product-search" placeholder="Search for a product to add..." style="width:300px;" autocomplete="off" />
+                <div id="itu-product-results" style="border:1px solid #ccd0d4; border-radius:4px; max-height:200px; overflow-y:auto; display:none; position:absolute; z-index:100; background:#fff; width:400px;"></div>
+            </div>
+
+            <?php submit_button('Save Panel', 'primary', 'itu_spotlight_save_panel'); ?>
+        </form>
+    </div>
+
+    <script>
+    jQuery(function($) {
+        $('#itu-spotlight-items').sortable({ handle: '.dashicons-menu', placeholder: 'ui-state-highlight' });
+
+        $(document).on('click', '.itu-remove-item', function() { $(this).closest('.itu-spotlight-item').remove(); });
+
+        $(document).on('click', '.itu-upload-logo', function() {
+            var $btn = $(this);
+            var frame = wp.media({ title: 'Select Logo', multiple: false, library: { type: 'image' } });
+            frame.on('select', function() {
+                var a = frame.state().get('selection').first().toJSON();
+                $btn.siblings('.itu-logo-id').val(a.id);
+                $btn.siblings('.itu-logo-preview').attr('src', a.url).show();
+                $btn.siblings('.itu-remove-logo').show();
+            });
+            frame.open();
+        });
+
+        $(document).on('click', '.itu-remove-logo', function() {
+            $(this).siblings('.itu-logo-id').val('0');
+            $(this).siblings('.itu-logo-preview').hide();
+            $(this).hide();
+        });
+
+        var $search = $('#itu-product-search'), $results = $('#itu-product-results'), timer;
+        $search.on('input', function() {
+            clearTimeout(timer);
+            var q = $search.val().trim();
+            if (q.length < 2) { $results.hide(); return; }
+            timer = setTimeout(function() {
+                $.getJSON(ajaxurl + '?action=itu_search_products&q=' + encodeURIComponent(q), function(data) {
+                    if (!data.length) { $results.html('<div style="padding:8px;color:#999;">No products found</div>').show(); return; }
+                    var h = '';
+                    data.forEach(function(p) {
+                        h += '<div class="itu-search-result" data-id="'+p.id+'" data-name="'+$('<span>').text(p.name).html()+'" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:8px;">';
+                        if (p.image) h += '<img src="'+p.image+'" style="width:30px;height:30px;object-fit:cover;border-radius:3px;" />';
+                        h += '<span>'+$('<span>').text(p.name).html()+'</span></div>';
+                    });
+                    $results.html(h).show();
+                });
+            }, 300);
+        });
+        $search.on('blur', function() { setTimeout(function(){ $results.hide(); }, 200); });
+
+        $(document).on('click', '.itu-search-result', function() {
+            var id = $(this).data('id'), name = $(this).data('name');
+            $results.hide(); $search.val('');
+            var h = '<div class="itu-spotlight-item" style="background:#fff;border:1px solid #ccd0d4;border-radius:4px;padding:16px;margin-bottom:12px;">' +
+                '<div style="display:flex;gap:16px;align-items:flex-start;">' +
+                '<span class="dashicons dashicons-menu" style="cursor:grab;margin-top:4px;color:#999;"></span>' +
+                '<div style="flex:1;">' +
+                '<input type="hidden" name="spotlight_product_id[]" value="'+id+'" />' +
+                '<p><strong>Product:</strong> '+name+'</p>' +
+                '<p><label><strong>Spotlight Title:</strong></label><br><input type="text" name="spotlight_title[]" value="" style="width:100%;max-width:400px;" placeholder="e.g. Start here. Go anywhere." /></p>' +
+                '<p><label><strong>Description:</strong></label><br><textarea name="spotlight_description[]" rows="3" style="width:100%;max-width:600px;" placeholder="Description shown on hover"></textarea></p>' +
+                '<p><label><strong>Logo (optional):</strong></label><br><input type="hidden" name="spotlight_logo_id[]" value="0" class="itu-logo-id" /><img src="" class="itu-logo-preview" style="max-height:50px;display:none;" /><button type="button" class="button itu-upload-logo">Choose Logo</button> <button type="button" class="button itu-remove-logo" style="display:none;">Remove</button></p>' +
+                '</div>' +
+                '<button type="button" class="button itu-remove-item" style="color:#a00;">&times;</button>' +
+                '</div></div>';
+            $('#itu-spotlight-items').append(h);
+        });
+    });
+    </script>
+    <?php
+    endif;
+}
+
+/**
+ * Certification Spotlight shortcode — renders the active panel on the front end.
+ */
+add_shortcode('itu_certification_spotlight', function () {
+    // Check transient cache
+    $cached = get_transient('itu_spotlight_html');
+    if ($cached !== false) return $cached;
+
+    $panels = get_option('itu_spotlight_panels', []);
+    $active_id = get_option('itu_spotlight_active', '');
+
+    // Fallback: legacy data
+    if (empty($panels) || empty($active_id)) {
+        $items = get_option('itu_spotlight_items', []);
+    } else {
+        $items = isset($panels[$active_id]) ? $panels[$active_id]['items'] : [];
+    }
+    if (empty($items)) return '';
+
+    // Build the first item as default for the info panel
+    $first = $items[0];
+    $first_logo_url = $first['logo_id'] ? wp_get_attachment_image_url($first['logo_id'], 'medium') : '';
+    $first_product = wc_get_product($first['product_id']);
+
+    ob_start();
+    ?>
+    <section class="itu-spotlight">
+        <span class="itu-spotlight__eyebrow">[ Certification Spotlight ]</span>
+        <div class="itu-spotlight__inner">
+
+            <div class="itu-spotlight__info">
+                <?php if ($first_logo_url) : ?>
+                <div class="itu-spotlight__logo">
+                    <img src="<?php echo esc_url($first_logo_url); ?>" alt="<?php echo esc_attr($first['title']); ?>" data-default="true" />
+                </div>
+                <?php else : ?>
+                <div class="itu-spotlight__logo" style="display:none;">
+                    <img src="" alt="" data-default="true" />
+                </div>
+                <?php endif; ?>
+                <h2 class="itu-spotlight__title"><?php echo esc_html($first['title']); ?></h2>
+                <p class="itu-spotlight__description"><?php echo esc_html($first['description']); ?></p>
+                <a href="/it-certification-training/" class="itu-spotlight__button">Get Started Today &raquo;</a>
+            </div>
+
+            <div class="itu-spotlight__carousel">
+                <div class="itu-spotlight__track">
+                    <?php foreach ($items as $item) :
+                        $product = wc_get_product($item['product_id']);
+                        if (!$product) continue;
+                        $image = wp_get_attachment_image_url($product->get_image_id(), 'woocommerce_thumbnail');
+                        $logo_url = $item['logo_id'] ? wp_get_attachment_image_url($item['logo_id'], 'medium') : '';
+                        $sku = $product->get_sku();
+                    ?>
+                    <div class="itu-certs__card"
+                        data-spotlight-logo="<?php echo esc_attr($logo_url); ?>"
+                        data-spotlight-title="<?php echo esc_attr($item['title']); ?>"
+                        data-spotlight-desc="<?php echo esc_attr($item['description']); ?>"
+>
+                        <span class="itu-certs__card-label"><?php
+                            $cats = wp_get_post_terms($product->get_id(), 'product_cat', ['fields' => 'names']);
+                            echo esc_html(!empty($cats) ? $cats[0] : '');
+                        ?></span>
+                        <a href="<?php echo esc_url($product->get_permalink()); ?>" class="itu-certs__card-image">
+                            <?php if ($image) : ?>
+                                <img loading="eager" src="<?php echo esc_url($image); ?>" alt="<?php echo esc_attr($product->get_name()); ?>" />
+                            <?php endif; ?>
+                        </a>
+                        <a href="<?php echo esc_url($product->get_permalink()); ?>" class="itu-certs__card-title"><?php echo esc_html($product->get_name()); ?></a>
+                        <?php if ($sku) :
+                            $hours = itu_get_course_stat($sku, 'video_hours', 'ec_get_course_video_hours', 'total_hours');
+                            $videos = itu_get_course_stat($sku, 'video_count', 'ec_get_course_video_count', 'total_videos');
+                            $questions = itu_get_course_stat($sku, 'question_count', 'ec_get_course_prep_question_count', 'content_test_question_count');
+                        ?>
+                        <div class="itu-certs__card-badges">
+                            <?php if ($hours) : ?>
+                                <span class="itu-certs__card-badge"><?php echo esc_html($hours); ?></span>
+                            <?php endif; ?>
+                            <?php if ($videos) : ?>
+                                <span class="itu-certs__card-badge"><?php echo esc_html(number_format($videos)); ?> Videos</span>
+                            <?php endif; ?>
+                            <?php if ($questions) : ?>
+                                <span class="itu-certs__card-badge"><?php echo esc_html(number_format($questions)); ?> Questions</span>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+        </div>
+    </section>
+    <?php
+    $output = ob_get_clean();
+    $output = str_replace(['<p></p>', '<p> </p>'], '', $output);
+    set_transient('itu_spotlight_html', $output, 30 * DAY_IN_SECONDS);
+    return $output;
+});
+
+/**
+ * Auto-clear ITU caches when products are created, updated, or deleted.
+ */
+function itu_auto_clear_caches($post_id) {
+    if (get_post_type($post_id) !== 'product') return;
+    global $wpdb;
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_itu_carousel_%' OR option_name LIKE '_transient_timeout_itu_carousel_%'");
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_itu_catgrid_%' OR option_name LIKE '_transient_timeout_itu_catgrid_%'");
+    delete_transient('itu_spotlight_html');
+}
+add_action('save_post_product', 'itu_auto_clear_caches');
+add_action('woocommerce_update_product', 'itu_auto_clear_caches');
+add_action('before_delete_post', 'itu_auto_clear_caches');
+add_action('trashed_post', 'itu_auto_clear_caches');
 
 function dequeue_parent_theme_styles() {
     wp_dequeue_style('style.min.css');
@@ -1783,6 +2773,277 @@ exit;
     }
 }
 
+/**
+ * ITU Cache Management — admin page to flush carousel/grid transients.
+ */
+add_action('admin_menu', function () {
+    add_submenu_page(
+        'tools.php',
+        'ITU Cache',
+        'ITU Cache',
+        'manage_options',
+        'itu-cache',
+        'itu_cache_admin_page'
+    );
+});
 
+function itu_cache_admin_page() {
+    $flushed = false;
+    $count = 0;
 
-?>
+    if (isset($_POST['itu_flush_cache']) && check_admin_referer('itu_flush_cache_nonce')) {
+        global $wpdb;
+
+        // Delete carousel transients
+        $carousel = $wpdb->query(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_itu_carousel_%' OR option_name LIKE '_transient_timeout_itu_carousel_%'"
+        );
+
+        // Delete category grid transients
+        $catgrid = $wpdb->query(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_itu_catgrid_%' OR option_name LIKE '_transient_timeout_itu_catgrid_%'"
+        );
+
+        // Delete LMS stat transients (video_hours, video_count, question_count, etc.)
+        $lms = $wpdb->query(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_video_hours_%' OR option_name LIKE '_transient_timeout_video_hours_%'
+            OR option_name LIKE '_transient_video_count_%' OR option_name LIKE '_transient_timeout_video_count_%'
+            OR option_name LIKE '_transient_question_count_%' OR option_name LIKE '_transient_timeout_question_count_%'
+            OR option_name LIKE '_transient_skill_count_%' OR option_name LIKE '_transient_timeout_skill_count_%'"
+        );
+
+        // Delete spotlight transient
+        $spotlight = 0;
+        if (delete_transient('itu_spotlight_html')) $spotlight = 1;
+
+        $count = $carousel + $catgrid + $lms + $spotlight;
+        $flushed = true;
+    }
+
+    ?>
+    <div class="wrap">
+        <h1>ITU Cache Management</h1>
+        <p>Course carousels and category grids are cached for 30 days to improve performance. Use this tool to clear the cache after adding or updating courses.</p>
+
+        <?php if ($flushed) : ?>
+            <div class="notice notice-success is-dismissible">
+                <p><strong>Cache cleared.</strong> <?php echo intval($count); ?> transient entries removed. Pages will rebuild their cache on next visit.</p>
+            </div>
+        <?php endif; ?>
+
+        <form method="post">
+            <?php wp_nonce_field('itu_flush_cache_nonce'); ?>
+            <table class="form-table">
+                <tr>
+                    <th>What gets cleared</th>
+                    <td>
+                        <ul style="list-style: disc; margin-left: 20px;">
+                            <li>Carousel HTML for each category (it-courses page)</li>
+                            <li>Category grid HTML (product category archive pages)</li>
+                            <li>LMS course stats (video hours, video count, question count, skill count)</li>
+                            <li>Certification Spotlight HTML (home page)</li>
+                        </ul>
+                    </td>
+                </tr>
+            </table>
+            <?php submit_button('Clear All ITU Caches', 'primary', 'itu_flush_cache'); ?>
+        </form>
+    </div>
+    <?php
+}
+
+/**
+ * ITU Publish Date Sync — syncs WooCommerce product publish dates from LMS course creation dates.
+ */
+add_action('admin_menu', function () {
+    add_submenu_page(
+        'tools.php',
+        'ITU Date Sync',
+        'ITU Date Sync',
+        'manage_options',
+        'itu-date-sync',
+        'itu_date_sync_admin_page'
+    );
+});
+
+function itu_date_sync_admin_page() {
+    global $lmsdb, $wpdb;
+
+    $synced = false;
+    $sync_count = 0;
+
+    // Execute sync
+    if (isset($_POST['itu_sync_dates']) && check_admin_referer('itu_date_sync_nonce')) {
+        $skus_to_sync = $_POST['sync_sku'] ?? [];
+        $dates_to_sync = $_POST['sync_date'] ?? [];
+
+        foreach ($skus_to_sync as $i => $sku) {
+            $lms_date = sanitize_text_field($dates_to_sync[$i] ?? '');
+            if (empty($sku) || empty($lms_date)) continue;
+
+            $product_id = wc_get_product_id_by_sku($sku);
+            if (!$product_id) continue;
+
+            $gmt_date = get_gmt_from_date($lms_date);
+            $wpdb->update(
+                $wpdb->posts,
+                [
+                    'post_date'     => $lms_date,
+                    'post_date_gmt' => $gmt_date,
+                ],
+                ['ID' => $product_id],
+                ['%s', '%s'],
+                ['%d']
+            );
+            clean_post_cache($product_id);
+            $sync_count++;
+        }
+
+        // Clear carousel caches since ordering changed
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_itu_carousel_%' OR option_name LIKE '_transient_timeout_itu_carousel_%'");
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_itu_catgrid_%' OR option_name LIKE '_transient_timeout_itu_catgrid_%'");
+
+        $synced = true;
+    }
+
+    // Fetch LMS data
+    $lms_data = [];
+    if ($lmsdb) {
+        $results = $lmsdb->get_results("
+            SELECT ecs.reference AS sku, c.created, c.active
+            FROM enrollment_code_sets ecs
+            JOIN enrollments e ON e.id = ecs.enrollment_id
+            JOIN enrollment_content ec ON ec.enrollment_id = e.id
+            JOIN content c ON c.id = ec.content_id
+            GROUP BY ecs.id, ecs.reference
+            HAVING COUNT(ec.content_id) = 1
+        ");
+        if ($results) {
+            foreach ($results as $row) {
+                $lms_data[$row->sku] = [
+                    'created' => $row->created,
+                    'active'  => $row->active,
+                ];
+            }
+        }
+    }
+
+    // Build comparison table
+    $rows = [];
+    $mismatch_count = 0;
+    foreach ($lms_data as $sku => $lms) {
+        $product_id = wc_get_product_id_by_sku($sku);
+        if (!$product_id) continue;
+
+        $product = wc_get_product($product_id);
+        if (!$product) continue;
+
+        $wp_date = get_the_date('Y-m-d H:i:s', $product_id);
+        $lms_date = $lms['created'];
+        $dates_match = (substr($wp_date, 0, 10) === substr($lms_date, 0, 10));
+
+        $rows[] = [
+            'sku'        => $sku,
+            'name'       => $product->get_name(),
+            'product_id' => $product_id,
+            'wp_date'    => $wp_date,
+            'lms_date'   => $lms_date,
+            'active'     => $lms['active'],
+            'match'      => $dates_match,
+        ];
+
+        if (!$dates_match) $mismatch_count++;
+    }
+
+    // Sort mismatches first, then alphabetical
+    usort($rows, function ($a, $b) {
+        if ($a['match'] === $b['match']) return strcmp($a['name'], $b['name']);
+        return $a['match'] ? 1 : -1;
+    });
+
+    ?>
+    <div class="wrap">
+        <h1>ITU Publish Date Sync</h1>
+        <p>Compare WooCommerce publish dates with LMS course creation dates. Sync mismatched dates so carousels order courses correctly.</p>
+
+        <?php if ($synced) : ?>
+            <div class="notice notice-success is-dismissible">
+                <p><strong><?php echo intval($sync_count); ?> product(s) updated.</strong> Carousel caches cleared automatically.</p>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!$lmsdb) : ?>
+            <div class="notice notice-error"><p>LMS database connection not available.</p></div>
+        <?php elseif (empty($rows)) : ?>
+            <div class="notice notice-warning"><p>No matching SKUs found between LMS and WooCommerce.</p></div>
+        <?php else : ?>
+
+            <p>
+                <strong><?php echo count($rows); ?></strong> matched products.
+                <?php if ($mismatch_count > 0) : ?>
+                    <span style="color:#d63638; font-weight:600;"><?php echo intval($mismatch_count); ?> date mismatch<?php echo $mismatch_count !== 1 ? 'es' : ''; ?>.</span>
+                <?php else : ?>
+                    <span style="color:#00a32a; font-weight:600;">All dates in sync.</span>
+                <?php endif; ?>
+            </p>
+
+            <form method="post">
+                <?php wp_nonce_field('itu_date_sync_nonce'); ?>
+
+                <table class="widefat striped" style="max-width:1100px;">
+                    <thead>
+                        <tr>
+                            <th style="width:30px;"><input type="checkbox" id="itu-sync-check-all" /></th>
+                            <th>SKU</th>
+                            <th>Product Name</th>
+                            <th>WP Publish Date</th>
+                            <th>LMS Created Date</th>
+                            <th>LMS Active</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($rows as $row) : ?>
+                        <tr style="<?php echo !$row['match'] ? 'background:#fcf0f0;' : ''; ?>">
+                            <td>
+                                <?php if (!$row['match']) : ?>
+                                    <input type="checkbox" name="sync_sku[]" value="<?php echo esc_attr($row['sku']); ?>" class="itu-sync-checkbox" checked />
+                                    <input type="hidden" name="sync_date[]" value="<?php echo esc_attr($row['lms_date']); ?>" />
+                                <?php endif; ?>
+                            </td>
+                            <td><code><?php echo esc_html($row['sku']); ?></code></td>
+                            <td><?php echo esc_html($row['name']); ?></td>
+                            <td><?php echo esc_html(substr($row['wp_date'], 0, 10)); ?></td>
+                            <td><?php echo esc_html(substr($row['lms_date'], 0, 10)); ?></td>
+                            <td><?php echo esc_html($row['active']); ?></td>
+                            <td>
+                                <?php if ($row['match']) : ?>
+                                    <span style="color:#00a32a;">&#10003; In sync</span>
+                                <?php else : ?>
+                                    <span style="color:#d63638; font-weight:600;">&#9888; Mismatch</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+
+                <?php if ($mismatch_count > 0) : ?>
+                    <p style="margin-top:16px;">
+                        <?php submit_button('Sync Selected Dates', 'primary', 'itu_sync_dates', false); ?>
+                        <span style="margin-left:12px; color:#666;">Updates WP publish dates to match LMS creation dates for checked items.</span>
+                    </p>
+                <?php endif; ?>
+            </form>
+
+            <script>
+            document.getElementById('itu-sync-check-all').addEventListener('change', function() {
+                var checked = this.checked;
+                document.querySelectorAll('.itu-sync-checkbox').forEach(function(cb) { cb.checked = checked; });
+            });
+            </script>
+
+        <?php endif; ?>
+    </div>
+    <?php
+}
