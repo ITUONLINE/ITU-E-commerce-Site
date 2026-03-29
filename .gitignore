@@ -8,11 +8,20 @@
 # Inside wp-content, ignore everything except our custom work
 wp-content/*
 !wp-content/themes/
+!wp-content/plugins/
 !wp-content/mu-plugins/
 
 # Inside themes, only track the child theme
 wp-content/themes/*
 !wp-content/themes/twentytwentyfive-child/
+
+# Inside plugins, only track our custom plugins
+wp-content/plugins/*
+!wp-content/plugins/ai-product-manager/
+!wp-content/plugins/seo-monitor/
+!wp-content/plugins/Blog_Writer_Plugin/
+!wp-content/plugins/Product AI Updates/
+!wp-content/plugins/practice-test-manager/
 
 # Ignore node_modules if any
 node_modules/
