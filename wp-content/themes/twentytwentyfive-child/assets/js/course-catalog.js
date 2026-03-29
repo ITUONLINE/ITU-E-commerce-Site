@@ -10,7 +10,7 @@
   container.querySelectorAll('.itu-cat-row').forEach(function (row) {
     // Find the carousel's category from its "View All" link or eyebrow text
     const viewAll = row.querySelector('.itu-certs__card--viewall');
-    const eyebrow = row.querySelector('.itu-cat-row__eyebrow');
+    const eyebrow = row.querySelector('.itu-eyebrow');
     let slug = '';
 
     if (viewAll) {
@@ -68,7 +68,7 @@
     var placeholder = document.createElement('div');
     placeholder.className = 'itu-cat-row itu-cat-row--loading';
     placeholder.dataset.catSlug = slug;
-    placeholder.innerHTML = '<div class="itu-cat-row__header"><div><span class="itu-cat-row__eyebrow">[ ' + title + ' ]</span></div></div><div class="itu-cat-row__loading-spinner"></div>';
+    placeholder.innerHTML = '<div class="itu-cat-row__header"><div><span class="itu-eyebrow">[ ' + title + ' ]</span></div></div><div class="itu-cat-row__loading-spinner"></div>';
     container.prepend(placeholder);
     scrollToRow(placeholder);
 

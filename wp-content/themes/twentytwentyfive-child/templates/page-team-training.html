@@ -1,6 +1,34 @@
 <!-- wp:template-part {"slug":"header","area":"header"} /-->
 
 <!-- wp:group {"tagName":"main","layout":{"type":"default"}} -->
+<style>
+
+  .wrap { min-height:60svh; display:grid; place-items:center; padding:28px; }
+  .imgbox { position:relative; max-width:min(1000px,95vw); }
+  .imgbox img { width:100%; height:auto; display:block; border-radius:12px;  }
+  .hotspot-outline { position:absolute; border:2px dashed rgba(88,171,255,.7); border-radius:8px; pointer-events:none; display:none; }
+
+  .modal { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.95); z-index:9999; padding:24px; }
+  .modal.open { display:flex; }
+  .card { background:var(--panel); border-radius:14px; width:min(92vw,980px); box-shadow:0 20px 60px rgba(0,0,0,.6); }
+  .head { display:flex; align-items:center; gap:12px; padding:14px 16px 8px; }
+  .head h2 { margin:0; font-size:18px; font-weight:600; letter-spacing:.2px; }
+  .spacer { flex:1; }
+  .btn { cursor:pointer; background:#2b81ff; color:white; border:none; border-radius:10px; padding:8px 12px; font-size:14px; }
+  .btn.ghost { background:transparent; border:1px solid #354055; color:#cbd3e3; }
+  .viewport { position:relative; overflow:hidden; border-radius:10px; margin:0 16px 16px; background:#000; }
+  .viewport .zoomstage { transform-origin: 0 0; }
+  .viewport img { display:block; max-width:none; user-select:none; -webkit-user-drag:none;
+    width: 100%;
+      height: auto;
+  }
+
+  /* small helper for dragging cursor */
+  .grab { cursor:grab; }
+  .grabbing { cursor:grabbing; }
+
+</style>
+
 <main class="wp-block-group">
 
 	<!-- wp:shortcode -->
@@ -8,146 +36,825 @@
 	<!-- /wp:shortcode -->
 
 	<!-- wp:html -->
-	<section class="itu-teams-hero">
-		<div class="itu-teams-hero__inner">
-			<span class="itu-teams-hero__eyebrow">[ Team Training ]</span>
-			<h1 class="itu-teams-hero__title">Invest in people<em>.</em><br>Realize the power of performance<em>.</em></h1>
-			<p class="itu-teams-hero__description">The most expensive employee isn't the one you train — it's the one you don't. Equip your teams with the skills that move your business forward.</p>
-			<div class="itu-teams-hero__actions">
-				<a href="#teams-contact" class="itu-teams-hero__button">Get a Team Quote</a>
-				<a href="#teams-outcomes" class="itu-teams-hero__link">See outcomes →</a>
+	<section class="itu-section">
+		<div class="itu-section__inner itu-split">
+			<div>
+				<span class="itu-eyebrow">[ Tech Team Training ]</span>
+				<h1 class="itu-page-title">Invest in people<em>.</em><br>Realize the power of performance<em>.</em></h1>
+				<p class="itu-description">The most expensive employee isn't the one you train — it's the one you don't. Equip your teams with the skills that move your business forward with our extensive tech team training programs.</p>
+				<div class="itu-cta">
+					<a href="#teams-contact" class="itu-button">Sign My Team Up Today</a>
+					<a href="#teams-outcomes" class="itu-link">See outcomes →</a>
+				</div>
+			</div>
+			<div class="itu-split__image">
+				<img src="https://staging.ituonline.com/wp-content/uploads/2026/03/ituonline_photorealistic_black_and_white_photograph_of_a_team_o_8d4a6bc5-d4f3-4475-90ef-f8dae606a6ca.jpg" alt="Team collaborating in a professional setting" />
 			</div>
 		</div>
 	</section>
 	<!-- /wp:html -->
 
 	<!-- wp:html -->
-	<section class="itu-teams-outcomes" id="teams-outcomes">
-		<div class="itu-teams-outcomes__inner">
+	<section class="itu-section itu-section--gray" style="padding:var(--wp--preset--spacing--50) 0">
+		<div class="itu-section__inner">
+			<h2 style="text-align:center; margin-bottom:var(--wp--preset--spacing--50)">A few metrics that matter<em>.</em></h2>
+			<div class="itu-stats-ring">
 
-			<div class="itu-teams-outcomes__header">
-				<span class="itu-teams-outcomes__eyebrow">[ Why Train Your Team ]</span>
-				<h2 class="itu-teams-outcomes__title">Measurable impact<em>.</em></h2>
-			</div>
-
-			<div class="itu-teams-outcomes__grid">
-
-				<div class="itu-teams-outcomes__card">
-					<span class="itu-teams-outcomes__card-number">01</span>
-					<div>
-						<h3 class="itu-teams-outcomes__card-title">Improve Efficiency &amp; Consistency</h3>
-						<p class="itu-teams-outcomes__card-desc">Standardize skill levels across departments so every team member operates at the same high bar.</p>
+				<div class="itu-stats-ring__item">
+					<div class="itu-ring" data-percent="94" style="flex-shrink:0">
+						<svg viewBox="0 0 120 120" width="100" height="100">
+							<circle cx="60" cy="60" r="52" fill="none" stroke="var(--itu-gray-200)" stroke-width="8" />
+							<circle class="itu-ring__fill" cx="60" cy="60" r="52" fill="none" stroke="#0EA5E9" stroke-width="8" stroke-linecap="round" stroke-dasharray="326.73" stroke-dashoffset="326.73" transform="rotate(-90 60 60)" />
+							<text x="60" y="66" text-anchor="middle" fill="var(--itu-black)" font-size="24" font-weight="700" font-family="var(--wp--preset--font-family--manrope)">94%</text>
+						</svg>
 					</div>
+					<p>According to LinkedIn, 94% of employees would stay at a company if they would just invest in helping them learn.</p>
 				</div>
 
-				<div class="itu-teams-outcomes__card">
-					<span class="itu-teams-outcomes__card-number">02</span>
-					<div>
-						<h3 class="itu-teams-outcomes__card-title">Enhance Employee Retention</h3>
-						<p class="itu-teams-outcomes__card-desc">Professionals stay where they grow. Training is the most effective retention tool you have.</p>
+				<div class="itu-stats-ring__item">
+					<div class="itu-ring" data-percent="50" style="flex-shrink:0">
+						<svg viewBox="0 0 120 120" width="100" height="100">
+							<circle cx="60" cy="60" r="52" fill="none" stroke="var(--itu-gray-200)" stroke-width="8" />
+							<circle class="itu-ring__fill" cx="60" cy="60" r="52" fill="none" stroke="#C026D3" stroke-width="8" stroke-linecap="round" stroke-dasharray="326.73" stroke-dashoffset="326.73" transform="rotate(-90 60 60)" />
+							<text x="60" y="66" text-anchor="middle" fill="var(--itu-black)" font-size="24" font-weight="700" font-family="var(--wp--preset--font-family--manrope)">50%</text>
+						</svg>
 					</div>
-				</div>
-
-				<div class="itu-teams-outcomes__card">
-					<span class="itu-teams-outcomes__card-number">03</span>
-					<div>
-						<h3 class="itu-teams-outcomes__card-title">Drive Innovation &amp; Adaptability</h3>
-						<p class="itu-teams-outcomes__card-desc">Teams that learn continuously adapt faster to new technologies, threats, and market shifts.</p>
-					</div>
-				</div>
-
-				<div class="itu-teams-outcomes__card">
-					<span class="itu-teams-outcomes__card-number">04</span>
-					<div>
-						<h3 class="itu-teams-outcomes__card-title">Strengthen Collaboration</h3>
-						<p class="itu-teams-outcomes__card-desc">Shared knowledge creates a common language. Teams communicate better when they learn together.</p>
-					</div>
-				</div>
-
-				<div class="itu-teams-outcomes__card">
-					<span class="itu-teams-outcomes__card-number">05</span>
-					<div>
-						<h3 class="itu-teams-outcomes__card-title">Ensure Compliance &amp; Reduce Risk</h3>
-						<p class="itu-teams-outcomes__card-desc">Keep your organization audit-ready with verifiable certifications and documented training records.</p>
-					</div>
-				</div>
-
-				<div class="itu-teams-outcomes__card">
-					<span class="itu-teams-outcomes__card-number">06</span>
-					<div>
-						<h3 class="itu-teams-outcomes__card-title">Boost Business Outcomes</h3>
-						<p class="itu-teams-outcomes__card-desc">Skilled teams deliver better service, resolve issues faster, and drive measurable customer satisfaction.</p>
-					</div>
+					<p>The cost to replace an employee starts at 50% of the position's annual salary according to SHRM, reaching up to 200% for senior roles.</p>
 				</div>
 
 			</div>
+		</div>
+	</section>
 
+	<script>
+	(function() {
+		const rings = document.querySelectorAll('.itu-ring');
+		if (!rings.length) return;
+		const circumference = 2 * Math.PI * 52; // 326.73
+
+		const observer = new IntersectionObserver(function(entries) {
+			entries.forEach(function(entry) {
+				if (!entry.isIntersecting) return;
+				const ring = entry.target;
+				const pct = parseInt(ring.dataset.percent, 10);
+				const fill = ring.querySelector('.itu-ring__fill');
+				const offset = circumference - (circumference * pct / 100);
+				fill.style.transition = 'stroke-dashoffset 1.2s ease-out';
+				fill.style.strokeDashoffset = offset;
+				observer.unobserve(ring);
+			});
+		}, { threshold: 0.5 });
+
+		rings.forEach(function(ring) { observer.observe(ring); });
+	})();
+	</script>
+	<!-- /wp:html -->
+
+
+
+	<!-- wp:html -->
+	<section class="itu-section" style="padding-top: 60px; padding-bottom:60px;">
+		<div class="itu-section__inner itu-split" style="gap: 5px;">
+			<div>
+				<span class="itu-eyebrow">[ Team Dashboard ]</span>
+				<h2>Real-time visibility into your team's progress<em>.</em></h2>
+				<p class="itu-description">Track certifications earned, course completions, time spent training, and compliance status — all from a single dashboard. Know exactly where your team stands and where they're headed.</p>
+				<div class="itu-cta">
+					<a href="#teams-contact" class="itu-button">Sign My Team Up Today</a>
+				</div>
+			</div>
+			<div class="itu-split__image">
+				<div>
+					<div class="imgbox">
+						<img id="dashImg" src="https://www.ituonline.com/wp-content/uploads/2025/10/lms_dashboard.png" alt="Team Training Dashboard — real-time learner progress tracking" usemap="#dashmap" />
+						<map name="dashmap" id="dashmap"></map>
+						<div id="hoverOutline" class="hotspot-outline"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Modal with HD crop -->
+		<div id="modal" class="modal" role="dialog" aria-modal="true" aria-label="Dashboard section preview">
+			<div class="card">
+				<div class="head">
+					<h2 id="modalTitle">Section</h2>
+					<div class="spacer"></div>
+					<div style="display: none;">
+						<button id="zoomOut" class="btn ghost" aria-label="Zoom out">–</button>
+						<button id="zoomIn"  class="btn ghost" aria-label="Zoom in">+</button>
+						<button id="download" class="btn ghost">Download</button>
+					</div>
+					<button id="close" class="btn">Close</button>
+				</div>
+				<div class="viewport" style="height:min(60vh,600px);">
+					<div id="zoomstage" class="zoomstage grab">
+						<!-- HD image injected here via <picture> -->
+					</div>
+				</div>
+			</div>
 		</div>
 	</section>
 	<!-- /wp:html -->
 
+
+
 	<!-- wp:html -->
-	<section class="itu-teams-how">
-		<div class="itu-teams-how__inner">
-			<span class="itu-teams-how__eyebrow">[ How It Works ]</span>
-			<h2 class="itu-teams-how__title">Three steps to a smarter team<em>.</em></h2>
+	<section class="itu-section itu-section--dark" style="padding-top: 50px; padding-bottom: 50px;">
+		<div class="itu-section__inner">
+			<span class="itu-eyebrow">[ Training ROI Calculator ]</span>
+			<h2>See the cost of doing nothing<em>.</em></h2>
+			<p class="itu-description">Training isn't an expense — it's insurance against turnover, breaches, fines, cloud waste, and lost productivity. Adjust the numbers below to see what inaction really costs your organization.</p>
 
-			<div class="itu-teams-how__steps">
-
-				<div class="itu-teams-how__step">
-					<span class="itu-teams-how__step-number">01</span>
-					<h3 class="itu-teams-how__step-title">Tell Us Your Goals</h3>
-					<p class="itu-teams-how__step-desc">Share your team size, skill gaps, and certification targets. We'll build a training plan tailored to your organization's needs.</p>
+			<!-- Global inputs -->
+			<input type="hidden" id="g-price" value="139">
+			<input type="hidden" id="g-price-regular" value="0">
+			<div class="itu-roi-global">
+				<div class="itu-roi-global__field">
+					<label>Annual cost per employee</label>
+					<div id="g-price-display" style="display:flex; align-items:baseline; gap:8px">
+						<span id="g-price-orig" style="display:none; text-decoration:line-through; color:var(--itu-gray-600); font-size:0.875rem"></span>
+						<span class="itu-roi-global__total" id="g-price-sale">$139.00</span>
+						<span id="g-price-badge" style="display:none; font-size:0.6875rem; font-weight:600; color:#2DD4A8; background:rgba(45,212,168,0.12); padding:2px 8px; border-radius:10px"></span>
+					</div>
 				</div>
-
-				<div class="itu-teams-how__step">
-					<span class="itu-teams-how__step-number">02</span>
-					<h3 class="itu-teams-how__step-title">We Build Your Plan</h3>
-					<p class="itu-teams-how__step-desc">Our team curates courses, sets milestones, and configures your training dashboard — ready to roll out in days, not months.</p>
+				<div class="itu-roi-global__field">
+					<label>Staff trained</label>
+					<div class="itu-roi-global__input-wrap">
+						<button type="button" class="itu-stepper" onclick="stepStaff(-1)">−</button>
+						<input type="range" id="g-staff" min="1" max="500" value="25" step="1" oninput="document.getElementById('g-staff-v').textContent=this.value;recalcAll()">
+						<button type="button" class="itu-stepper" onclick="stepStaff(1)">+</button>
+						<span class="itu-roi-global__val" id="g-staff-v">25</span>
+					</div>
 				</div>
-
-				<div class="itu-teams-how__step">
-					<span class="itu-teams-how__step-number">03</span>
-					<h3 class="itu-teams-how__step-title">Your Team Levels Up</h3>
-					<p class="itu-teams-how__step-desc">Your employees train on-demand at their own pace. You track progress, certifications earned, and ROI in real time.</p>
+				<div class="itu-roi-global__field">
+					<label>Total annual training cost</label>
+					<span class="itu-roi-global__total" id="g-total-cost">$3,475</span>
 				</div>
+			</div>
 
+			<!-- Scenario tabs -->
+			<div class="itu-roi-tabs">
+				<button class="itu-roi-tab is-active" data-scenario="0">Turnover</button>
+				<button class="itu-roi-tab" data-scenario="1">Cyber Attack</button>
+				<button class="itu-roi-tab" data-scenario="2">Compliance</button>
+				<button class="itu-roi-tab" data-scenario="3">Cloud Waste</button>
+				<button class="itu-roi-tab" data-scenario="4">Help Desk</button>
+			</div>
+
+			<!-- Scenario 0: Turnover -->
+			<div class="itu-roi-panel is-active" id="sp-0">
+				<h3>Employee turnover — network administrator</h3>
+				<p class="itu-roi-panel__desc">When a trained network admin leaves, the true cost extends far beyond recruiting fees. Industry benchmarks place total replacement cost at 50–200% of annual salary. Investing in training is one of the highest-ROI retention strategies available.</p>
+				<div class="itu-roi-controls">
+					<div class="itu-roi-control">
+						<label>Avg. network admin salary</label>
+						<input type="range" id="s0-sal" min="50000" max="150000" value="85000" step="1000" oninput="updateSliderVal('s0-sal-v', roiFmt(this.value))">
+						<div class="itu-roi-control__val" id="s0-sal-v">$85,000</div>
+					</div>
+					<div class="itu-roi-control">
+						<label>Employees at risk of leaving</label>
+						<input type="range" id="s0-atr" min="1" max="20" value="3" step="1" oninput="updateSliderVal('s0-atr-v', this.value + ' employees')">
+						<div class="itu-roi-control__val" id="s0-atr-v">3 employees</div>
+					</div>
+					<div class="itu-roi-control">
+						<label>Replacement cost multiplier</label>
+						<input type="range" id="s0-mult" min="10" max="200" value="50" step="5" oninput="updateSliderVal('s0-mult-v', this.value + '% of salary')">
+						<div class="itu-roi-control__val" id="s0-mult-v">50% of salary</div>
+					</div>
+				</div>
+				<button class="itu-button itu-roi-calculate" onclick="showResults(0)" style="background:#C026D3; margin-bottom:var(--wp--preset--spacing--40)">Calculate My ROI</button>
+				<div class="itu-roi-results" id="sr-0" style="display:none">
+					<div class="itu-roi-metrics">
+						<div class="itu-roi-metric itu-roi-metric--danger"><div class="itu-roi-metric__label">Cost if they leave</div><div class="itu-roi-metric__value" id="s0-loss">—</div></div>
+						<div class="itu-roi-metric itu-roi-metric--info"><div class="itu-roi-metric__label">Training investment</div><div class="itu-roi-metric__value" id="s0-cost">—</div></div>
+						<div class="itu-roi-metric itu-roi-metric--success"><div class="itu-roi-metric__label">Net savings</div><div class="itu-roi-metric__value" id="s0-roi">—</div></div>
+					</div>
+					<div class="itu-roi-breakdown" id="s0-bd"></div>
+					<div class="itu-roi-chart"><canvas id="s0-chart"></canvas></div>
+					<p class="itu-roi-source">Sources: SHRM estimates replacement costs at 50–200% of annual salary. Gallup: employees who receive regular training are 59% less likely to seek jobs elsewhere.</p>
+				</div>
+			</div>
+
+			<!-- Scenario 1: Cyber Attack -->
+			<div class="itu-roi-panel" id="sp-1">
+				<h3>Cyber attack — e-commerce site breach</h3>
+				<p class="itu-roi-panel__desc">A mid-size e-commerce company with untrained IT staff faces a ransomware or web application attack. IBM's 2024 Cost of a Data Breach report puts the average SMB breach at $4.88M — but downtime alone at $5,600/minute makes every hour of delayed response catastrophic.</p>
+				<div class="itu-roi-controls">
+					<div class="itu-roi-control">
+						<label>Daily e-commerce revenue</label>
+						<input type="range" id="s1-rev" min="5000" max="500000" value="50000" step="5000" oninput="updateSliderVal('s1-rev-v', roiFmt(this.value) + '/day')">
+						<div class="itu-roi-control__val" id="s1-rev-v">$50,000/day</div>
+					</div>
+					<div class="itu-roi-control">
+						<label>Downtime: untrained staff (days)</label>
+						<input type="range" id="s1-dt-un" min="1" max="30" value="7" step="1" oninput="updateSliderVal('s1-dt-un-v', this.value + ' days')">
+						<div class="itu-roi-control__val" id="s1-dt-un-v">7 days</div>
+					</div>
+					<div class="itu-roi-control">
+						<label>Downtime: trained staff (days)</label>
+						<input type="range" id="s1-dt-tr" min="0" max="10" value="1" step="1" oninput="updateSliderVal('s1-dt-tr-v', this.value + (this.value==1?' day':' days'))">
+						<div class="itu-roi-control__val" id="s1-dt-tr-v">1 day</div>
+					</div>
+					<div class="itu-roi-control">
+						<label>IR contractor cost (if outsourced)</label>
+						<input type="range" id="s1-ir" min="10000" max="250000" value="75000" step="5000" oninput="updateSliderVal('s1-ir-v', roiFmt(this.value))">
+						<div class="itu-roi-control__val" id="s1-ir-v">$75,000</div>
+					</div>
+				</div>
+				<button class="itu-button itu-roi-calculate" onclick="showResults(1)" style="background:#C026D3; margin-bottom:var(--wp--preset--spacing--40)">Calculate My ROI</button>
+				<div class="itu-roi-results" id="sr-1" style="display:none">
+					<div class="itu-roi-metrics">
+						<div class="itu-roi-metric itu-roi-metric--danger"><div class="itu-roi-metric__label">Untrained total exposure</div><div class="itu-roi-metric__value" id="s1-loss">—</div></div>
+						<div class="itu-roi-metric itu-roi-metric--info"><div class="itu-roi-metric__label">Training investment</div><div class="itu-roi-metric__value" id="s1-cost">—</div></div>
+						<div class="itu-roi-metric itu-roi-metric--success"><div class="itu-roi-metric__label">Net savings</div><div class="itu-roi-metric__value" id="s1-roi">—</div></div>
+					</div>
+					<div class="itu-roi-breakdown" id="s1-bd"></div>
+					<div class="itu-roi-chart"><canvas id="s1-chart"></canvas></div>
+					<p class="itu-roi-source">Sources: IBM Cost of a Data Breach Report 2024 ($4.88M avg.). Ponemon: avg. downtime cost $5,600/min for SMBs. Verizon DBIR: 74% of breaches involve a human element.</p>
+				</div>
+			</div>
+
+			<!-- Scenario 2: Compliance -->
+			<div class="itu-roi-panel" id="sp-2">
+				<h3>Compliance failure — HIPAA / PCI DSS / GDPR</h3>
+				<p class="itu-roi-panel__desc">Organizations in healthcare, finance, or handling EU customer data face steep regulatory penalties for compliance violations — many stemming from undertrained staff making preventable mistakes.</p>
+				<div class="itu-roi-controls">
+					<div class="itu-roi-control">
+						<label>Annual company revenue</label>
+						<input type="range" id="s2-rev" min="500000" max="50000000" value="5000000" step="500000" oninput="updateSliderVal('s2-rev-v', roiFmt(this.value))">
+						<div class="itu-roi-control__val" id="s2-rev-v">$5,000,000</div>
+					</div>
+					<div class="itu-roi-control">
+						<label>Regulatory framework</label>
+						<select id="s2-reg">
+							<option value="hipaa">HIPAA (healthcare)</option>
+							<option value="pci">PCI DSS (payments)</option>
+							<option value="gdpr">GDPR (EU data)</option>
+						</select>
+						<div class="itu-roi-control__val" id="s2-reg-v"></div>
+					</div>
+					<div class="itu-roi-control">
+						<label>Likelihood of incident without training</label>
+						<input type="range" id="s2-prob" min="5" max="80" value="35" step="5" oninput="updateSliderVal('s2-prob-v', this.value + '% chance')">
+						<div class="itu-roi-control__val" id="s2-prob-v">35% chance</div>
+					</div>
+				</div>
+				<button class="itu-button itu-roi-calculate" onclick="showResults(2)" style="background:#C026D3; margin-bottom:var(--wp--preset--spacing--40)">Calculate My ROI</button>
+				<div class="itu-roi-results" id="sr-2" style="display:none">
+					<div class="itu-roi-metrics">
+						<div class="itu-roi-metric itu-roi-metric--danger"><div class="itu-roi-metric__label">Expected fine exposure</div><div class="itu-roi-metric__value" id="s2-loss">—</div></div>
+						<div class="itu-roi-metric itu-roi-metric--info"><div class="itu-roi-metric__label">Training investment</div><div class="itu-roi-metric__value" id="s2-cost">—</div></div>
+						<div class="itu-roi-metric itu-roi-metric--success"><div class="itu-roi-metric__label">Risk-adjusted savings</div><div class="itu-roi-metric__value" id="s2-roi">—</div></div>
+					</div>
+					<div class="itu-roi-breakdown" id="s2-bd"></div>
+					<div class="itu-roi-chart"><canvas id="s2-chart"></canvas></div>
+					<p class="itu-roi-source">Sources: HHS HIPAA enforcement data. PCI Security Standards Council fine schedules. GDPR enforcement tracker. Tessian: 88% of data breaches are caused by human error.</p>
+				</div>
+			</div>
+
+			<!-- Scenario 3: Cloud Waste -->
+			<div class="itu-roi-panel" id="sp-3">
+				<h3>Cloud cost bleed — unoptimized infrastructure</h3>
+				<p class="itu-roi-panel__desc">Organizations without trained cloud professionals routinely overspend by 30–40% through idle resources, over-provisioned instances, and missing reserved pricing. FinOps training pays for itself within months.</p>
+				<div class="itu-roi-controls">
+					<div class="itu-roi-control">
+						<label>Monthly cloud spend</label>
+						<input type="range" id="s3-spend" min="5000" max="500000" value="30000" step="1000" oninput="updateSliderVal('s3-spend-v', roiFmt(this.value) + '/mo')">
+						<div class="itu-roi-control__val" id="s3-spend-v">$30,000/mo</div>
+					</div>
+					<div class="itu-roi-control">
+						<label>Current waste estimate</label>
+						<input type="range" id="s3-waste" min="10" max="50" value="32" step="1" oninput="updateSliderVal('s3-waste-v', this.value + '% wasted')">
+						<div class="itu-roi-control__val" id="s3-waste-v">32% wasted</div>
+					</div>
+					<div class="itu-roi-control">
+						<label>Recoverable savings with training</label>
+						<input type="range" id="s3-recov" min="40" max="90" value="70" step="5" oninput="updateSliderVal('s3-recov-v', this.value + '% recoverable')">
+						<div class="itu-roi-control__val" id="s3-recov-v">70% recoverable</div>
+					</div>
+				</div>
+				<button class="itu-button itu-roi-calculate" onclick="showResults(3)" style="background:#C026D3; margin-bottom:var(--wp--preset--spacing--40)">Calculate My ROI</button>
+				<div class="itu-roi-results" id="sr-3" style="display:none">
+					<div class="itu-roi-metrics">
+						<div class="itu-roi-metric itu-roi-metric--danger"><div class="itu-roi-metric__label">Annual cloud waste</div><div class="itu-roi-metric__value" id="s3-loss">—</div></div>
+						<div class="itu-roi-metric itu-roi-metric--info"><div class="itu-roi-metric__label">Training investment</div><div class="itu-roi-metric__value" id="s3-cost">—</div></div>
+						<div class="itu-roi-metric itu-roi-metric--success"><div class="itu-roi-metric__label">Annual savings recovered</div><div class="itu-roi-metric__value" id="s3-roi">—</div></div>
+					</div>
+					<div class="itu-roi-breakdown" id="s3-bd"></div>
+					<div class="itu-roi-chart"><canvas id="s3-chart"></canvas></div>
+					<p class="itu-roi-source">Sources: Flexera 2024 State of the Cloud Report (28–35% waste). Gartner: FinOps reduces spend 20–30% within 6 months.</p>
+				</div>
+			</div>
+
+			<!-- Scenario 4: Help Desk -->
+			<div class="itu-roi-panel" id="sp-4">
+				<h3>Help desk productivity — ticket resolution efficiency</h3>
+				<p class="itu-roi-panel__desc">Undertrained help desk staff resolve fewer tickets per hour, escalate more issues unnecessarily, and take longer to onboard. CompTIA A+ and Network+ certified staff consistently resolve 25–40% more tickets per shift.</p>
+				<div class="itu-roi-controls">
+					<div class="itu-roi-control">
+						<label>Number of help desk staff</label>
+						<input type="range" id="s4-staff" min="2" max="50" value="8" step="1" oninput="updateSliderVal('s4-staff-v', this.value + ' staff')">
+						<div class="itu-roi-control__val" id="s4-staff-v">8 staff</div>
+					</div>
+					<div class="itu-roi-control">
+						<label>Avg. help desk salary</label>
+						<input type="range" id="s4-sal" min="35000" max="80000" value="52000" step="1000" oninput="updateSliderVal('s4-sal-v', roiFmt(this.value))">
+						<div class="itu-roi-control__val" id="s4-sal-v">$52,000</div>
+					</div>
+					<div class="itu-roi-control">
+						<label>Productivity gain with training</label>
+						<input type="range" id="s4-gain" min="10" max="50" value="30" step="5" oninput="updateSliderVal('s4-gain-v', this.value + '% more efficient')">
+						<div class="itu-roi-control__val" id="s4-gain-v">30% more efficient</div>
+					</div>
+				</div>
+				<button class="itu-button itu-roi-calculate" onclick="showResults(4)" style="background:#C026D3; margin-bottom:var(--wp--preset--spacing--40)">Calculate My ROI</button>
+				<div class="itu-roi-results" id="sr-4" style="display:none">
+					<div class="itu-roi-metrics">
+						<div class="itu-roi-metric itu-roi-metric--danger"><div class="itu-roi-metric__label">Annual productivity loss</div><div class="itu-roi-metric__value" id="s4-loss">—</div></div>
+						<div class="itu-roi-metric itu-roi-metric--info"><div class="itu-roi-metric__label">Training investment</div><div class="itu-roi-metric__value" id="s4-cost">—</div></div>
+						<div class="itu-roi-metric itu-roi-metric--success"><div class="itu-roi-metric__label">Annual value recovered</div><div class="itu-roi-metric__value" id="s4-roi">—</div></div>
+					</div>
+					<div class="itu-roi-breakdown" id="s4-bd"></div>
+					<div class="itu-roi-chart"><canvas id="s4-chart"></canvas></div>
+					<p class="itu-roi-source">Sources: HDI: certified technicians resolve 30–40% more tickets. Gartner: avg. cost-per-ticket $15–$22 for L1 support.</p>
+				</div>
 			</div>
 
 		</div>
 	</section>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+	<script>
+	var roiFmt = function(v) { return '$' + Math.round(Number(v)).toLocaleString(); };
+
+	function stepStaff(dir) {
+		var el = document.getElementById('g-staff');
+		var val = parseInt(el.value) + dir;
+		val = Math.max(parseInt(el.min), Math.min(parseInt(el.max), val));
+		el.value = val;
+		document.getElementById('g-staff-v').textContent = val;
+		recalcAll();
+	}
+
+	function updateSliderVal(id, text) {
+		document.getElementById(id).textContent = text;
+	}
+
+	function showResults(idx) {
+		recalcS(idx);
+		var results = document.getElementById('sr-' + idx);
+		results.style.display = 'block';
+		results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	}
+	var roiFmtX = function(v) { return v >= 1000000 ? '$' + (v/1000000).toFixed(1) + 'M' : v >= 1000 ? '$' + Math.round(v/1000) + 'K' : '$' + Math.round(v); };
+	var roiCharts = {};
+
+	function getGlobals() {
+		var price = parseFloat(document.getElementById('g-price').value) || 139;
+		var staff = parseInt(document.getElementById('g-staff').value);
+		return { price: price, staff: staff, total: price * staff };
+	}
+
+	function recalcAll() {
+		var g = getGlobals();
+		document.getElementById('g-total-cost').textContent = roiFmt(g.total);
+		for (var i = 0; i < 5; i++) recalcS(i);
+	}
+
+	function setBD(id, rows) {
+		var el = document.getElementById(id);
+		el.innerHTML = '<div class="itu-roi-breakdown__title">Cost breakdown</div>' +
+			rows.map(function(r) { return '<div class="itu-roi-breakdown__row"><span class="itu-roi-breakdown__label">' + r[0] + '</span><span class="itu-roi-breakdown__val ' + (r[2]||'') + '">' + r[1] + '</span></div>'; }).join('');
+	}
+
+	function drawBar(canvasId, labels, vals, colors) {
+		if (roiCharts[canvasId]) { roiCharts[canvasId].destroy(); }
+		roiCharts[canvasId] = new Chart(document.getElementById(canvasId), {
+			type: 'bar',
+			data: { labels: labels, datasets: [{ data: vals, backgroundColor: colors, borderWidth: 0, borderRadius: 4 }] },
+			options: {
+				responsive: true, maintainAspectRatio: false,
+				plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return roiFmtX(ctx.raw); } } } },
+				scales: {
+					x: { ticks: { font: { size: 11 }, color: '#9E9E9E' }, grid: { display: false } },
+					y: { ticks: { font: { size: 11 }, color: '#9E9E9E', callback: function(v) { return roiFmtX(v); } }, grid: { color: 'rgba(255,255,255,0.08)' } }
+				}
+			}
+		});
+	}
+
+	function recalcS(idx) {
+		var g = getGlobals();
+		var price = g.price, staff = g.staff, total = g.total;
+
+		if (idx === 0) {
+			var sal = parseInt(document.getElementById('s0-sal').value);
+			var atr = parseInt(document.getElementById('s0-atr').value);
+			var mult = parseInt(document.getElementById('s0-mult').value);
+			document.getElementById('s0-sal-v').textContent = roiFmt(sal);
+			document.getElementById('s0-atr-v').textContent = atr + ' employees';
+			document.getElementById('s0-mult-v').textContent = mult + '% of salary';
+			var replaceCost = sal * (mult/100);
+			var totalLoss = replaceCost * atr;
+			var trainCost = price * atr;
+			var net = totalLoss - trainCost;
+			document.getElementById('s0-loss').textContent = roiFmtX(totalLoss);
+			document.getElementById('s0-cost').textContent = roiFmtX(trainCost);
+			document.getElementById('s0-roi').textContent = roiFmtX(net);
+			// Break replacement cost into weighted components that sum to the multiplier
+			var m = mult / 100;
+			var recruiting = sal * m * 0.35 * atr;    // 35% of replacement cost
+			var onboarding = sal * m * 0.25 * atr;    // 25%
+			var vacancy    = sal * m * 0.20 * atr;    // 20%
+			var knowledge  = sal * m * 0.12 * atr;    // 12%
+			var morale     = sal * m * 0.08 * atr;    // 8%
+			setBD('s0-bd', [
+				['Avg. salary × ' + atr + ' at-risk employees', roiFmtX(sal * atr), ''],
+				['Replacement cost multiplier', mult + '%', ''],
+				['Recruiting & agency fees (35% of replacement)', roiFmtX(recruiting), 'neg'],
+				['Onboarding & training new hires (25%)', roiFmtX(onboarding), 'neg'],
+				['Lost productivity during vacancy (20%)', roiFmtX(vacancy), 'neg'],
+				['Knowledge transfer & ramp-up loss (12%)', roiFmtX(knowledge), 'neg'],
+				['Team morale & productivity spillover (8%)', roiFmtX(morale), 'neg'],
+				['Total replacement cost', roiFmtX(totalLoss), 'neg'],
+				['Training investment (' + atr + ' × ' + roiFmt(price) + ')', roiFmtX(trainCost), 'pos'],
+				['Net savings', roiFmtX(net), 'pos']
+			]);
+			drawBar('s0-chart', ['Replacement cost (×' + atr + ')', 'Net savings'],
+				[totalLoss, net], ['#C026D3', '#2DD4A8']);
+		}
+
+		if (idx === 1) {
+			var rev = parseInt(document.getElementById('s1-rev').value);
+			var dtUn = parseInt(document.getElementById('s1-dt-un').value);
+			var dtTr = parseInt(document.getElementById('s1-dt-tr').value);
+			var ir = parseInt(document.getElementById('s1-ir').value);
+			document.getElementById('s1-rev-v').textContent = roiFmt(rev) + '/day';
+			document.getElementById('s1-dt-un-v').textContent = dtUn + ' days';
+			document.getElementById('s1-dt-tr-v').textContent = dtTr + (dtTr===1?' day':' days');
+			document.getElementById('s1-ir-v').textContent = roiFmt(ir);
+			var notifFine = 50000;
+			var revLossUntrained = rev * dtUn;
+			var revLossTrained = rev * dtTr;
+			var untrainedTotal = revLossUntrained + ir + notifFine;
+			var trainedTotal = revLossTrained + total;  // trained staff + training cost, no IR needed
+			var net = untrainedTotal - trainedTotal;
+			document.getElementById('s1-loss').textContent = roiFmtX(untrainedTotal);
+			document.getElementById('s1-cost').textContent = roiFmtX(total);
+			document.getElementById('s1-roi').textContent = roiFmtX(net);
+			setBD('s1-bd', [
+				['WITHOUT TRAINING', '', ''],
+				['Revenue lost (' + rev.toLocaleString() + '/day × ' + dtUn + ' days)', roiFmtX(revLossUntrained), 'neg'],
+				['External IR contractor', roiFmtX(ir), 'neg'],
+				['Regulatory notification & legal (est.)', roiFmtX(notifFine), 'neg'],
+				['Total untrained exposure', roiFmtX(untrainedTotal), 'neg'],
+				['', '', ''],
+				['WITH TRAINING', '', ''],
+				['Revenue lost (' + rev.toLocaleString() + '/day × ' + dtTr + ' days)', roiFmtX(revLossTrained), 'neg'],
+				['No external IR needed (in-house capability)', roiFmtX(0), 'pos'],
+				['Training investment (' + staff + ' staff)', roiFmtX(total), 'neg'],
+				['Total trained exposure', roiFmtX(trainedTotal), 'neg'],
+				['', '', ''],
+				['Net savings', roiFmtX(net), 'pos']
+			]);
+			drawBar('s1-chart', ['Untrained exposure', 'Trained exposure', 'Net savings'],
+				[untrainedTotal, trainedTotal, net], ['#C026D3', '#F59E0B', '#2DD4A8']);
+		}
+
+		if (idx === 2) {
+			var rev = parseInt(document.getElementById('s2-rev').value);
+			var reg = document.getElementById('s2-reg').value;
+			var prob = parseInt(document.getElementById('s2-prob').value);
+			document.getElementById('s2-rev-v').textContent = roiFmt(rev);
+			document.getElementById('s2-prob-v').textContent = prob + '% chance';
+			var baseFine, desc, remediationCost;
+			if (reg === 'hipaa') { baseFine = Math.min(rev*0.05, 1900000); remediationCost = Math.max(25000, rev*0.01); desc = 'Up to $1.9M per violation category'; }
+			else if (reg === 'pci') { baseFine = 60000*12; remediationCost = Math.max(30000, rev*0.008); desc = '$5K–$100K/month until resolved'; }
+			else { baseFine = rev*0.04; remediationCost = Math.max(50000, rev*0.015); desc = '4% of annual revenue'; }
+			document.getElementById('s2-reg-v').textContent = desc;
+			var totalExposure = baseFine + remediationCost;
+			var expectedLoss = totalExposure * (prob/100);
+			var trainReduction = 0.75;
+			var residualRisk = totalExposure * (prob/100) * (1 - trainReduction);
+			var net = expectedLoss - residualRisk - total;
+			document.getElementById('s2-loss').textContent = roiFmtX(expectedLoss);
+			document.getElementById('s2-cost').textContent = roiFmtX(total);
+			document.getElementById('s2-roi').textContent = roiFmtX(net);
+			setBD('s2-bd', [
+				['Annual revenue', roiFmtX(rev), ''],
+				['Regulatory fine (' + reg.toUpperCase() + ')', roiFmtX(baseFine), 'neg'],
+				['Remediation, legal & audit costs', roiFmtX(remediationCost), 'neg'],
+				['Total exposure per incident', roiFmtX(totalExposure), 'neg'],
+				['Probability without training', prob + '%', ''],
+				['Expected loss (exposure × probability)', roiFmtX(expectedLoss), 'neg'],
+				['', '', ''],
+				['Training reduces incident likelihood by ~75%', '', ''],
+				['Residual risk after training', roiFmtX(residualRisk), 'neg'],
+				['Training investment (' + staff + ' staff)', roiFmtX(total), 'neg'],
+				['Risk-adjusted net savings', roiFmtX(net), 'pos']
+			]);
+			drawBar('s2-chart', ['Untrained expected loss', 'Residual risk (trained)', 'Net savings'],
+				[expectedLoss, residualRisk, net], ['#C026D3', '#F59E0B', '#2DD4A8']);
+		}
+
+		if (idx === 3) {
+			var spend = parseInt(document.getElementById('s3-spend').value);
+			var waste = parseInt(document.getElementById('s3-waste').value);
+			var recov = parseInt(document.getElementById('s3-recov').value);
+			document.getElementById('s3-spend-v').textContent = roiFmt(spend) + '/mo';
+			document.getElementById('s3-waste-v').textContent = waste + '% wasted';
+			document.getElementById('s3-recov-v').textContent = recov + '% recoverable';
+			var annualSpend = spend * 12;
+			var annualWaste = annualSpend * (waste/100);
+			var savings = annualWaste * (recov/100);
+			var net = savings - total;
+			document.getElementById('s3-loss').textContent = roiFmtX(annualWaste);
+			document.getElementById('s3-cost').textContent = roiFmtX(total);
+			document.getElementById('s3-roi').textContent = roiFmtX(net);
+			var payback = savings > 0 ? (total / savings * 12).toFixed(1) + ' months' : 'N/A';
+			setBD('s3-bd', [
+				['Monthly cloud spend', roiFmtX(spend), ''],
+				['Annual cloud spend', roiFmtX(annualSpend), ''],
+				['Waste estimate (' + waste + '%)', roiFmtX(annualWaste), 'neg'],
+				['Recoverable with training (' + recov + '% of waste)', roiFmtX(savings), 'pos'],
+				['Training investment (' + staff + ' staff)', roiFmtX(total), 'neg'],
+				['Payback period', payback, ''],
+				['Net annual savings', roiFmtX(net), 'pos']
+			]);
+			drawBar('s3-chart', ['Annual cloud waste', 'Recoverable savings', 'Net savings'],
+				[annualWaste, savings, net], ['#C026D3', '#0EA5E9', '#2DD4A8']);
+		}
+
+		if (idx === 4) {
+			var hdStaff = parseInt(document.getElementById('s4-staff').value);
+			var sal = parseInt(document.getElementById('s4-sal').value);
+			var gain = parseInt(document.getElementById('s4-gain').value);
+			document.getElementById('s4-staff-v').textContent = hdStaff + ' staff';
+			document.getElementById('s4-sal-v').textContent = roiFmt(sal);
+			document.getElementById('s4-gain-v').textContent = gain + '% more efficient';
+			var totalPayroll = hdStaff * sal;
+			var productivityGain = totalPayroll * (gain/100);
+			// Escalation savings: ~15% of salary per person saved by reducing unnecessary L2/L3 escalations
+			var escalationSavings = hdStaff * sal * 0.15 * (gain/100);
+			var totalValue = productivityGain + escalationSavings;
+			var trainCostHD = price * hdStaff;
+			var net = totalValue - trainCostHD;
+			document.getElementById('s4-loss').textContent = roiFmtX(totalValue);
+			document.getElementById('s4-cost').textContent = roiFmtX(trainCostHD);
+			document.getElementById('s4-roi').textContent = roiFmtX(net);
+			setBD('s4-bd', [
+				['Help desk payroll (' + hdStaff + ' × ' + roiFmt(sal) + ')', roiFmtX(totalPayroll), ''],
+				['Productivity gain (' + gain + '% efficiency improvement)', roiFmtX(productivityGain), 'pos'],
+				['Escalation reduction (fewer L2/L3 handoffs)', roiFmtX(escalationSavings), 'pos'],
+				['Total annual value of training', roiFmtX(totalValue), 'pos'],
+				['Training investment (' + hdStaff + ' × ' + roiFmt(price) + ')', roiFmtX(trainCostHD), 'neg'],
+				['Net annual value recovered', roiFmtX(net), 'pos']
+			]);
+			drawBar('s4-chart', ['Total value of training', 'Training investment', 'Net value recovered'],
+				[totalValue, trainCostHD, net], ['#0EA5E9', '#C026D3', '#2DD4A8']);
+		}
+	}
+
+	(function() {
+		var tabs = document.querySelectorAll('.itu-roi-tab');
+		tabs.forEach(function(tab) {
+			tab.addEventListener('click', function() {
+				var idx = this.dataset.scenario;
+				tabs.forEach(function(t) { t.classList.remove('is-active'); });
+				this.classList.add('is-active');
+				document.querySelectorAll('.itu-roi-panel').forEach(function(p) { p.classList.remove('is-active'); });
+				document.querySelectorAll('.itu-roi-results').forEach(function(r) { r.style.display = 'none'; });
+				document.getElementById('sp-' + idx).classList.add('is-active');
+			});
+		});
+	})();
+	</script>
 	<!-- /wp:html -->
 
 	<!-- wp:html -->
-	<section class="itu-teams-contact" id="teams-contact">
-		<div class="itu-teams-contact__inner">
-			<div class="itu-teams-contact__info">
-				<span class="itu-teams-contact__eyebrow">[ Get Started ]</span>
-				<h2 class="itu-teams-contact__title">Request a team training quote<em>.</em></h2>
-				<p class="itu-teams-contact__description">Tell us about your organization and training needs. A member of our team will follow up within one business day.</p>
-				<div class="itu-teams-contact__direct">
-					<p>Or reach us directly:</p>
-					<a href="tel:+18554885327" class="itu-teams-contact__link">+1 855.488.5327</a>
-					<a href="mailto:customerservice@ituonline.com" class="itu-teams-contact__link">customerservice@ituonline.com</a>
-				</div>
+	<section class="itu-section itu-section--gray" id="teams-outcomes">
+		<div class="itu-section__inner">
+			<span class="itu-eyebrow">[ Team Outcomes ]</span>
+			<h2>Real career paths<em>.</em> Real results<em>.</em></h2>
+			<p class="itu-description">Every path builds future leaders. Technical expertise is the foundation of IT leadership. Each role below includes leadership-relevant skills — communication, strategic thinking, and team management — woven throughout the journey.</p>
+
+			<div class="itu-journey-tabs">
+				<button class="itu-journey-tab is-active" data-panel="0">Cybersecurity Analyst</button>
+				<button class="itu-journey-tab" data-panel="1">Network Engineer</button>
+				<button class="itu-journey-tab" data-panel="2">Cloud / DevOps</button>
+				<button class="itu-journey-tab" data-panel="3">IT Support / Sysadmin</button>
+				<button class="itu-journey-tab" data-panel="4">Data &amp; Database</button>
+				<button class="itu-journey-tab" data-panel="5">AI Professional</button>
+				<button class="itu-journey-tab" data-panel="6">Project Manager</button>
+				<button class="itu-journey-tab itu-journey-tab--accent" data-panel="7">IT Leadership</button>
 			</div>
-			<div class="itu-teams-contact__form-wrapper">
-				<form class="itu-teams-contact__form" action="#" method="post">
-					<div class="itu-teams-contact__field">
-						<label for="team-name">Full Name</label>
-						<input type="text" id="team-name" name="name" placeholder="Your name" required />
+
+			<!-- Cybersecurity Analyst -->
+			<div class="itu-journey-panel is-active" id="journey-0">
+				<div class="itu-journey-header">
+					<h3>Cybersecurity Analyst</h3>
+					<p>From security fundamentals to certified threat detection and ethical hacking in 12 months</p>
+				</div>
+				<div class="itu-journey-outcome">By year-end, your team member will hold <strong>CompTIA Security+</strong> and be on track for <strong>CySA+</strong> or <strong>CEH</strong>. They'll monitor networks, respond to incidents, conduct vulnerability assessments, and apply ethical hacking techniques.</div>
+				<div class="itu-journey-phases">
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q1 · Foundation</div><div class="itu-journey-phase__title">Security Awareness &amp; Fundamentals</div><ul><li>Cybersecurity Essentials</li><li>Cyber Security Awareness &amp; Prevention</li><li>CompTIA IT Fundamentals (FC0-U61)</li><li>OWASP Top 10</li><li>AI &amp; Data Privacy</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q2 · Core Certification</div><div class="itu-journey-phase__title">Security+ Ready</div><ul><li>CompTIA Security+ SY0-701</li><li>Data Security: PII Protection</li><li>HIPAA, Fraud &amp; Abuse</li><li>ISC(2) CC Certified in Cybersecurity</li><li>Microsoft SC-900</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q3 · Analyst Skills</div><div class="itu-journey-phase__title">Detection &amp; Response</div><ul><li>CySA+ CS0-003 or CS0-004</li><li>AI in Cybersecurity: Essentials</li><li>CHFI (Forensic Investigator)</li><li>CyberArk Fundamentals</li><li>Managing Different Personality Types</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q4 · Advanced + Leadership</div><div class="itu-journey-phase__title">Hacking, Strategy &amp; Influence</div><ul><li>CEH v13 (Parts 1–3)</li><li>CompTIA PenTest+ PT0-003</li><li>CISM (strategic security mgmt)</li><li>Navigating Change Management in IT</li><li>Strategic Planning for IT Leaders</li></ul></div>
+				</div>
+				<div class="itu-journey-certs"><span>Target certifications:</span><span class="itu-cert-badge">Security+ SY0-701</span><span class="itu-cert-badge">CySA+ CS0-004</span><span class="itu-cert-badge">CEH v13</span><span class="itu-cert-badge">ISC(2) CC</span><span class="itu-cert-badge itu-cert-badge--gold">CISM</span></div>
+				<div class="itu-journey-footer">Leadership bridge: Security analysts who complete CISM are positioned for CISO, Security Manager, or VP of IT Security roles.</div>
+			</div>
+
+			<!-- Network Engineer -->
+			<div class="itu-journey-panel" id="journey-1">
+				<div class="itu-journey-header">
+					<h3>Network Engineer</h3>
+					<p>From networking basics to Cisco CCNA, CCNP, and infrastructure leadership in 12 months</p>
+				</div>
+				<div class="itu-journey-outcome">By year-end, your team member will hold <strong>CompTIA Network+</strong> and <strong>Cisco CCNA</strong>, with hands-on skills in routing, switching, and network security.</div>
+				<div class="itu-journey-phases">
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q1 · Foundation</div><div class="itu-journey-phase__title">Networking Concepts</div><ul><li>CompTIA IT Fundamentals</li><li>MTA Networking Fundamentals (98-366)</li><li>CompTIA Network+ N10-009</li><li>Cybersecurity Essentials</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q2 · Cisco Entry</div><div class="itu-journey-phase__title">CCENT / CCNA Core</div><ul><li>Cisco ICND1 (100-105)</li><li>Cisco ICND2 (200-105)</li><li>Cisco CCNA 200-301 v1.1</li><li>Cisco Wireless (200-355)</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q3 · Security &amp; Voice</div><div class="itu-journey-phase__title">Network Security &amp; Unified Comms</div><ul><li>Cisco IINS 210-260</li><li>Cisco CIVND (Video Devices)</li><li>Cisco CICD (Collaboration Devices)</li><li>CompTIA Security+ SY0-701</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q4 · Advanced + Leadership</div><div class="itu-journey-phase__title">CCNP, Design &amp; Strategy</div><ul><li>CCNP ROUTE / SWITCH / TSHOOT</li><li>CCDA Design Associate</li><li>CCNP ENCOR (350-401)</li><li>Strategic Planning for IT Leaders</li><li>Foundations of IT Leadership</li></ul></div>
+				</div>
+				<div class="itu-journey-certs"><span>Target certifications:</span><span class="itu-cert-badge">Network+ N10-009</span><span class="itu-cert-badge">Cisco CCNA 200-301</span><span class="itu-cert-badge">CCNP ROUTE/SWITCH</span><span class="itu-cert-badge itu-cert-badge--gold">CCDA</span></div>
+				<div class="itu-journey-footer">Leadership bridge: Network engineers with CCDA and CCNP are natural candidates for Network Architect, Infrastructure Director, and CTO pipeline roles.</div>
+			</div>
+
+			<!-- Cloud / DevOps -->
+			<div class="itu-journey-panel" id="journey-2">
+				<div class="itu-journey-header">
+					<h3>Cloud / DevOps Engineer</h3>
+					<p>From cloud fundamentals to multi-cloud architecture and platform leadership in 12 months</p>
+				</div>
+				<div class="itu-journey-outcome">By year-end, your team member will be certified across <strong>AWS</strong>, <strong>Azure</strong>, or <strong>GCP</strong>, with working knowledge of Kubernetes, DevOps practices, and cloud security.</div>
+				<div class="itu-journey-phases">
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q1 · Foundation</div><div class="itu-journey-phase__title">Cloud Concepts &amp; Platforms</div><ul><li>CompTIA Cloud+ (CV0-004)</li><li>AWS Introduction &amp; Deep Dive</li><li>AWS Certified Cloud Practitioner</li><li>Azure Fundamentals AZ-900</li><li>Google Cloud Digital Leader</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q2 · Core Skills</div><div class="itu-journey-phase__title">Admin &amp; Architecture</div><ul><li>Azure Administrator AZ-104</li><li>GCP Certification Training</li><li>Moving On-Site Infra to Cloud</li><li>Strategic Cloud Transformation</li><li>Microsoft AZ-203 (Azure Dev)</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q3 · Containers &amp; DevOps</div><div class="itu-journey-phase__title">Kubernetes &amp; Pipelines</div><ul><li>Kubernetes: Containerizing Apps</li><li>Certified Kubernetes Admin (CKA)</li><li>Certified Kubernetes App Dev (CKAD)</li><li>DevOps Fundamentals</li><li>Apache Kafka Fundamentals</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q4 · Security + Leadership</div><div class="itu-journey-phase__title">Cloud Security &amp; Strategic Influence</div><ul><li>Certified Cloud Security Prof (CCSP)</li><li>FinOps Fundamentals</li><li>Strategic Cloud Transformation</li><li>Foundations of IT Leadership</li><li>Strategic Planning for IT Leaders</li></ul></div>
+				</div>
+				<div class="itu-journey-certs"><span>Target certifications:</span><span class="itu-cert-badge">AWS Cloud Practitioner</span><span class="itu-cert-badge">AZ-104</span><span class="itu-cert-badge">CKA</span><span class="itu-cert-badge">CCSP</span><span class="itu-cert-badge itu-cert-badge--gold">FinOps</span></div>
+				<div class="itu-journey-footer">Leadership bridge: Cloud engineers who add FinOps and strategic planning move into Cloud Architect and VP of Infrastructure roles.</div>
+			</div>
+
+			<!-- IT Support / Sysadmin -->
+			<div class="itu-journey-panel" id="journey-3">
+				<div class="itu-journey-header">
+					<h3>IT Support / Systems Administrator</h3>
+					<p>From help desk to sysadmin to IT team lead — a complete advancement path in 12 months</p>
+				</div>
+				<div class="itu-journey-outcome">By year-end, your team member will hold <strong>CompTIA A+</strong>, <strong>Network+</strong>, and be proficient in <strong>Windows Server 2022</strong> and <strong>Microsoft 365</strong> administration.</div>
+				<div class="itu-journey-phases">
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q1 · Help Desk Core</div><div class="itu-journey-phase__title">A+ &amp; OS Foundations</div><ul><li>CompTIA A+ 220-1201 &amp; 220-1202</li><li>CompTIA IT Fundamentals (FC0-U71)</li><li>Windows 11: Beginner to Advanced</li><li>IT Support with AI</li><li>How to Break into a Technology Career</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q2 · Networking &amp; OS</div><div class="itu-journey-phase__title">Network+ &amp; Windows Client</div><ul><li>CompTIA Network+ N10-009</li><li>Microsoft MD-100: Windows 10</li><li>Microsoft MD-101: Modern Desktops</li><li>Microsoft MD-102: Endpoint Admin</li><li>IT Job Hunt Mastery</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q3 · Server &amp; Cloud</div><div class="itu-journey-phase__title">Windows Server &amp; M365</div><ul><li>Windows Server 2022: Install &amp; Deploy</li><li>Microsoft 365 Fundamentals MS-900</li><li>MS 70-346: Office 365 Identities</li><li>CompTIA Server+ (SK0-005)</li><li>IT Asset Management (ITAM)</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q4 · Leadership Transition</div><div class="itu-journey-phase__title">From Support to Team Lead</div><ul><li>Tech Support to Team Lead</li><li>Foundations of IT Leadership</li><li>Emotional Intelligence for IT Pros</li><li>Power Skills for IT Professionals</li><li>Compliance in the IT Landscape</li></ul></div>
+				</div>
+				<div class="itu-journey-certs"><span>Target certifications:</span><span class="itu-cert-badge">CompTIA A+</span><span class="itu-cert-badge">Network+</span><span class="itu-cert-badge">MD-102 Endpoint Admin</span><span class="itu-cert-badge itu-cert-badge--gold">IT Leadership</span></div>
+				<div class="itu-journey-footer">Leadership bridge: This path has the most direct leadership arc — Q4 is intentionally people-focused, preparing high-potential support staff for supervisor and manager roles.</div>
+			</div>
+
+			<!-- Data & Database -->
+			<div class="itu-journey-panel" id="journey-4">
+				<div class="itu-journey-header">
+					<h3>Data &amp; Database Professional</h3>
+					<p>From SQL basics to enterprise DBA, analytics, and data leadership in 12 months</p>
+				</div>
+				<div class="itu-journey-outcome">By year-end, your team member will be proficient in <strong>SQL Server administration</strong>, data warehousing, and BI reporting — building toward <strong>Data Architect</strong> or <strong>Chief Data Officer</strong> roles.</div>
+				<div class="itu-journey-phases">
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q1 · SQL Foundations</div><div class="itu-journey-phase__title">Querying &amp; Database Basics</div><ul><li>SQL Server 2019: Intro to Data Analysis</li><li>SQL Server 2019: Querying SQL</li><li>MS 70-461: Querying SQL Server 2012</li><li>Oracle 12c 1Z0-061: SQL Fundamentals</li><li>Microsoft Access 2016</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q2 · Administration</div><div class="itu-journey-phase__title">DBA Core Skills</div><ul><li>SQL Server 2019 Administration</li><li>SQL Server 2019 Database Design</li><li>MS 70-462: Administering SQL 2012</li><li>MS 70-764: SQL 2016 Admin Infra</li><li>MS 70-765: SQL 2016 Provisioning</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q3 · BI &amp; Analytics</div><div class="itu-journey-phase__title">Warehousing &amp; Reporting</div><ul><li>SQL Server 2019 Analysis Services</li><li>MS 70-463: Data Warehouse SQL 2012</li><li>MS 70-466: Data Models &amp; Reports</li><li>MS 70-467: BI Solutions Design</li><li>Power BI Introduction</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q4 · Cloud + Leadership</div><div class="itu-journey-phase__title">Data Strategy &amp; Cloud Platforms</div><ul><li>CompTIA Data+ (DA0-001)</li><li>AWS Redshift Fundamentals</li><li>Disaster Recovery for SQL with GCP</li><li>Strategic Planning for IT Leaders</li><li>Foundations of IT Leadership</li></ul></div>
+				</div>
+				<div class="itu-journey-certs"><span>Target certifications:</span><span class="itu-cert-badge">SQL Server 2019 Admin</span><span class="itu-cert-badge">Oracle OCA</span><span class="itu-cert-badge">CompTIA Data+</span><span class="itu-cert-badge itu-cert-badge--gold">Data Strategy</span></div>
+				<div class="itu-journey-footer">Leadership bridge: Data professionals who pair technical depth with strategic planning are positioned for Data Architect, Analytics Manager, and CDO pipeline roles.</div>
+			</div>
+
+			<!-- AI Professional -->
+			<div class="itu-journey-panel" id="journey-5">
+				<div class="itu-journey-header">
+					<h3>AI Professional</h3>
+					<p>From AI awareness to certified AI security, ethics, and enterprise leadership in 12 months</p>
+				</div>
+				<div class="itu-journey-outcome">By year-end, your team member will hold <strong>CompTIA SecAI+</strong> and demonstrate hands-on proficiency applying AI tools across business and cybersecurity workflows — positioned as an <strong>AI Strategy Lead</strong> or <strong>Chief AI Officer</strong> pipeline candidate.</div>
+				<div class="itu-journey-phases">
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q1 · Foundation</div><div class="itu-journey-phase__title">AI Literacy &amp; Core Concepts</div><ul><li>AI Fundamentals: Getting Started with AI</li><li>AI Fundamentals for Business Professionals</li><li>ChatGPT and AI Business Fundamentals</li><li>Generative AI For Everyone</li><li>The Future of Work with AI</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q2 · Applied AI</div><div class="itu-journey-phase__title">AI in the Workplace</div><ul><li>IT Support with AI: Practical Strategies</li><li>AI-Powered Talent Acquisition</li><li>AI &amp; Data Privacy</li><li>Data Security: Mastering PII Protection</li><li>Introduction to Python</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q3 · AI Security &amp; Ethics</div><div class="itu-journey-phase__title">Governance &amp; Risk</div><ul><li>AI in Cybersecurity: Must Know Essentials</li><li>Responsible AI Ethics Fundamentals</li><li>EU AI Act: Compliance &amp; Risk Management</li><li>CompTIA SecAI+ (CY0-001)</li><li>Microsoft SC-900</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q4 · Strategy + Leadership</div><div class="itu-journey-phase__title">AI Leadership &amp; Org Transformation</div><ul><li>AI-Powered Talent Acquisition</li><li>Strategic Planning for IT Leaders</li><li>Navigating Change Management in IT</li><li>Foundations of IT Leadership</li><li>Emotional Intelligence for IT Pros</li></ul></div>
+				</div>
+				<div class="itu-journey-certs"><span>Target certifications:</span><span class="itu-cert-badge">SecAI+ CY0-001</span><span class="itu-cert-badge">Responsible AI Ethics</span><span class="itu-cert-badge">EU AI Act</span><span class="itu-cert-badge itu-cert-badge--gold">AI Strategy Lead</span></div>
+				<div class="itu-journey-footer">Leadership bridge: AI professionals with governance and ethics training are being promoted into Chief AI Officer and AI Strategy Director roles faster than any other IT specialty.</div>
+			</div>
+
+			<!-- Project Manager -->
+			<div class="itu-journey-panel" id="journey-6">
+				<div class="itu-journey-header">
+					<h3>Project Manager</h3>
+					<p>From project essentials to PMP certification and senior IT leadership in 12 months</p>
+				</div>
+				<div class="itu-journey-outcome">By year-end, your team member will hold <strong>CAPM</strong> and be fully prepared for the <strong>PMP exam</strong>, with a working command of Agile, Scrum, and risk management. PMs with technical credibility are consistently promoted into <strong>Director</strong>, <strong>VP</strong>, and <strong>CIO</strong> roles.</div>
+				<div class="itu-journey-phases">
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q1 · Foundation</div><div class="itu-journey-phase__title">PM Essentials &amp; Frameworks</div><ul><li>Project Management Essentials</li><li>CAPM V7 Fundamentals</li><li>Fundamentals of SDLC</li><li>Six Sigma White Belt Foundations</li><li>Managing Different Personality Types</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q2 · Agile &amp; Scrum</div><div class="itu-journey-phase__title">Iterative Delivery Methods</div><ul><li>Agile Project Management</li><li>Agile/Scrum &amp; Agile/XP</li><li>Become a Scrum Master</li><li>Sprint Planning &amp; Meetings</li><li>Practical Agile Testing</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q3 · PMP Prep</div><div class="itu-journey-phase__title">Advanced PM &amp; Risk</div><ul><li>PMP PMI V7 (PMBOK 7th Edition)</li><li>PMI Risk Management Professional</li><li>Navigating Change Management in IT</li><li>Strategic Planning for IT Leaders</li><li>Foundations of IT Leadership</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q4 · Executive Skills</div><div class="itu-journey-phase__title">People Leadership &amp; Influence</div><ul><li>Emotional Intelligence for IT Pros</li><li>Power Skills for IT Professionals</li><li>Leadership for Administrative Professionals</li><li>Compliance in the IT Landscape</li><li>Microsoft Licensing Essentials</li></ul></div>
+				</div>
+				<div class="itu-journey-certs"><span>Target certifications:</span><span class="itu-cert-badge">CAPM V7</span><span class="itu-cert-badge">PMP PMI V7</span><span class="itu-cert-badge">PMI-RMP</span><span class="itu-cert-badge">Scrum Master</span><span class="itu-cert-badge itu-cert-badge--gold">Six Sigma</span></div>
+				<div class="itu-journey-footer">Leadership bridge: PMP-certified professionals with Agile and risk management credentials are among the most promotable in any IT organization.</div>
+			</div>
+
+			<!-- IT Leadership -->
+			<div class="itu-journey-panel" id="journey-7">
+				<div class="itu-journey-header">
+					<h3>IT Leadership Track</h3>
+					<p>For high-potential technical staff making the move from individual contributor to manager, director, or executive</p>
+				</div>
+				<div class="itu-journey-outcome">This track is the <strong>convergence of every other path</strong>. Designed for team members 1–2 years into a technical role and showing leadership potential. By year-end, they will have the strategic, interpersonal, and organizational skills to lead teams and step into Director or VP roles.</div>
+
+				<div class="itu-journey-ladder">
+					<div class="itu-journey-ladder__card itu-journey-ladder__card--highlight"><div class="itu-journey-ladder__label">Where they are now</div><h4>Senior Individual Contributor</h4><p>Deep technical expertise. Trusted by peers. Ready for more.</p></div>
+					<div class="itu-journey-ladder__card itu-journey-ladder__card--highlight"><div class="itu-journey-ladder__label">12-month target</div><h4>Team Lead / Manager</h4><p>Leading 3–8 people. Owns outcomes. Bridges technical and business.</p></div>
+					<div class="itu-journey-ladder__card itu-journey-ladder__card--highlight"><div class="itu-journey-ladder__label">3-year horizon</div><h4>Director / VP / CIO Pipeline</h4><p>Strategic decision-maker. Budget ownership. Drives transformation.</p></div>
+				</div>
+
+				<div class="itu-journey-phases">
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q1 · Self &amp; Team</div><div class="itu-journey-phase__title">Leadership Fundamentals</div><ul><li>Foundations of IT Leadership</li><li>Emotional Intelligence for IT Pros</li><li>Managing Different Personality Types</li><li>How to Handle Stress in the Workplace</li><li>Power Skills for IT Professionals</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q2 · Process &amp; Delivery</div><div class="itu-journey-phase__title">Managing Work &amp; Teams</div><ul><li>Tech Support to Team Lead</li><li>Agile Project Management</li><li>Sprint Planning &amp; Meetings</li><li>Practical Agile Testing</li><li>SDLC Fundamentals</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q3 · Strategy &amp; Risk</div><div class="itu-journey-phase__title">Organizational Thinking</div><ul><li>Strategic Planning for IT Leaders</li><li>Navigating Change Management in IT</li><li>PMI Risk Management Professional</li><li>IT Asset Management (ITAM)</li><li>Compliance in the IT Landscape</li></ul></div>
+					<div class="itu-journey-phase"><div class="itu-journey-phase__label">Q4 · Executive Presence</div><div class="itu-journey-phase__title">Vision, Communication &amp; Growth</div><ul><li>Leadership for Admin Professionals</li><li>Microsoft Licensing Essentials</li><li>FinOps Fundamentals</li><li>AI Fundamentals for Business Pros</li><li>The Future of Work with AI</li></ul></div>
+				</div>
+				<div class="itu-journey-certs"><span>Target outcomes:</span><span class="itu-cert-badge itu-cert-badge--gold">Team Lead Readiness</span><span class="itu-cert-badge itu-cert-badge--gold">PMP or CAPM</span><span class="itu-cert-badge itu-cert-badge--gold">PMI-RMP</span><span class="itu-cert-badge itu-cert-badge--gold">Agile / Scrum Master</span><span class="itu-cert-badge itu-cert-badge--gold">FinOps</span></div>
+				<div class="itu-journey-footer">Recommended for staff rated high-potential in performance reviews. Can be layered on top of any technical path in year 2.</div>
+			</div>
+
+			<div class="itu-cta" style="margin-top:var(--wp--preset--spacing--50)">
+				<a href="#teams-contact" class="itu-button">Sign My Team Up Today</a>
+			</div>
+
+		</div>
+	</section>
+
+	<script>
+	(function() {
+		var tabs = document.querySelectorAll('.itu-journey-tab');
+		tabs.forEach(function(tab) {
+			tab.addEventListener('click', function() {
+				var idx = this.dataset.panel;
+				tabs.forEach(function(t) { t.classList.remove('is-active'); });
+				this.classList.add('is-active');
+				document.querySelectorAll('.itu-journey-panel').forEach(function(p) { p.classList.remove('is-active'); });
+				document.getElementById('journey-' + idx).classList.add('is-active');
+			});
+		});
+	})();
+	</script>
+	<!-- /wp:html -->
+
+
+
+	<!-- wp:html -->
+	<section class="itu-section" id="teams-contact">
+		<div class="itu-section__inner">
+			<span class="itu-eyebrow">[ Let's Begin My Team's Journey ]</span>
+			<h2>Your ROI Starts Today<em>.</em></h2>
+
+			[vts_team_plan_selector]
+
+			<a class="itu-contact-toggle" onclick="document.getElementById('teams-contact-form').classList.toggle('is-open')">Prefer to speak with a team training specialist first? →</a>
+
+			<div id="teams-contact-form" class="itu-contact-panel">
+				<span class="itu-eyebrow">[ Contact a Specialist ]</span>
+				<h3>Become a team hero<em>.</em> Tell us about your team<em>.</em></h3>
+				<form id="itu-team-contact-form" class="itu-form">
+					<div class="itu-form__field">
+						<label for="contact-firstname">First Name</label>
+						<input type="text" id="contact-firstname" name="firstname" placeholder="First name" required />
 					</div>
-					<div class="itu-teams-contact__field">
-						<label for="team-email">Work Email</label>
-						<input type="email" id="team-email" name="email" placeholder="you@company.com" required />
+					<div class="itu-form__field">
+						<label for="contact-lastname">Last Name</label>
+						<input type="text" id="contact-lastname" name="lastname" placeholder="Last name" required />
 					</div>
-					<div class="itu-teams-contact__field">
-						<label for="team-company">Company</label>
-						<input type="text" id="team-company" name="company" placeholder="Company name" required />
+					<div class="itu-form__field">
+						<label for="contact-email">Work Email</label>
+						<input type="email" id="contact-email" name="email" placeholder="you@company.com" required />
 					</div>
-					<div class="itu-teams-contact__field">
-						<label for="team-size">Team Size</label>
-						<select id="team-size" name="team_size">
+					<div class="itu-form__field">
+						<label for="contact-phone">Phone</label>
+						<input type="tel" id="contact-phone" name="phone" placeholder="+1 555 000 0000" />
+					</div>
+					<div class="itu-form__field">
+						<label for="contact-company">Company</label>
+						<input type="text" id="contact-company" name="company" placeholder="Company name" required />
+					</div>
+					<div class="itu-form__field">
+						<label for="contact-size">Team Size</label>
+						<select id="contact-size" name="number_of_team_members" required>
 							<option value="">Select team size</option>
 							<option value="2-10">2 – 10</option>
 							<option value="11-50">11 – 50</option>
@@ -155,13 +862,50 @@
 							<option value="200+">200+</option>
 						</select>
 					</div>
-					<div class="itu-teams-contact__field">
-						<label for="team-message">Training Goals</label>
-						<textarea id="team-message" name="message" rows="4" placeholder="Tell us about your team's training needs..."></textarea>
+					<div class="itu-form__field itu-form__field--full">
+						<label for="contact-message">How can we help?</label>
+						<textarea id="contact-message" name="comments" rows="3" placeholder="Tell us about your team's training needs..."></textarea>
 					</div>
-					<button type="submit" class="itu-teams-contact__button">Request Quote</button>
+					<input type="hidden" name="lead_source" value="Team Training Page" />
+					<input type="hidden" name="hubspot_owner_id" value="" />
+					<div class="itu-form__actions">
+						<button type="submit" class="itu-button" style="background:#C026D3; box-shadow:none; border:none; -webkit-appearance:none; appearance:none">Send My Inquiry</button>
+					</div>
 				</form>
+				<div id="itu-team-contact-success" style="display:none; text-align:center; padding:var(--wp--preset--spacing--60) 0">
+					<span class="itu-eyebrow">[ Message Sent ]</span>
+					<h3>Thank you<em>!</em></h3>
+					<p style="color:var(--itu-gray-400); max-width:500px; margin:16px auto 0">A member of our team training specialists will be in touch within one business day. We look forward to helping your team level up.</p>
+				</div>
 			</div>
+
+			<script>
+			(function() {
+				var form = document.getElementById('itu-team-contact-form');
+				if (!form) return;
+				form.addEventListener('submit', function(e) {
+					e.preventDefault();
+					var btn = form.querySelector('button[type="submit"]');
+					btn.textContent = 'SENDING...';
+					btn.disabled = true;
+
+					var data = new FormData(form);
+					fetch('/wp-json/custom/v1/send-email', {
+						method: 'POST',
+						body: data
+					})
+					.then(function() {
+						form.style.display = 'none';
+						document.getElementById('itu-team-contact-success').style.display = 'block';
+					})
+					.catch(function() {
+						btn.textContent = 'SEND MY INQUIRY';
+						btn.disabled = false;
+						alert('Something went wrong. Please try again or call us at +1 855.488.5327.');
+					});
+				});
+			})();
+			</script>
 		</div>
 	</section>
 	<!-- /wp:html -->
@@ -170,3 +914,191 @@
 <!-- /wp:group -->
 
 <!-- wp:template-part {"slug":"footer","area":"footer"} /-->
+
+
+<script>
+
+
+	
+/* 1) Map each hotspot to an HD crop
+   - Provide 1x and 2x (retina) versions for crispness
+   - You can also provide modern formats via <picture> (webp/avif) below
+*/
+const SECTIONS = [
+  {
+    id: 1, title: 'Overview metrics',
+    coords: [65,5,820,75],  // x1,y1,x2,y2 in NATURAL pixels of lms_dashboard.png
+    src1x: 'https://www.ituonline.com/wp-content/uploads/2025/10/1-quick-stats.png',
+    src2x: '/img/sections/section-1-2560.jpg',
+    type: 'image/jpeg'
+  },
+  {
+    id: 2, title: 'Learner Course Progress',
+    coords: [65,80,425,300],
+    src1x: 'https://www.ituonline.com/wp-content/uploads/2025/10/1-quick-summary.png',
+    src2x: '/img/sections/section-2-2560.jpg',
+    type: 'image/jpeg'
+  },
+  {
+    id: 3, title: 'Alerts & Notifications',
+    coords: [430,80,820,300],
+    src1x: 'https://www.ituonline.com/wp-content/uploads/2025/10/3-alerts-and-notices.png',
+    src2x: '/img/sections/section-3-2560.jpg',
+    type: 'image/jpeg'
+  },
+  {
+    id: 4, title: 'User Compliance Grid',
+    coords: [65,290,820,460],
+    src1x: 'https://www.ituonline.com/wp-content/uploads/2025/10/4-compliance-grid.png',
+    src2x: '/img/sections/section-4-3200.jpg',
+    type: 'image/jpeg'
+  },
+  {
+    id: 5, title: 'Team Interaction Trend',
+    coords: [60,480,430,640],
+    src1x: 'https://www.ituonline.com/wp-content/uploads/2025/10/5-team-interaction-time.png',
+    src2x: '/img/sections/section-5-2400.jpg',
+    type: 'image/jpeg'
+  },
+  {
+    id: 6, title: 'Top Course Utilization',
+        coords: [430,480,820,640],
+    src1x: 'https://www.ituonline.com/wp-content/uploads/2025/10/6-course-utilization.png',
+    type: 'image/jpeg'
+  }
+];
+
+
+
+const img = document.getElementById('dashImg');
+const map = document.getElementById('dashmap');
+const outline = document.getElementById('hoverOutline');
+
+function rebuildAreas() {
+  map.innerHTML = '';
+  const dw = img.clientWidth, dh = img.clientHeight;
+  const nw = img.naturalWidth, nh = img.naturalHeight;
+  const sx = dw / nw, sy = dh / nh;
+
+  SECTIONS.forEach(sec => {
+    const [x1,y1,x2,y2] = sec.coords;
+    const a = document.createElement('area');
+    a.shape = 'rect';
+    a.coords = [
+      Math.round(x1*sx), Math.round(y1*sy),
+      Math.round(x2*sx), Math.round(y2*sy)
+    ].join(',');
+    a.href = '#';
+    a.dataset.id = sec.id;
+    a.addEventListener('mouseenter', () => {
+      outline.style.display = 'block';
+      outline.style.left   = Math.round(x1*sx)+'px';
+      outline.style.top    = Math.round(y1*sy)+'px';
+      outline.style.width  = Math.round((x2-x1)*sx)+'px';
+      outline.style.height = Math.round((y2-y1)*sy)+'px';
+    });
+    a.addEventListener('mouseleave', () => outline.style.display='none');
+    a.addEventListener('click', e => { e.preventDefault(); openModal(sec); });
+    map.appendChild(a);
+  });
+}
+img.addEventListener('load', rebuildAreas);
+window.addEventListener('resize', rebuildAreas);
+if (img.complete) rebuildAreas();
+
+/* 2) Modal logic: inject HD image via <picture> with srcset, plus zoom/pan */
+const modal = document.getElementById('modal');
+const title = document.getElementById('modalTitle');
+const stage = document.getElementById('zoomstage');
+const closeBtn = document.getElementById('close');
+const dlBtn = document.getElementById('download');
+const zoomInBtn = document.getElementById('zoomIn');
+const zoomOutBtn = document.getElementById('zoomOut');
+
+let currentImgEl = null;
+let zoom = 1, minZoom = 1, maxZoom = 3;
+let pan = {x:0, y:0}, isDrag=false, dragStart={x:0,y:0}, panStart={x:0,y:0};
+
+function openModal(sec) {
+  title.textContent = `Section ${sec.id} — ${sec.title}`;
+  stage.innerHTML = '';
+
+  // Build <picture> for quality + modern formats (optional: add AVIF/WEBP)
+  const picture = document.createElement('picture');
+
+  // Example WEBP source (if you have them)
+  // const webp = document.createElement('source');
+  // webp.type = 'image/webp';
+  // webp.srcset = `${sec.src1x.replace('.jpg','.webp')} 1x, ${sec.src2x.replace('.jpg','.webp')} 2x`;
+  // picture.appendChild(webp);
+
+  const source = document.createElement('source');
+  source.type = sec.type || 'image/jpeg';
+  source.srcset = `${sec.src1x} 1x, ${sec.src2x} 2x`;
+  picture.appendChild(source);
+
+  const imgHD = document.createElement('img');
+  imgHD.alt = sec.title;
+  imgHD.loading = 'eager';
+  imgHD.decoding = 'async';
+  imgHD.src = sec.src1x;      // fallback
+  imgHD.srcset = `${sec.src1x} 1x, ${sec.src2x} 2x`;
+  picture.appendChild(imgHD);
+
+  stage.appendChild(picture);
+  currentImgEl = imgHD;
+
+  // reset zoom/pan
+  zoom = 1; pan = {x:0, y:0}; applyTransform();
+  modal.classList.add('open');
+
+  // prepare download
+  dlBtn.onclick = () => {
+    const link = document.createElement('a');
+    link.download = `dashboard-section-${sec.id}.jpg`;
+    // prefer 2x if available
+    link.href = sec.src2x || sec.src1x;
+    link.click();
+  };
+}
+
+function applyTransform() {
+  stage.style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`;
+}
+
+function clampPan() {
+  if (!currentImgEl) return;
+  const viewport = stage.parentElement.getBoundingClientRect();
+  const imgW = currentImgEl.naturalWidth || currentImgEl.width;
+  const imgH = currentImgEl.naturalHeight || currentImgEl.height;
+  const scaledW = imgW * zoom;
+  const scaledH = imgH * zoom;
+
+  // keep at least centered if smaller than viewport
+  const maxX = Math.max(0, (scaledW - viewport.width) / 2);
+  const maxY = Math.max(0, (scaledH - viewport.height) / 2);
+  pan.x = Math.min(maxX, Math.max(-maxX, pan.x));
+  pan.y = Math.min(maxY, Math.max(-maxY, pan.y));
+}
+
+zoomInBtn.addEventListener('click', () => { zoom = Math.min(maxZoom, zoom*1.2); clampPan(); applyTransform(); });
+zoomOutBtn.addEventListener('click', () => { zoom = Math.max(minZoom, zoom/1.2); clampPan(); applyTransform(); });
+
+stage.addEventListener('mousedown', (e) => {
+  isDrag = true; stage.classList.remove('grab'); stage.classList.add('grabbing');
+  dragStart = {x:e.clientX, y:e.clientY}; panStart = {...pan};
+});
+window.addEventListener('mouseup', () => { isDrag=false; stage.classList.remove('grabbing'); stage.classList.add('grab'); });
+window.addEventListener('mousemove', (e) => {
+  if (!isDrag) return;
+  pan.x = panStart.x + (e.clientX - dragStart.x);
+  pan.y = panStart.y + (e.clientY - dragStart.y);
+  clampPan(); applyTransform();
+});
+
+// close interactions
+closeBtn.addEventListener('click', () => modal.classList.remove('open'));
+modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('open'); });
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape') modal.classList.remove('open'); });
+
+</script>

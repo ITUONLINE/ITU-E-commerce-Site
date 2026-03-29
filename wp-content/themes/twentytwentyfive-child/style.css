@@ -30,7 +30,70 @@ Text Domain: itu-theme
 	--itu-gray-800: var(--wp--preset--color--gray-800);
 	--itu-transition: 200ms ease;
 	--itu-radius: 0;
+
+	/* LMS accent palette — dark UI (badges, dark sections, LMS components) */
+	--itu-red: #7a1f1f;
+	--itu-amber: #7a6a1f;
+	--itu-lgreen: #2f6b3a;
+	--itu-green: #1f7a3f;
+	--itu-navy: #1f3b6f;
+	--itu-sky: #1f5a7a;
+	--itu-cyan: #176b7a;
+	--itu-teal: #1f7a6a;
+	--itu-aqua: #1f7a74;
+	--itu-purple: #4e1f7a;
+	--itu-violet: #5e2a8a;
+	--itu-plum: #6a1f5a;
+	--itu-rose: #7a1f3f;
+	--itu-burnt: #7a2f1f;
+	--itu-copper: #7a3f2a;
+	--itu-gold: #6a5a1f;
+	--itu-olive: #55611f;
+	--itu-moss: #2f6b3a;
+	--itu-slate: #2b3443;
+	--itu-steel: #394554;
+	--itu-ink: #16202b;
+	--itu-char: #1d1f24;
+
+	/* Vibrant palette — light UI (charts, metrics, data viz on white backgrounds) */
+	--itu-v-red: #EF4444;
+	--itu-v-amber: #F59E0B;
+	--itu-v-green: #10B981;
+	--itu-v-teal: #14B8A6;
+	--itu-v-cyan: #06B6D4;
+	--itu-v-sky: #0EA5E9;
+	--itu-v-blue: #3B82F6;
+	--itu-v-navy: #1D4ED8;
+	--itu-v-purple: #8B5CF6;
+	--itu-v-violet: #7C3AED;
+	--itu-v-plum: #A855F7;
+	--itu-v-rose: #F43F5E;
+	--itu-v-orange: #F97316;
 }
+
+/* LMS utility classes */
+.c-red    { background: var(--itu-red) !important; color: #fff !important; }
+.c-amber  { background: var(--itu-amber) !important; color: #fff !important; }
+.c-lgreen { background: var(--itu-lgreen) !important; color: #fff !important; }
+.c-green  { background: var(--itu-green) !important; color: #fff !important; }
+.c-navy   { background: var(--itu-navy) !important; color: #fff !important; }
+.c-sky    { background: var(--itu-sky) !important; color: #fff !important; }
+.c-cyan   { background: var(--itu-cyan) !important; color: #fff !important; }
+.c-teal   { background: var(--itu-teal) !important; color: #fff !important; }
+.c-aqua   { background: var(--itu-aqua) !important; color: #fff !important; }
+.c-purple { background: var(--itu-purple) !important; color: #fff !important; }
+.c-violet { background: var(--itu-violet) !important; color: #fff !important; }
+.c-plum   { background: var(--itu-plum) !important; color: #fff !important; }
+.c-rose   { background: var(--itu-rose) !important; color: #fff !important; }
+.c-burnt  { background: var(--itu-burnt) !important; color: #fff !important; }
+.c-copper { background: var(--itu-copper) !important; color: #fff !important; }
+.c-gold   { background: var(--itu-gold) !important; color: #fff !important; }
+.c-olive  { background: var(--itu-olive) !important; color: #fff !important; }
+.c-moss   { background: var(--itu-moss) !important; color: #fff !important; }
+.c-slate  { background: var(--itu-slate) !important; color: #fff !important; }
+.c-steel  { background: var(--itu-steel) !important; color: #fff !important; }
+.c-ink    { background: var(--itu-ink) !important; color: #fff !important; }
+.c-char   { background: var(--itu-char) !important; color: #fff !important; }
 
 /* ==========================================================================
    BASE / RESET OVERRIDES
@@ -41,11 +104,239 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 }
 
+/* Remove focus outline on click for all interactive elements */
+button:focus,
+a:focus,
+input:focus,
+select:focus,
+textarea:focus,
+summary:focus,
+[role="button"]:focus {
+	outline: none;
+}
+
+/* Restore visible outline for keyboard navigation only */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[role="button"]:focus-visible {
+	outline: 2px solid #C026D3;
+	outline-offset: 2px;
+}
+
 
 img {
 	display: block;
 	max-width: 100%;
 	height: auto;
+}
+
+hr {
+	display: none;
+}
+
+.wp-block-comments,
+.comments-area,
+#comments,
+#respond {
+	display: none !important;
+}
+
+ul, ol {
+	margin-top: 20px;
+	margin-bottom: 20px;
+}
+
+p {
+	margin-bottom: 20px;
+}
+
+p1, .p1 {
+	display: block;
+	margin-bottom: 20px;
+}
+
+/* Post content heading sizes — smaller than global for readability in articles */
+.wp-block-post-content h1,
+.entry-content h1 {
+	font-size: var(--wp--preset--font-size--xx-large);
+	font-weight: 800;
+	line-height: 1.2;
+	margin: 1.5em 0 0.5em;
+}
+
+.wp-block-post-content h2,
+.entry-content h2 {
+	font-size: var(--wp--preset--font-size--x-large);
+	font-weight: 800;
+	line-height: 1.2;
+	margin: 1.4em 0 0.5em;
+}
+
+.wp-block-post-content h3,
+.entry-content h3 {
+	font-size: var(--wp--preset--font-size--large);
+	font-weight: 700;
+	line-height: 1.3;
+	margin: 1.3em 0 0.4em;
+}
+
+.wp-block-post-content h4,
+.entry-content h4 {
+	font-size: var(--wp--preset--font-size--medium);
+	font-weight: 700;
+	line-height: 1.4;
+	margin: 1.2em 0 0.4em;
+}
+
+.wp-block-post-content h5,
+.entry-content h5 {
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	margin: 1.2em 0 0.4em;
+}
+
+.wp-block-post-content h6,
+.entry-content h6 {
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: var(--itu-gray-600);
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	margin: 1.2em 0 0.4em;
+}
+
+/* WP post blocks — sizing handled per-template via scoped classes */
+
+/* ==========================================================================
+   SINGLE POST LAYOUT
+   ========================================================================== */
+
+/* The article wrapper uses itu-section__inner for max-width + padding */
+.itu-single-article {
+	padding-top: var(--wp--preset--spacing--40);
+	padding-bottom: var(--wp--preset--spacing--50);
+}
+
+/* Date eyebrow */
+.itu-post-date {
+	font-family: var(--wp--preset--font-family--fira-code) !important;
+	font-size: 1rem !important;
+	letter-spacing: 2px !important;
+	text-transform: uppercase !important;
+	color: #C026D3 !important;
+	margin-bottom: var(--wp--preset--spacing--30) !important;
+}
+
+.itu-post-date::before {
+	content: '[ ';
+}
+
+.itu-post-date::after {
+	content: ' ]';
+}
+
+/* Post hero — image left, title right */
+.itu-post-hero {
+	display: flex;
+	align-items: center;
+	gap: var(--wp--preset--spacing--50);
+	margin-bottom: var(--wp--preset--spacing--40);
+}
+
+/* Featured image circle avatar */
+.itu-post-hero .itu-post-avatar {
+	margin: 0 !important;
+	flex-shrink: 0;
+	width: 275px !important;
+	max-width: none !important;
+}
+
+.itu-post-hero .itu-post-avatar img {
+	width: 275px !important;
+	height: 275px !important;
+	border-radius: 50% !important;
+	object-fit: cover !important;
+}
+
+/* Post title next to image */
+.itu-post-hero .wp-block-post-title {
+	margin: 0 !important;
+	flex: 1;
+	min-width: 0;
+}
+
+@media (max-width: 768px) {
+	.itu-post-hero {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.itu-post-hero .itu-post-avatar,
+	.itu-post-hero .itu-post-avatar img {
+		width: 150px !important;
+		height: 150px !important;
+	}
+}
+
+/* Instructors page — avatar images */
+.itu-page-meet-our-instructors .wp-block-post-content img {
+	width: 150px !important;
+	height: 150px !important;
+	border-radius: 50% !important;
+	object-fit: cover !important;
+	margin: 16px 0 !important;
+}
+
+/* Post content images — rounded with spacing (excludes featured image avatar) */
+.itu-single-article .wp-block-post-content img {
+	border-radius: 10px;
+	margin-top: 20px;
+	margin-bottom: 20px;
+}
+
+
+/* Plans bar inside single post — no extra padding since article handles it */
+.itu-single-article .itu-plans-bar {
+	padding: 0;
+	margin-bottom: var(--wp--preset--spacing--40);
+}
+
+/* Post navigation */
+.itu-post-nav {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: var(--wp--preset--spacing--50) 0;
+	margin-top: var(--wp--preset--spacing--40);
+	border-top: 1px solid var(--itu-gray-200);
+}
+
+.itu-post-nav a {
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: var(--itu-gray-600);
+	text-decoration: none;
+	transition: color var(--itu-transition);
+}
+
+.itu-post-nav a:hover {
+	color: #C026D3;
+}
+
+/* Page/post titles — use xx-large (h2 size) everywhere except front page */
+.wp-block-post-title,
+.itu-page-title {
+	font-size: var(--wp--preset--font-size--xx-large);
+	font-weight: 800;
+	line-height: 1.1;
+	letter-spacing: -0.02em;
+	margin-top: 10px;
 }
 
 /* ==========================================================================
@@ -94,7 +385,7 @@ img {
 
 .itu-topbar {
 	background: var(--itu-black);
-	padding: 8px var(--wp--preset--spacing--50);
+	padding: 14px var(--wp--preset--spacing--50);
 }
 
 .itu-topbar__inner {
@@ -146,6 +437,28 @@ img {
 .itu-topbar__cart {
 	padding-left: 24px;
 	border-left: 1px solid var(--itu-gray-800);
+	position: relative;
+}
+
+.itu-cart-count {
+	display: none;
+	position: absolute;
+	top: -6px;
+	right: -10px;
+	min-width: 16px;
+	height: 16px;
+	padding: 0 4px;
+	border-radius: 50%;
+	background: #C026D3;
+	color: #fff;
+	font-size: 0.625rem;
+	font-weight: 700;
+	line-height: 16px;
+	text-align: center;
+}
+
+.itu-cart-count:not(:empty) {
+	display: inline-block;
 }
 
 @media (max-width: 781px) {
@@ -191,9 +504,11 @@ img {
 
 .itu-header__nav {
 	display: flex;
-	justify-content: center;
-	gap: var(--wp--preset--spacing--50);
+	justify-content: space-between;
 	flex-wrap: wrap;
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 0 var(--wp--preset--spacing--50);
 }
 
 .itu-header__nav-item {
@@ -582,12 +897,115 @@ img {
 }
 
 .itu-section {
-	padding: var(--wp--preset--spacing--70) 0;
+	padding: 30px 0 50px;
 }
 
 .itu-section--dark {
 	background: var(--itu-black);
 	color: var(--itu-white);
+}
+
+.itu-section--dark h1,
+.itu-section--dark h2,
+.itu-section--dark h3,
+.itu-section--dark h4,
+.itu-section--dark h5,
+.itu-section--dark h6 {
+	color: var(--itu-white);
+}
+
+/* ==========================================================================
+   GLOBAL UTILITY CLASSES
+   ========================================================================== */
+
+/* Eyebrow — small uppercase label above section headings */
+.itu-eyebrow {
+	display: inline-block;
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: 1rem;
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	color: #C026D3;
+	margin-bottom: var(--wp--preset--spacing--30);
+}
+
+/* Accent em in headings — punctuation highlight */
+h1 em, h2 em, h3 em, h4 em {
+	color: #C026D3;
+	font-style: normal;
+}
+
+/* Description — body text below section headings */
+.itu-description {
+	font-size: var(--wp--preset--font-size--medium);
+	line-height: 1.6;
+	color: var(--itu-gray-600);
+	margin: 0 0 var(--wp--preset--spacing--50);
+}
+
+/* CTA row — flex container for buttons + links */
+.itu-cta {
+	display: flex;
+	align-items: center;
+	gap: var(--wp--preset--spacing--40);
+}
+
+/* Primary button */
+.itu-button {
+	display: inline-block;
+	padding: 0.875rem 2rem;
+	background: var(--itu-black);
+	color: var(--itu-white);
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+	text-decoration: none;
+	border: none;
+	border-top-right-radius: 12px;
+	box-shadow: none;
+	-webkit-appearance: none;
+	appearance: none;
+	cursor: pointer;
+	transition: background var(--itu-transition), color var(--itu-transition);
+}
+
+.itu-button:hover {
+	background: #C026D3;
+	color: var(--itu-white);
+}
+
+/* Inverted button — for dark backgrounds */
+.itu-button--invert {
+	background: var(--itu-white);
+	color: var(--itu-black);
+}
+
+/* Arrow / text link next to buttons */
+.itu-link {
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: var(--itu-gray-600);
+	text-decoration: none;
+	transition: color var(--itu-transition);
+}
+
+.itu-link:hover {
+	color: var(--itu-black);
+}
+
+/* Inverted link — for dark backgrounds */
+.itu-section--dark .itu-link {
+	color: var(--itu-gray-400);
+}
+
+.itu-section--dark .itu-link:hover {
+	color: var(--itu-white);
+}
+
+/* Inverted description — for dark backgrounds */
+.itu-section--dark .itu-description {
+	color: var(--itu-gray-400);
 }
 
 /* ==========================================================================
@@ -761,15 +1179,6 @@ a.itu-footer__contact-link:hover {
 
 .itu-section--gray {
 	background: var(--itu-gray-100);
-}
-
-.itu-section__eyebrow {
-	font-family: var(--wp--preset--font-family--fira-code);
-	font-size: 1rem;
-	letter-spacing: 2px;
-	text-transform: uppercase;
-	color: #C026D3;
-	margin-bottom: var(--wp--preset--spacing--30);
 }
 
 /* ==========================================================================
@@ -966,6 +1375,36 @@ a.itu-certs__card-image {
 	box-sizing: border-box;
 }
 
+/* Hide empty <p> wrapped cards and empty <a> cards injected by WordPress */
+.itu-cat-row__track > p,
+.itu-cat-row__track > p > a.itu-certs__card--viewall:empty,
+p > a.itu-certs__card--viewall:empty,
+a.itu-certs__card--viewall:empty {
+	display: none !important;
+}
+
+/* Hide empty <p> tags inside cards */
+.itu-certs__card > p:empty,
+.itu-promo-card > p:empty {
+	display: none !important;
+}
+
+/* Hide <p> wrapped links in promo cards */
+.itu-promo-card > p > a.itu-promo-card__cta {
+	display: inline-block;
+}
+
+.itu-promo-card > p:has(> a.itu-promo-card__cta) {
+	margin: 0;
+	padding: 0;
+}
+
+.itu-certs__card-badge--enrolled {
+	color: #C026D3;
+	background: rgba(192, 38, 211, 0.06);
+	border-color: rgba(192, 38, 211, 0.2);
+}
+
 .itu-certs__card-meta {
 	font-size: 0.75rem;
 	color: var(--itu-gray-400);
@@ -1001,29 +1440,20 @@ a.itu-certs__card-image {
    CERTIFICATION SPOTLIGHT
    ========================================================================== */
 
-.itu-spotlight {
-	background: var(--itu-gray-100);
-	padding: var(--wp--preset--spacing--70) var(--wp--preset--spacing--50);
-}
-
-.itu-spotlight__eyebrow {
-	display: block;
-	text-align: center;
-	font-family: var(--wp--preset--font-family--fira-code);
-	font-size: 1rem;
-	letter-spacing: 2px;
-	text-transform: uppercase;
-	color: #C026D3;
-	margin-bottom: 32px;
-}
-
 .itu-spotlight__inner {
 	display: grid;
 	grid-template-columns: 1fr 2fr;
 	gap: 48px;
-	max-width: 1200px;
-	margin: 0 auto;
-	align-items: start !important;
+	align-items: start;
+	padding-left: 0;
+	padding-right: 0;
+}
+
+
+/* Break spotlight section out of wp-block-shortcode container */
+.wp-block-shortcode > .itu-section {
+	margin-left: calc(-1 * var(--wp--preset--spacing--50));
+	margin-right: calc(-1 * var(--wp--preset--spacing--50));
 }
 
 .itu-spotlight__info {
@@ -1040,38 +1470,6 @@ a.itu-certs__card-image {
 	width: auto;
 	object-fit: contain;
 	transition: opacity 150ms ease;
-}
-
-.itu-spotlight__title {
-	font-size: 1.75rem;
-	font-weight: 800;
-	line-height: 1.2;
-	color: var(--itu-black);
-	margin: 0 0 12px;
-}
-
-.itu-spotlight__description {
-	font-size: 0.875rem;
-	line-height: 1.5;
-	color: var(--itu-gray-600);
-	margin: 0 0 16px;
-}
-
-.itu-spotlight__button {
-	display: inline-block;
-	margin-top: 20px;
-	padding: 12px 28px;
-	font-size: 0.875rem;
-	font-weight: 700;
-	color: var(--itu-white, #fff);
-	background: var(--itu-black, #1a1a1a);
-	border-radius: 6px;
-	text-decoration: none;
-	transition: background 200ms ease;
-}
-
-.itu-spotlight__button:hover {
-	background: #C026D3;
 }
 
 .itu-spotlight__carousel {
@@ -1115,68 +1513,36 @@ a.itu-certs__card-image {
 }
 
 /* ==========================================================================
-   TEAM TRAINING SECTION
+   TWO-COLUMN SECTION LAYOUT (text + image side by side)
    ========================================================================== */
 
-.itu-teams {
-	background: var(--itu-white);
-	padding: var(--wp--preset--spacing--70) var(--wp--preset--spacing--50);
-}
-
-.itu-teams__inner {
+.itu-split {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	align-items: center;
 	gap: var(--wp--preset--spacing--60);
-	max-width: 1200px;
-	margin: 0 auto;
 }
 
-.itu-teams__eyebrow {
-	display: inline-block;
-	font-family: var(--wp--preset--font-family--fira-code);
-	font-size: 1rem;
-	letter-spacing: 2px;
-	text-transform: uppercase;
-	color: #C026D3;
-	margin-bottom: var(--wp--preset--spacing--30);
+.itu-split__image img {
+	width: 100%;
+	height: auto;
 }
 
-.itu-teams__title {
-	font-size: var(--wp--preset--font-size--xx-large);
-	font-weight: 800;
-	line-height: 1.1;
-	letter-spacing: -0.02em;
-	color: var(--itu-black);
-	margin: 0 0 var(--wp--preset--spacing--40);
-}
-
-.itu-teams__title em {
-	color: #C026D3;
-	font-style: normal;
-}
-
-.itu-teams__description {
-	font-size: var(--wp--preset--font-size--medium);
-	line-height: 1.6;
-	color: var(--itu-gray-600);
-	margin: 0 0 var(--wp--preset--spacing--50);
-}
-
-.itu-teams__outcomes {
+/* Numbered outcome list (used in teams section on front page) */
+.itu-outcomes {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: 24px 40px;
 	margin-bottom: var(--wp--preset--spacing--50);
 }
 
-.itu-teams__outcome {
+.itu-outcome {
 	display: flex;
 	gap: 14px;
 	align-items: flex-start;
 }
 
-.itu-teams__outcome-number {
+.itu-outcome__number {
 	flex-shrink: 0;
 	font-family: var(--wp--preset--font-family--fira-code);
 	font-size: 1.25rem;
@@ -1186,143 +1552,1761 @@ a.itu-certs__card-image {
 	padding-top: 1px;
 }
 
-.itu-teams__outcome-title {
+.itu-outcome__title {
 	font-size: 0.875rem;
 	font-weight: 700;
 	color: var(--itu-black);
 	margin: 0 0 4px;
 }
 
-.itu-teams__outcome-desc {
+.itu-outcome__desc {
 	font-size: 0.8125rem;
 	line-height: 1.5;
 	color: var(--itu-gray-400);
 	margin: 0;
 }
 
-.itu-teams__cta {
-	display: flex;
-	align-items: center;
-	gap: var(--wp--preset--spacing--40);
-}
-
-.itu-teams__button {
-	display: inline-block;
-	padding: 0.875rem 2rem;
-	background: var(--itu-black);
-	color: var(--itu-white);
-	font-size: var(--wp--preset--font-size--small);
-	font-weight: 600;
-	letter-spacing: 0.5px;
-	text-transform: uppercase;
-	text-decoration: none;
-	border-top-right-radius: 12px;
-	transition: background var(--itu-transition);
-}
-
-.itu-teams__button:hover {
-	background: #C026D3;
-	color: var(--itu-white);
-}
-
-.itu-teams__link {
-	font-size: var(--wp--preset--font-size--small);
-	font-weight: 600;
-	color: var(--itu-gray-600);
-	text-decoration: none;
-	transition: color var(--itu-transition);
-}
-
-.itu-teams__link:hover {
-	color: var(--itu-black);
-}
-
-.itu-teams__image {
-	position: relative;
-}
-
-.itu-teams__image img {
-	width: 100%;
-	height: auto;
-}
-
-/* Teams responsive */
 @media (max-width: 960px) {
-	.itu-teams__inner {
+	.itu-split {
 		grid-template-columns: 1fr;
 	}
 
-	.itu-teams__image {
+	.itu-split__image {
 		order: -1;
 		max-width: 500px;
 		margin: 0 auto;
 	}
 
-	.itu-teams__outcomes {
+	.itu-outcomes {
 		grid-template-columns: 1fr;
 	}
 }
 
 @media (max-width: 480px) {
-	.itu-teams__cta {
+	.itu-cta {
 		flex-direction: column;
 		align-items: flex-start;
 	}
 }
 
 /* ==========================================================================
-   RESELLER SECTION
+   STATS RING (animated percentage circles)
    ========================================================================== */
 
-.itu-reseller {
-	background: var(--itu-black);
-	color: var(--itu-white);
-	padding: var(--wp--preset--spacing--80) var(--wp--preset--spacing--50);
+.itu-stats-ring {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--wp--preset--spacing--60);
+	align-items: center;
 }
 
-.itu-reseller__inner {
-	max-width: 1200px;
-	margin: 0 auto;
+.itu-stats-ring__item {
+	display: flex;
+	align-items: center;
+	gap: 24px;
 }
 
-.itu-reseller__headline {
-	text-align: center;
-	max-width: 700px;
-	margin: 0 auto var(--wp--preset--spacing--60);
-}
-
-.itu-reseller__eyebrow {
-	display: inline-block;
-	font-family: var(--wp--preset--font-family--fira-code);
-	font-size: 1rem;
-	letter-spacing: 2px;
-	text-transform: uppercase;
-	color: #C026D3;
-	margin-bottom: var(--wp--preset--spacing--30);
-}
-
-.itu-reseller__title {
-	font-size: var(--wp--preset--font-size--xx-large);
-	font-weight: 800;
-	line-height: 1.1;
-	letter-spacing: -0.02em;
-	color: var(--itu-white);
-	margin: 0 0 var(--wp--preset--spacing--30);
-}
-
-.itu-reseller__title em {
-	color: #C026D3;
-	font-style: normal;
-}
-
-.itu-reseller__subtitle {
+.itu-stats-ring__item p {
+	margin: 0;
 	font-size: var(--wp--preset--font-size--medium);
-	line-height: 1.6;
+	line-height: 1.5;
+	color: var(--itu-gray-600);
+}
+
+@media (max-width: 768px) {
+	.itu-stats-ring {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ==========================================================================
+   ROI CALCULATOR
+   ========================================================================== */
+
+.itu-roi-global {
+	display: flex;
+	align-items: center;
+	gap: 32px;
+	flex-wrap: wrap;
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	padding: 16px 20px;
+	margin-bottom: var(--wp--preset--spacing--50);
+}
+
+.itu-roi-global__field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.itu-roi-global__field label {
+	font-size: 0.6875rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
 	color: var(--itu-gray-400);
+}
+
+.itu-roi-global__input-wrap {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.itu-roi-global__input-wrap span {
+	font-weight: 600;
+	color: var(--itu-black);
+}
+
+.itu-roi-global__input-wrap input[type="number"] {
+	width: 80px;
+	padding: 6px 10px;
+	border: 1px solid var(--itu-gray-200);
+	border-radius: 6px;
+	font-family: var(--wp--preset--font-family--manrope);
+	font-size: var(--wp--preset--font-size--medium);
+}
+
+.itu-roi-global__input-wrap input[type="range"] {
+	width: 140px;
+	accent-color: #C026D3;
+}
+
+.itu-roi-global__val {
+	font-weight: 600;
+	color: var(--itu-black);
+	min-width: 30px;
+}
+
+.itu-roi-global__total {
+	font-size: 1.125rem;
+	font-weight: 700;
+	color: var(--itu-black);
+}
+
+.itu-stepper {
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: 1px solid var(--itu-gray-200);
+	border-radius: 4px;
+	background: transparent;
+	color: var(--itu-gray-400);
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 1;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: none;
+	appearance: none;
+	flex-shrink: 0;
+	transition: all var(--itu-transition);
+}
+
+.itu-stepper:hover {
+	border-color: #C026D3;
+	color: #C026D3;
+}
+
+.itu-section--dark .itu-stepper {
+	border-color: #2b2e36;
+	color: var(--itu-gray-400);
+}
+
+.itu-section--dark .itu-stepper:hover {
+	border-color: #C026D3;
+	color: #C026D3;
+}
+
+/* ROI tabs */
+.itu-roi-tabs {
+	display: flex;
+	gap: 4px;
+	flex-wrap: wrap;
+	border-bottom: 1px solid var(--itu-gray-200);
+	margin-bottom: var(--wp--preset--spacing--50);
+}
+
+.itu-roi-tab {
+	padding: 10px 16px;
+	border: none;
+	border-bottom: 2px solid transparent;
+	background: none;
+	font-family: var(--wp--preset--font-family--manrope);
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: var(--itu-gray-400);
+	cursor: pointer;
+	box-shadow: none;
+	appearance: none;
+	transition: color var(--itu-transition), border-color var(--itu-transition);
+}
+
+.itu-roi-tab:hover { color: var(--itu-black); }
+.itu-roi-tab.is-active { color: var(--itu-black); border-bottom-color: #C026D3; }
+
+/* ROI panels */
+.itu-roi-panel { display: none; }
+.itu-roi-panel.is-active { display: block; }
+
+.itu-roi-panel h3 { margin: 0 0 4px; }
+
+.itu-roi-panel__desc {
+	font-size: var(--wp--preset--font-size--medium);
+	color: var(--itu-gray-600);
+	line-height: 1.6;
+	margin: 0 0 var(--wp--preset--spacing--40);
+}
+
+/* Controls */
+.itu-roi-controls {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 12px;
+	margin-bottom: var(--wp--preset--spacing--40);
+}
+
+.itu-roi-control {
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	padding: 12px 14px;
+}
+
+.itu-roi-control label {
+	display: block;
+	font-size: 0.6875rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--itu-gray-400);
+	margin-bottom: 8px;
+}
+
+.itu-roi-control input[type="range"] {
+	width: 100%;
+	accent-color: #C026D3;
+}
+
+.itu-roi-control select {
+	width: 100%;
+	padding: 8px 10px;
+	border: 1px solid var(--itu-gray-200);
+	border-radius: 6px;
+	font-family: var(--wp--preset--font-family--manrope);
+	font-size: var(--wp--preset--font-size--small);
+	background: var(--itu-white);
+	appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%239E9E9E' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 10px center;
+	padding-right: 32px;
+}
+
+.itu-roi-control__val {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--itu-black);
+	margin-top: 6px;
+}
+
+/* Metrics row */
+.itu-roi-metrics {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 12px;
+	margin-bottom: var(--wp--preset--spacing--40);
+}
+
+.itu-roi-metric {
+	background: var(--itu-white);
+	padding: 14px 16px;
+}
+
+.itu-roi-metric__label {
+	font-size: 0.6875rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--itu-gray-400);
+	margin-bottom: 4px;
+}
+
+.itu-roi-metric__value {
+	font-size: 1.5rem;
+	font-weight: 700;
+}
+
+.itu-roi-metric--danger .itu-roi-metric__value { color: #C026D3; }
+.itu-roi-metric--info .itu-roi-metric__value { color: #0EA5E9; }
+.itu-roi-metric--success .itu-roi-metric__value { color: #2DD4A8; }
+
+/* Breakdown table */
+.itu-roi-breakdown {
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	padding: 14px 16px;
+	margin-bottom: var(--wp--preset--spacing--40);
+	font-size: 0.8125rem;
+}
+
+.itu-roi-breakdown__title {
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--itu-gray-400);
+	margin-bottom: 10px;
+}
+
+.itu-roi-breakdown__row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 5px 0;
+	border-bottom: 1px solid var(--itu-gray-100);
+}
+
+.itu-roi-breakdown__row:last-child {
+	border-bottom: none;
+	font-weight: 600;
+}
+
+.itu-roi-breakdown__label { color: var(--itu-gray-600); }
+.itu-roi-breakdown__val { font-weight: 600; color: var(--itu-black); }
+.itu-roi-breakdown__val.neg { color: #C026D3; }
+.itu-roi-breakdown__val.pos { color: #2DD4A8; }
+
+/* Chart */
+.itu-roi-chart {
+	position: relative;
+	width: 100%;
+	height: 220px;
+	margin-bottom: var(--wp--preset--spacing--40);
+}
+
+/* Source note */
+.itu-roi-source {
+	font-size: 0.8125rem;
+	font-style: italic;
+	color: var(--itu-gray-400);
+	line-height: 1.6;
+	padding-top: var(--wp--preset--spacing--30);
+	border-top: 1px solid var(--itu-gray-200);
 	margin: 0;
 }
 
-.itu-reseller__grid {
+.itu-section--dark .itu-roi-source {
+	color: var(--itu-white);
+	border-color: #2b2e36;
+}
+
+/* Dark section overrides — dashboard-style cards */
+.itu-section--dark .itu-roi-global {
+	background: #15161a;
+	border-color: #2b2e36;
+}
+
+.itu-section--dark .itu-roi-global__field label,
+.itu-section--dark .itu-roi-control label {
+	color: var(--itu-gray-400);
+}
+
+.itu-section--dark .itu-roi-global__input-wrap span,
+.itu-section--dark .itu-roi-global__val,
+.itu-section--dark .itu-roi-global__total {
+	color: var(--itu-white);
+}
+
+.itu-section--dark .itu-roi-global__input-wrap input[type="number"] {
+	background: #0f1116;
+	color: var(--itu-white);
+	border-color: #2b2e36;
+}
+
+.itu-section--dark .itu-roi-control {
+	background: #15161a;
+	border-color: #2b2e36;
+}
+
+.itu-section--dark .itu-roi-control__val {
+	color: var(--itu-white);
+}
+
+.itu-section--dark .itu-roi-control select {
+	background: #0f1116;
+	color: var(--itu-white);
+	border-color: #2b2e36;
+}
+
+.itu-section--dark .itu-roi-control select option {
+	background: #0f1116;
+}
+
+.itu-section--dark .itu-roi-metric {
+	background: #15161a;
+}
+
+.itu-section--dark .itu-roi-metric__label {
+	color: var(--itu-gray-400);
+}
+
+.itu-section--dark .itu-roi-breakdown {
+	background: #15161a;
+	border-color: #2b2e36;
+}
+
+.itu-section--dark .itu-roi-breakdown__title {
+	color: var(--itu-gray-400);
+}
+
+.itu-section--dark .itu-roi-breakdown__row {
+	border-color: #2b2e36;
+}
+
+.itu-section--dark .itu-roi-breakdown__label {
+	color: var(--itu-gray-400);
+}
+
+.itu-section--dark .itu-roi-breakdown__val {
+	color: var(--itu-white);
+}
+
+.itu-section--dark .itu-roi-source {
+	color: var(--itu-gray-600);
+	border-color: #2b2e36;
+}
+
+.itu-section--dark .itu-roi-panel__desc {
+	color: var(--itu-gray-400);
+}
+
+.itu-section--dark .itu-roi-tabs {
+	border-color: #2b2e36;
+}
+
+.itu-section--dark .itu-roi-tab {
+	color: var(--itu-gray-400);
+}
+
+.itu-section--dark .itu-roi-tab:hover {
+	color: var(--itu-white);
+}
+
+.itu-section--dark .itu-roi-tab.is-active {
+	color: var(--itu-white);
+}
+
+@media (max-width: 768px) {
+	.itu-roi-metrics {
+		grid-template-columns: 1fr;
+	}
+
+	.itu-roi-global {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}
+
+/* ==========================================================================
+   JOURNEY / OUTCOMES TABS
+   ========================================================================== */
+
+.itu-journey-tabs {
+	display: flex;
+	gap: 4px;
+	flex-wrap: wrap;
+	border-bottom: 1px solid var(--itu-gray-200);
+	margin-bottom: var(--wp--preset--spacing--50);
+}
+
+.itu-journey-tab {
+	padding: 10px 16px;
+	border: none;
+	border-bottom: 2px solid transparent;
+	background: none;
+	font-family: var(--wp--preset--font-family--manrope);
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: var(--itu-gray-400);
+	cursor: pointer;
+	transition: color var(--itu-transition), border-color var(--itu-transition);
+	box-shadow: none;
+	appearance: none;
+}
+
+.itu-journey-tab:hover {
+	color: var(--itu-black);
+}
+
+.itu-journey-tab.is-active {
+	color: var(--itu-black);
+	border-bottom-color: #C026D3;
+}
+
+.itu-journey-tab--accent {
+	color: #C026D3;
+}
+
+.itu-journey-tab--accent.is-active {
+	color: #C026D3;
+}
+
+.itu-journey-panel {
+	display: none;
+}
+
+.itu-journey-panel.is-active {
+	display: block;
+}
+
+.itu-journey-header h3 {
+	margin: 0 0 4px;
+}
+
+.itu-journey-header p {
+	color: var(--itu-gray-600);
+	font-size: var(--wp--preset--font-size--medium);
+	margin: 0 0 var(--wp--preset--spacing--40);
+}
+
+.itu-journey-outcome {
+	background: var(--itu-white);
+	padding: 20px 24px;
+	font-size: var(--wp--preset--font-size--medium);
+	line-height: 1.6;
+	color: var(--itu-gray-600);
+	margin-bottom: var(--wp--preset--spacing--50);
+}
+
+.itu-journey-outcome strong {
+	color: var(--itu-black);
+}
+
+.itu-journey-phases {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 16px;
+	margin-bottom: var(--wp--preset--spacing--50);
+}
+
+.itu-journey-phase {
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	padding: 16px;
+}
+
+.itu-journey-phase__label {
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: 0.6875rem;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: #C026D3;
+	margin-bottom: 8px;
+}
+
+.itu-journey-phase__title {
+	font-size: 0.875rem;
+	font-weight: 700;
+	color: var(--itu-black);
+	margin-bottom: 12px;
+}
+
+.itu-journey-phase ul {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.itu-journey-phase li {
+	font-size: 0.75rem;
+	color: var(--itu-gray-600);
+	padding: 4px 0;
+	border-bottom: 1px solid var(--itu-gray-100);
+	line-height: 1.4;
+}
+
+.itu-journey-phase li:last-child {
+	border-bottom: none;
+}
+
+.itu-journey-certs {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: var(--wp--preset--spacing--40);
+}
+
+.itu-journey-certs > span:first-child {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--itu-gray-600);
+}
+
+.itu-cert-badge {
+	font-size: 0.6875rem;
+	font-weight: 600;
+	padding: 4px 12px;
+	border-radius: 20px;
+	background: var(--itu-white);
+	color: var(--itu-gray-600);
+	border: 1px solid var(--itu-gray-200);
+}
+
+.itu-cert-badge--gold {
+	background: rgba(192, 38, 211, 0.1);
+	color: #C026D3;
+}
+
+.itu-journey-footer {
+	font-size: 0.8125rem;
+	color: var(--itu-gray-400);
+	padding-top: var(--wp--preset--spacing--30);
+	border-top: 1px solid var(--itu-gray-200);
+}
+
+/* Leadership ladder (IT Leadership tab) */
+.itu-journey-ladder {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 16px;
+	margin-bottom: var(--wp--preset--spacing--50);
+}
+
+.itu-journey-ladder__card {
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	padding: 16px;
+}
+
+.itu-journey-ladder__card--highlight {
+	border-color: #C026D3;
+	background: rgba(192, 38, 211, 0.04);
+}
+
+.itu-journey-ladder__label {
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: 0.625rem;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: #C026D3;
+	margin-bottom: 6px;
+}
+
+.itu-journey-ladder__card h4 {
+	font-size: 0.875rem;
+	font-weight: 700;
+	margin: 0 0 6px;
+}
+
+.itu-journey-ladder__card p {
+	font-size: 0.75rem;
+	color: var(--itu-gray-600);
+	line-height: 1.5;
+	margin: 0;
+}
+
+@media (max-width: 960px) {
+	.itu-journey-phases {
+		grid-template-columns: repeat(2, 1fr);
+	}
+
+	.itu-journey-ladder {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 600px) {
+	.itu-journey-phases {
+		grid-template-columns: 1fr;
+	}
+
+	.itu-journey-tabs {
+		gap: 0;
+	}
+
+	.itu-journey-tab {
+		padding: 8px 10px;
+		font-size: 0.75rem;
+	}
+}
+
+/* ==========================================================================
+   VTS TEAM PLAN SELECTOR (plugin overrides)
+   ========================================================================== */
+
+.vts-plans__inner {
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.vts-plans__inner input[type="number"] {
+	max-width: 100px;
+}
+
+/* Toggle switch — override plugin inline styles */
+.vts-switch__thumb {
+	background: #006dca !important;
+}
+
+/* Checkmarks to white — plugin uses CSS mask so background is the visible color */
+#teams-contact .vts-plans .vts-includes__list li::before,
+.vts-plans .vts-includes .vts-includes__list li::before,
+ul.vts-includes__list li::before {
+	background: #ffffff !important;
+	background-color: #ffffff !important;
+}
+
+/* Override orange CTA button to match site fuchsia style */
+.vts-plans__inner button,
+.vts-plans__inner .button,
+.vts-plans__inner input[type="submit"],
+.vts-plans__inner [class*="enroll"],
+.vts-plans__inner [class*="cta"],
+.vts-plans__inner [class*="submit"] {
+	background: #006dca !important;
+	color: var(--itu-white) !important;
+	border: none !important;
+	border-radius: 0 !important;
+	border-top-right-radius: 12px !important;
+	font-size: var(--wp--preset--font-size--small) !important;
+	font-weight: 600 !important;
+	letter-spacing: 0.5px !important;
+	text-transform: uppercase !important;
+	padding: 0.875rem 2rem !important;
+	transition: background var(--itu-transition) !important;
+	cursor: pointer;
+}
+
+.vts-plans__inner button:hover,
+.vts-plans__inner .button:hover,
+.vts-plans__inner input[type="submit"]:hover,
+.vts-plans__inner [class*="enroll"]:hover,
+.vts-plans__inner [class*="cta"]:hover,
+.vts-plans__inner [class*="submit"]:hover {
+	background: var(--itu-black) !important;
+}
+
+/* Override green savings callout */
+.vts-plans__inner [class*="saving"],
+.vts-plans__inner [class*="discount"],
+.vts-plans__inner [class*="save"] {
+	background: rgba(192, 38, 211, 0.15) !important;
+	border-color: #C026D3 !important;
+	color: var(--itu-white) !important;
+}
+
+/* Override orange toggle/tab active state */
+.vts-plans__inner [class*="tab"].active,
+.vts-plans__inner [class*="tab"].selected,
+.vts-plans__inner [class*="toggle"].active,
+.vts-plans__inner [class*="toggle"].selected,
+.vts-plans__inner [class*="tab"][aria-selected="true"] {
+	background: #006dca !important;
+	color: var(--itu-white) !important;
+	border-color: #006dca !important;
+}
+
+/* Contact specialist toggle */
+.itu-contact-toggle {
+	display: block;
+	margin-top: 24px;
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: var(--wp--preset--font-size--medium);
+	font-weight: 600;
+	color: #C026D3;
+	text-decoration: none;
+	cursor: pointer;
+	text-align: center;
+	padding: 12px;
+	border: 1px dashed rgba(192, 38, 211, 0.4);
+	transition: all var(--itu-transition);
+}
+
+.itu-contact-toggle:hover {
+	color: #C026D3;
+	border-color: #C026D3;
+	background: rgba(192, 38, 211, 0.04);
+}
+
+.itu-contact-panel {
+	display: none;
+	margin-top: var(--wp--preset--spacing--50);
+	padding: var(--wp--preset--spacing--60);
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+}
+
+.itu-contact-panel.is-open {
+	display: block;
+}
+
+/* ==========================================================================
+   PRICING PLAN CARDS
+   ========================================================================== */
+
+/* Billing toggle */
+.itu-plan-toggle {
+	display: inline-flex;
+	align-self: flex-start;
+	border: 1px solid var(--itu-gray-200);
+	border-radius: 999px;
+	overflow: hidden;
+	margin-bottom: var(--wp--preset--spacing--50);
+}
+
+.itu-plan-toggle__btn {
+	padding: 10px 24px;
+	border: none;
+	background: none;
+	font-family: var(--wp--preset--font-family--manrope);
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: var(--itu-gray-400);
+	cursor: pointer;
+	box-shadow: none;
+	appearance: none;
+	transition: all var(--itu-transition);
+}
+
+.itu-plan-toggle__btn.is-active {
+	background: var(--itu-black);
+	color: var(--itu-white);
+	border-radius: 999px;
+}
+
+/* Plans layout — 2×2 grid: intro+sprint left, cards right */
+.itu-plans-layout {
+	display: grid;
+	grid-template-columns: 1fr 2.5fr;
+	gap: 20px;
+	align-items: stretch;
+}
+
+.itu-plans-layout__intro {
+	display: flex;
+	flex-direction: column;
+}
+
+/* Test drive row */
+.itu-plans-testdrive {
+	grid-column: 1 / -1;
+	display: block;
+	text-align: center;
+	padding: 16px 20px;
+	border: 1px dashed #C026D3;
+	background: rgba(192, 38, 211, 0.03);
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: var(--wp--preset--font-size--medium);
+	font-weight: 600;
+	color: #C026D3;
+	text-decoration: none;
+	transition: all var(--itu-transition);
+}
+
+.itu-plans-testdrive:hover {
+	background: rgba(192, 38, 211, 0.08);
+	border-style: solid;
+}
+
+.itu-sprint-card {
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	padding: 28px 24px;
+	display: flex;
+	flex-direction: column;
+}
+
+.itu-sprint-card h3 {
+	font-size: var(--wp--preset--font-size--x-large);
+	margin: 0 0 8px;
+}
+
+.itu-sprint-card .itu-plan-card__desc {
+	flex-grow: 1;
+}
+
+@media (max-width: 960px) {
+	.itu-plans-layout {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* Plan grid — 2 columns, 2 rows */
+.itu-plan-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 20px;
+}
+
+@media (max-width: 960px) {
+	.itu-plan-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* Plan Details link */
+.itu-plan-card__details {
+	display: block;
+	text-align: left;
+	margin-top: 12px;
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: var(--itu-gray-400);
+	text-decoration: none;
+	transition: color var(--itu-transition);
+}
+
+.itu-plan-card__details:hover {
+	color: #C026D3;
+}
+
+/* Off-screen plan detail panel */
+.itu-plan-drawer-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.5);
+	z-index: 9998;
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 300ms ease, visibility 300ms ease;
+}
+
+.itu-plan-drawer-overlay.is-open {
+	opacity: 1;
+	visibility: visible;
+}
+
+.itu-plan-drawer {
+	position: fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	width: 40vw;
+	background: var(--itu-gray-100);
+	z-index: 9999;
+	transform: translateX(-100%);
+	transition: transform 300ms ease;
+	overflow-y: auto;
+	box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+}
+
+.itu-plan-drawer.is-open {
+	transform: translateX(0);
+}
+
+.itu-plan-drawer::-webkit-scrollbar {
+	width: 4px;
+}
+
+.itu-plan-drawer::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.itu-plan-drawer::-webkit-scrollbar-thumb {
+	background: var(--itu-gray-200);
+	border-radius: 4px;
+}
+
+.itu-plan-drawer::-webkit-scrollbar-thumb:hover {
+	background: var(--itu-gray-400);
+}
+
+.itu-plan-drawer {
+	scrollbar-width: thin;
+	scrollbar-color: var(--itu-gray-200) transparent;
+}
+
+.itu-plan-drawer__header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	padding: 40px 30px 24px;
+	border-bottom: 1px solid var(--itu-gray-200);
+	position: sticky;
+	top: 0;
+	background: var(--itu-gray-100);
+	z-index: 1;
+}
+
+.itu-plan-drawer__header h3 {
+	margin: 0;
+	font-size: var(--wp--preset--font-size--x-large);
+	font-weight: 800;
+	line-height: 1.1;
+	letter-spacing: -0.02em;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.itu-plan-drawer__close {
+	background: none;
+	border: none;
+	font-size: 24px;
+	color: var(--itu-gray-400);
+	cursor: pointer;
+	padding: 4px;
+	box-shadow: none;
+	appearance: none;
+	transition: color var(--itu-transition);
+}
+
+.itu-plan-drawer__close:hover {
+	color: var(--itu-black);
+}
+
+.itu-plan-drawer__body {
+	padding: 30px;
+}
+
+.itu-plan-drawer__categories p {
+	font-size: var(--wp--preset--font-size--small);
+	color: var(--itu-gray-600);
+	line-height: 1.5;
+	margin: 0 0 16px;
+}
+
+.itu-plan-drawer__cat-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.itu-cat-expander {
+	background: var(--itu-gray-100);
+	border: 1px solid var(--itu-gray-200);
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.itu-cat-expander__trigger {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	padding: 10px 14px;
+	background: none;
+	border: none;
+	font-family: var(--wp--preset--font-family--manrope);
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: var(--itu-black);
+	cursor: pointer;
+	box-shadow: none;
+	appearance: none;
+	transition: color var(--itu-transition);
+}
+
+.itu-cat-expander__trigger:hover {
+	color: #C026D3;
+}
+
+.itu-cat-expander__arrow {
+	width: 22px;
+	height: 22px;
+	border: 1px solid var(--itu-gray-200);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	transition: transform 300ms ease, border-color var(--itu-transition);
+}
+
+.itu-cat-expander__arrow svg {
+	width: 10px;
+	height: 10px;
+	fill: none;
+	stroke: var(--itu-gray-400);
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.itu-cat-expander.is-open .itu-cat-expander__arrow {
+	transform: rotate(180deg);
+	border-color: #C026D3;
+}
+
+.itu-cat-expander.is-open .itu-cat-expander__arrow svg {
+	stroke: #C026D3;
+}
+
+.itu-cat-expander__body {
+	display: none;
+	padding: 12px 14px 14px;
+}
+
+.itu-cat-expander.is-open .itu-cat-expander__body {
+	display: block;
+}
+
+.itu-cat-expander.is-open .itu-cat-expander__trigger {
+	border-bottom: none;
+}
+
+.itu-cat-expander__loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px 0;
+}
+
+.itu-cat-expander__loading::after {
+	content: '';
+	width: 20px;
+	height: 20px;
+	border: 2px solid var(--itu-gray-200);
+	border-top-color: #C026D3;
+	border-radius: 50%;
+	animation: itu-spin 0.6s linear infinite;
+}
+
+@keyframes itu-spin {
+	to { transform: rotate(360deg); }
+}
+
+.itu-cat-expander__products {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 10px;
+}
+
+.itu-cat-product {
+	display: block;
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	border-radius: 4px;
+	overflow: hidden;
+	text-decoration: none;
+	transition: border-color var(--itu-transition);
+}
+
+.itu-cat-product:hover {
+	border-color: #C026D3;
+}
+
+.itu-cat-product__img {
+	width: 100%;
+	height: auto;
+	display: block;
+}
+
+.itu-cat-product__title {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--itu-black);
+	line-height: 1.3;
+	margin: 0;
+	padding: 10px 12px;
+}
+
+.itu-plan-drawer__cta {
+	display: block;
+	text-align: center;
+	margin-bottom: 20px;
+	background: var(--itu-black);
+	color: var(--itu-white);
+}
+
+.itu-plan-drawer__cta:hover {
+	background: #C026D3;
+}
+
+.itu-plan-drawer__card {
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	padding: 20px;
+	margin-bottom: 16px;
+}
+
+.itu-plan-drawer__body h4 {
+	font-size: var(--wp--preset--font-size--large);
+	font-weight: 800;
+	margin: 0 0 12px;
+}
+
+.itu-plan-drawer__body p {
+	font-size: var(--wp--preset--font-size--small);
+	color: var(--itu-gray-600);
+	line-height: 1.5;
+	margin: 0 0 8px;
+}
+
+.itu-plan-drawer__body p:last-child {
+	margin-bottom: 0;
+}
+
+.itu-plan-drawer__body ul {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.itu-plan-drawer__body li {
+	font-size: var(--wp--preset--font-size--small);
+	color: var(--itu-gray-600);
+	padding: 4px 0 4px 20px;
+	position: relative;
+	line-height: 1.4;
+}
+
+.itu-plan-drawer__body li::before {
+	content: '✓';
+	position: absolute;
+	left: 0;
+	top: 4px;
+	color: #C026D3;
+	font-weight: 700;
+	font-size: 0.75rem;
+	line-height: 1.4;
+}
+
+@media (max-width: 1200px) {
+	.itu-plan-drawer {
+		width: 100%;
+	}
+}
+
+/* Plan cards grid */
+.itu-plan-cards {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 20px;
+	align-items: start;
+}
+
+/* Wide layout — 2 cards stacked, each card is 2-column internally */
+.itu-plan-cards--wide {
+	grid-template-columns: 1fr;
+	gap: 24px;
+}
+
+.itu-plan-card.itu-plan-card--wide {
+	display: grid;
+	grid-template-columns: 1.2fr 1fr;
+	flex-direction: unset;
+	padding: 0;
+}
+
+.itu-plan-card__left {
+	padding: 32px;
+	display: flex;
+	flex-direction: column;
+}
+
+.itu-plan-card__left .itu-button {
+	margin-top: auto;
+}
+
+.itu-plan-card__right {
+	padding: 32px;
+	border-left: 1px solid var(--itu-gray-200);
+	background: var(--itu-gray-100);
+}
+
+.itu-plan-card--featured.itu-plan-card--wide .itu-plan-card__right {
+	background: rgba(192, 38, 211, 0.03);
+	border-left-color: rgba(192, 38, 211, 0.1);
+}
+
+.itu-plan-card__includes-title {
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: var(--itu-black);
+	margin: 0 0 16px;
+}
+
+.itu-plan-card {
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	padding: 28px 24px;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+}
+
+.itu-plan-card--featured {
+	border-color: #C026D3;
+	box-shadow: 0 4px 24px rgba(192, 38, 211, 0.1);
+}
+
+.itu-plan-card__badge {
+	position: absolute;
+	top: -1px;
+	right: -1px;
+	background: #C026D3;
+	color: var(--itu-white);
+	font-size: 0.6875rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	padding: 6px 14px;
+}
+
+.itu-plan-card h3 {
+	font-size: var(--wp--preset--font-size--x-large);
+	margin: 0 0 8px;
+}
+
+.itu-plan-card__desc {
+	font-size: var(--wp--preset--font-size--small);
+	color: var(--itu-gray-600);
+	line-height: 1.5;
+	margin: 0 0 20px;
+	flex-grow: 1;
+}
+
+.itu-plan-card__price {
+	display: flex;
+	align-items: baseline;
+	gap: 4px;
+	margin-bottom: 4px;
+}
+
+.itu-plan-card__amount {
+	font-size: 2.5rem;
+	font-weight: 800;
+	letter-spacing: -0.02em;
+	line-height: 1;
+}
+
+.itu-plan-card__original {
+	font-size: 1.25rem;
+	font-weight: 600;
+	color: var(--itu-gray-400);
+	text-decoration: line-through;
+}
+
+.itu-plan-card__per {
+	font-size: var(--wp--preset--font-size--small);
+	color: var(--itu-gray-400);
+}
+
+.itu-plan-card__billing {
+	font-size: 0.75rem;
+	color: var(--itu-gray-400);
+	margin: 0 0 20px;
+}
+
+.itu-plan-card__features {
+	list-style: none;
+	padding: 0;
+	margin: 0 0 24px;
+}
+
+.itu-plan-card__features li {
+	font-size: var(--wp--preset--font-size--small);
+	color: var(--itu-gray-600);
+	padding: 6px 0;
+	border-bottom: 1px solid var(--itu-gray-100);
+	padding-left: 20px;
+	position: relative;
+}
+
+.itu-plan-card__features li:last-child {
+	border-bottom: none;
+}
+
+.itu-plan-card__features li::before {
+	content: '✓';
+	position: absolute;
+	left: 0;
+	color: #C026D3;
+	font-weight: 700;
+}
+
+@media (max-width: 960px) {
+	.itu-plan-cards {
+		grid-template-columns: repeat(2, 1fr);
+	}
+
+	.itu-plan-card.itu-plan-card--wide {
+		grid-template-columns: 1fr;
+	}
+
+	.itu-plan-card__right {
+		border-left: none;
+		border-top: 1px solid var(--itu-gray-200);
+	}
+}
+
+@media (max-width: 600px) {
+	.itu-plan-cards {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ==========================================================================
+   FAQ LAYOUT (two-column: intro left, accordion right)
+   ========================================================================== */
+
+.itu-faq-layout {
+	display: grid;
+	grid-template-columns: 1fr 2fr;
+	gap: var(--wp--preset--spacing--60);
+	align-items: start;
+}
+
+.itu-faq-layout__intro {
+	position: sticky;
+	top: 100px;
+}
+
+.itu-faq-layout__list {
+	min-width: 0;
+}
+
+/* FAQ items — native <details>/<summary> */
+details.itu-faq-item {
+	border-bottom: 1px solid var(--itu-gray-200);
+}
+
+details.itu-faq-item:last-child {
+	border-bottom: none;
+}
+
+details.itu-faq-item summary {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 20px 0;
+	font-family: var(--wp--preset--font-family--manrope);
+	font-size: var(--wp--preset--font-size--medium);
+	font-weight: 600;
+	color: var(--itu-black);
+	cursor: pointer;
+	list-style: none;
+	gap: 16px;
+}
+
+details.itu-faq-item summary::-webkit-details-marker {
+	display: none;
+}
+
+details.itu-faq-item summary::marker {
+	display: none;
+	content: '';
+}
+
+details.itu-faq-item summary::after {
+	content: '';
+	flex-shrink: 0;
+	width: 12px;
+	height: 8px;
+	background: url("data:image/svg+xml,%3Csvg viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='1 1 6 6 11 1' fill='none' stroke='%239E9E9E' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center;
+	transition: transform 300ms ease;
+}
+
+details.itu-faq-item[open] summary::after {
+	transform: rotate(180deg);
+	background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='1 1 6 6 11 1' fill='none' stroke='%23C026D3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+details.itu-faq-item summary:hover {
+	color: #C026D3;
+}
+
+details.itu-faq-item summary:focus {
+	outline: none;
+}
+
+details.itu-faq-item summary:focus-visible {
+	outline: 2px solid #C026D3;
+	outline-offset: 2px;
+}
+
+details.itu-faq-item > p,
+details.itu-faq-item > div,
+details.itu-faq-item > ul,
+details.itu-faq-item > ol {
+	padding: 0 0 20px;
+	font-size: 1rem;
+	color: var(--itu-gray-600);
+	line-height: 1.7;
+	margin: 0;
+}
+
+details.itu-faq-item p,
+details.itu-faq-item li,
+details.itu-faq-item div {
+	font-size: 1rem;
+	line-height: 1.7;
+}
+
+details.itu-faq-item ul,
+details.itu-faq-item ol {
+	padding-left: 20px;
+	margin-bottom: 16px;
+}
+
+details.itu-faq-item li {
+	margin-bottom: 10px;
+}
+
+details.itu-faq-item a {
+	color: #C026D3;
+	font-weight: 600;
+}
+
+@media (max-width: 960px) {
+	.itu-faq-layout {
+		grid-template-columns: 1fr;
+	}
+
+	.itu-faq-layout__intro {
+		position: static;
+	}
+}
+
+/* Rank Math FAQ blocks — restyle to match itu-faq-item */
+#rank-math-faq {
+	max-width: none;
+	margin: 0;
+	padding: 0;
+}
+
+#rank-math-faq .rank-math-list-item {
+	border-bottom: 1px solid var(--itu-gray-200);
+}
+
+#rank-math-faq .rank-math-list-item:last-child {
+	border-bottom: none;
+}
+
+#rank-math-faq .rank-math-question {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+	padding: 20px 0;
+	font-family: var(--wp--preset--font-family--manrope);
+	font-size: var(--wp--preset--font-size--medium);
+	font-weight: 600;
+	color: var(--itu-black);
+	cursor: pointer;
+	gap: 16px;
+	margin: 0;
+}
+
+#rank-math-faq .rank-math-question:hover {
+	color: #C026D3;
+}
+
+#rank-math-faq .rank-math-answer {
+	display: none;
+	padding: 0 0 20px;
+}
+
+#rank-math-faq .rank-math-list-item.is-open .rank-math-answer {
+	display: block;
+}
+
+#rank-math-faq .rank-math-answer p {
+	font-size: var(--wp--preset--font-size--small);
+	color: var(--itu-gray-600);
+	line-height: 1.6;
+	margin: 0;
+}
+
+#rank-math-faq .rank-math-list-item .itu-faq-item__icon {
+	flex-shrink: 0;
+	color: var(--itu-gray-400);
+	transition: transform 300ms ease;
+}
+
+#rank-math-faq .rank-math-list-item.is-open .itu-faq-item__icon {
+	transform: rotate(180deg);
+	color: #C026D3;
+}
+
+/* ==========================================================================
+   SPECIALTY CARDS
+   ========================================================================== */
+
+.itu-specialty-cards {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	gap: 16px;
+}
+
+.itu-specialty-card {
+	background: var(--itu-gray-100);
+	border: 1px solid var(--itu-gray-200);
+	padding: 24px 20px;
+	text-decoration: none;
+	display: flex;
+	flex-direction: column;
+	transition: border-color var(--itu-transition), box-shadow var(--itu-transition);
+}
+
+.itu-specialty-card:hover {
+	border-color: #C026D3;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.itu-specialty-card__number {
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: #C026D3;
+	margin-bottom: 12px;
+}
+
+.itu-specialty-card h3 {
+	font-size: var(--wp--preset--font-size--large);
+	color: var(--itu-black);
+	margin: 0 0 8px;
+}
+
+.itu-specialty-card p {
+	font-size: var(--wp--preset--font-size--small);
+	color: var(--itu-gray-600);
+	line-height: 1.5;
+	margin: 0 0 16px;
+	flex-grow: 1;
+}
+
+.itu-specialty-card__link {
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: #C026D3;
+}
+
+@media (max-width: 960px) {
+	.itu-specialty-cards {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+@media (max-width: 600px) {
+	.itu-specialty-cards {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ==========================================================================
+   FORM STYLES (global)
+   ========================================================================== */
+
+.itu-form {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 24px;
+}
+
+.itu-form__field {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.itu-form__field--full {
+	grid-column: 1 / -1;
+}
+
+.itu-form__field label {
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+	color: var(--itu-gray-400);
+}
+
+.itu-form__field input,
+.itu-form__field select,
+.itu-form__field textarea {
+	width: 100%;
+	padding: 12px 16px;
+	font-family: var(--wp--preset--font-family--manrope);
+	font-size: var(--wp--preset--font-size--medium);
+	color: var(--itu-white);
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid var(--itu-gray-600);
+	border-radius: 6px;
+	outline: none;
+	transition: border-color var(--itu-transition);
+	box-sizing: border-box;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.itu-form__field input:focus,
+.itu-form__field select:focus,
+.itu-form__field textarea:focus {
+	border-color: #C026D3;
+}
+
+.itu-form__field input::placeholder,
+.itu-form__field textarea::placeholder {
+	color: var(--itu-gray-600);
+}
+
+.itu-form__field select {
+	cursor: pointer;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%239E9E9E' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 16px center;
+	padding-right: 44px;
+}
+
+.itu-form__field select option {
+	background: var(--itu-black);
+	color: var(--itu-white);
+}
+
+.itu-form__field textarea {
+	resize: vertical;
+	min-height: 100px;
+}
+
+/* Light background variant */
+.itu-section:not(.itu-section--dark) .itu-form__field input,
+.itu-section:not(.itu-section--dark) .itu-form__field select,
+.itu-section:not(.itu-section--dark) .itu-form__field textarea {
+	color: var(--itu-black);
+	background: var(--itu-white);
+	border-color: var(--itu-gray-200);
+}
+
+.itu-section:not(.itu-section--dark) .itu-form__field label {
+	color: var(--itu-gray-600);
+}
+
+.itu-form__actions {
+	grid-column: 1 / -1;
+	padding-top: 8px;
+}
+
+.itu-form__actions .itu-button,
+.itu-form__actions button {
+	box-shadow: none;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+@media (max-width: 600px) {
+	.itu-form {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ==========================================================================
+   NUMBERED CARD GRID (used in reseller section on front page)
+   ========================================================================== */
+
+.itu-card-grid {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	gap: 1px;
@@ -1330,12 +3314,12 @@ a.itu-certs__card-image {
 	margin-bottom: var(--wp--preset--spacing--60);
 }
 
-.itu-reseller__card {
+.itu-card-grid__item {
 	background: var(--itu-black);
 	padding: var(--wp--preset--spacing--50);
 }
 
-.itu-reseller__card-number {
+.itu-card-grid__number {
 	display: block;
 	font-family: var(--wp--preset--font-family--fira-code);
 	font-size: 1.75rem;
@@ -1344,73 +3328,1014 @@ a.itu-certs__card-image {
 	margin-bottom: var(--wp--preset--spacing--30);
 }
 
-.itu-reseller__card-title {
+.itu-card-grid__title {
 	font-size: var(--wp--preset--font-size--large);
 	font-weight: 700;
 	color: var(--itu-white);
 	margin: 0 0 8px;
 }
 
-.itu-reseller__card-desc {
+.itu-card-grid__desc {
 	font-size: 0.8125rem;
 	line-height: 1.6;
 	color: var(--itu-gray-400);
 	margin: 0;
 }
 
-.itu-reseller__cta {
-	display: flex;
+/* Centered headline block */
+.itu-headline--center {
+	text-align: center;
+	max-width: 700px;
+	margin: 0 auto var(--wp--preset--spacing--60);
+}
+
+/* Centered CTA */
+.itu-cta--center {
 	justify-content: center;
-	align-items: center;
-	gap: var(--wp--preset--spacing--40);
 }
 
-.itu-reseller__button {
-	display: inline-block;
-	padding: 0.875rem 2rem;
-	background: var(--itu-white);
-	color: var(--itu-black);
-	font-size: var(--wp--preset--font-size--small);
-	font-weight: 600;
-	letter-spacing: 0.5px;
-	text-transform: uppercase;
-	text-decoration: none;
-	border-top-right-radius: 12px;
-	transition: background var(--itu-transition), color var(--itu-transition);
-}
-
-.itu-reseller__button:hover {
-	background: #C026D3;
-	color: var(--itu-white);
-}
-
-.itu-reseller__link {
-	font-size: var(--wp--preset--font-size--small);
-	font-weight: 600;
-	color: var(--itu-gray-400);
-	text-decoration: none;
-	transition: color var(--itu-transition);
-}
-
-.itu-reseller__link:hover {
-	color: var(--itu-white);
-}
-
-/* Reseller responsive */
 @media (max-width: 960px) {
-	.itu-reseller__grid {
+	.itu-card-grid {
 		grid-template-columns: repeat(2, 1fr);
 	}
 }
 
 @media (max-width: 600px) {
-	.itu-reseller__grid {
+	.itu-card-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ==========================================================================
+   PLANS BAR (thin CTA bar on course catalog)
+   ========================================================================== */
+
+.itu-plans-bar {
+	max-width: 1200px;
+	margin: var(--wp--preset--spacing--40) auto 0;
+	padding: 0 0 var(--wp--preset--spacing--50);
+	width: 100%;
+	box-sizing: border-box;
+}
+
+/* When inside a section__inner, remove own padding since parent provides it */
+.itu-section__inner .itu-plans-bar,
+[class$="__inner"] .itu-plans-bar {
+	padding: 0;
+	margin-left: 0;
+	margin-right: 0;
+	max-width: none;
+}
+
+/* Ensure shortcode wrapper doesn't constrain the bar */
+.wp-block-shortcode:has(.itu-plans-bar) {
+	max-width: none;
+	width: 100%;
+}
+
+.itu-plans-bar__inner {
+	width: 100% !important;
+	border-collapse: collapse !important;
+	padding: 0 !important;
+	border: 1px dashed #C026D3;
+	box-sizing: border-box;
+	background: rgba(192, 38, 211, 0.03);
+}
+
+.itu-plans-bar__text {
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: var(--wp--preset--font-size--medium);
+	font-weight: 600;
+	color: #C026D3;
+	padding: 12px 20px;
+	vertical-align: middle;
+}
+
+.itu-plans-bar__actions {
+	padding: 12px 20px;
+	vertical-align: middle;
+	text-align: right;
+	white-space: nowrap;
+}
+
+.itu-plans-bar__btn + .itu-plans-bar__btn {
+	margin-left: 8px;
+}
+
+
+.itu-plans-bar__btn {
+	display: inline-block;
+	padding: 8px 20px;
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: #C026D3;
+	text-decoration: none;
+	border: 1px solid rgba(192, 38, 211, 0.3);
+	border-radius: 0;
+	border-top-right-radius: 12px;
+	transition: all var(--itu-transition);
+}
+
+.itu-plans-bar__btn:hover {
+	background: #C026D3;
+	color: #fff;
+	border-color: #C026D3;
+}
+
+@media (max-width: 600px) {
+	.itu-plans-bar__inner {
+		flex-direction: column;
+		gap: 12px;
+		text-align: center;
+	}
+}
+
+/* ==========================================================================
+   PROMO CARDS (injected into carousels and grids)
+   ========================================================================== */
+
+.itu-promo-card {
+	background: var(--itu-gray-100) !important;
+	border: 1px dashed #C026D3 !important;
+	padding: 24px !important;
+	display: flex !important;
+	flex-direction: column !important;
+	justify-content: center !important;
+	min-width: 280px;
+}
+
+.itu-promo-card__eyebrow {
+	display: inline-block;
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: 0.6875rem;
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	color: #C026D3;
+	margin-bottom: 12px;
+}
+
+.itu-promo-card__title {
+	font-size: var(--wp--preset--font-size--x-large) !important;
+	font-weight: 800 !important;
+	line-height: 1.2 !important;
+	color: var(--itu-black) !important;
+	margin: 0 0 10px !important;
+}
+
+.itu-promo-card__desc {
+	font-size: var(--wp--preset--font-size--small);
+	color: var(--itu-gray-600);
+	line-height: 1.5;
+	margin: 0 0 16px;
+	flex-grow: 1;
+}
+
+.itu-promo-card__cta {
+	display: inline-block;
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: #C026D3;
+	text-decoration: none;
+	transition: color var(--itu-transition);
+}
+
+.itu-promo-card__cta:hover {
+	color: var(--itu-black);
+}
+
+/* ==========================================================================
+   BLOG ARCHIVE CARDS
+   ========================================================================== */
+
+.itu-blog-query {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: var(--wp--preset--spacing--50) var(--wp--preset--spacing--50) var(--wp--preset--spacing--70);
+}
+
+.itu-archive-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 24px;
+	margin-bottom: var(--wp--preset--spacing--50);
+}
+
+.itu-archive-header .itu-archive-title {
+	margin-bottom: 0 !important;
+}
+
+.itu-archive-header .is-search-form,
+.itu-archive-header .ivory-search {
+	flex-shrink: 0;
+}
+
+/* Ivory Search — match header search bar exactly */
+.is-search-form,
+.is-form-style {
+	display: flex !important;
+	align-items: stretch !important;
+	gap: 3px !important;
+	border: none !important;
+	box-shadow: none !important;
+	background: none !important;
+	padding: 0 !important;
+	min-width: 340px !important;
+}
+
+.is-search-form label {
+	flex: 1 !important;
+	display: flex !important;
+	align-items: center !important;
+	margin: 0 !important;
+}
+
+input.is-search-input,
+.is-search-form .is-search-input,
+.is-form-style .is-search-input,
+.is-form-style.is-form-style-3 input.is-search-input,
+.is-form-style-3.is-form-id-1004565 .is-search-input,
+.is-form-style-3.is-form-id-1004565 .is-search-input:focus,
+.is-form-style-3.is-form-id-1004565 .is-search-input:hover,
+.is-form-id-1004565 .is-search-input,
+.is-form-id-1004565 .is-search-input:focus,
+.is-form-id-1004565 .is-search-input:hover {
+	width: 100% !important;
+	background: #ffffff !important;
+	border: 1px solid #d0d0d0 !important;
+	border-right: 1px solid #d0d0d0 !important;
+	color: #111 !important;
+	border-color: #d0d0d0 !important;
+	padding: 12px 16px !important;
+	font-family: var(--wp--preset--font-family--manrope) !important;
+	font-size: 0.875rem !important;
+	outline: none !important;
+	border-radius: 0 !important;
+	box-shadow: none !important;
+	height: auto !important;
+	line-height: 1.4 !important;
+	box-sizing: border-box !important;
+}
+
+.is-search-form .is-search-input::placeholder {
+	color: var(--itu-gray-400) !important;
+}
+
+.is-search-form .is-search-input:focus {
+	border-color: #C026D3 !important;
+}
+
+.is-search-form .is-search-submit,
+.is-form-style button.is-search-submit {
+	background: var(--itu-black) !important;
+	color: var(--itu-white) !important;
+	border: none !important;
+	padding: 0 32px !important;
+	min-width: 120px !important;
+	cursor: pointer !important;
+	border-radius: 0 !important;
+	border-top-right-radius: 12px !important;
+	box-sizing: border-box !important;
+	line-height: 1 !important;
+	height: auto !important;
+	margin: 0 !important;
+	transition: background var(--itu-transition) !important;
+	box-shadow: none !important;
+	-webkit-appearance: none !important;
+	appearance: none !important;
+	font-family: var(--wp--preset--font-family--manrope) !important;
+	font-size: 0.8125rem !important;
+	font-weight: 600 !important;
+	text-transform: uppercase !important;
+	letter-spacing: 0.5px !important;
+}
+
+.is-search-form .is-search-submit:hover {
+	background: #C026D3 !important;
+}
+
+/* Hide the SVG icon, show text instead */
+.is-search-form .is-search-icon {
+	display: none !important;
+}
+
+.is-search-form .is-search-submit::after {
+	content: 'SEARCH' !important;
+	color: var(--itu-white) !important;
+}
+
+.is-search-form .is-screen-reader-text {
+	clip: unset !important;
+	position: static !important;
+	width: auto !important;
+	height: auto !important;
+	overflow: visible !important;
+	display: none !important;
+}
+
+.is-search-form .is-loader-image {
+	display: none !important;
+}
+
+.itu-archive-title {
+	font-size: var(--wp--preset--font-size--xx-large) !important;
+	font-weight: 800 !important;
+	line-height: 1.1 !important;
+	letter-spacing: -0.02em !important;
+	margin: 0 0 var(--wp--preset--spacing--50) !important;
+}
+
+.itu-blog-grid {
+	gap: 20px !important;
+}
+
+.itu-blog-grid > li {
+	display: flex !important;
+}
+
+.itu-blog-card {
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	padding: 24px;
+	display: flex !important;
+	flex-direction: column;
+	flex: 1;
+	transition: border-color var(--itu-transition), box-shadow var(--itu-transition);
+}
+
+.itu-blog-card:hover {
+	border-color: #C026D3;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.itu-blog-card__title {
+	font-size: var(--wp--preset--font-size--large) !important;
+	font-weight: 700 !important;
+	line-height: 1.3 !important;
+	margin: 0 0 12px !important;
+	padding: 0 !important;
+	max-width: none !important;
+}
+
+.itu-blog-card__title a {
+	color: var(--itu-black) !important;
+	text-decoration: none !important;
+}
+
+.itu-blog-card__title a:hover {
+	color: #C026D3 !important;
+}
+
+.itu-blog-card__excerpt {
+	font-size: var(--wp--preset--font-size--small) !important;
+	color: var(--itu-gray-600) !important;
+	line-height: 1.5 !important;
+	margin: 0 0 16px !important;
+	flex-grow: 1;
+}
+
+.itu-blog-card__excerpt p {
+	margin: 0 !important;
+}
+
+.itu-blog-card__link {
+	font-size: var(--wp--preset--font-size--small) !important;
+	font-weight: 600 !important;
+	color: #C026D3 !important;
+	text-decoration: none !important;
+	margin-top: auto;
+}
+
+.itu-blog-card__link:hover {
+	color: var(--itu-black) !important;
+}
+
+/* Blog pagination */
+.itu-blog-pagination {
+	margin-top: var(--wp--preset--spacing--50) !important;
+	gap: 8px !important;
+}
+
+.itu-blog-pagination .wp-block-query-pagination-numbers {
+	display: flex;
+	gap: 4px;
+}
+
+.itu-blog-pagination a,
+.itu-blog-pagination span {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 36px;
+	height: 36px;
+	padding: 0 12px;
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: var(--itu-gray-600);
+	text-decoration: none;
+	border: 1px solid var(--itu-gray-200);
+	transition: all var(--itu-transition);
+}
+
+.itu-blog-pagination a:hover {
+	border-color: #C026D3;
+	color: #C026D3;
+}
+
+.itu-blog-pagination span.current,
+.itu-blog-pagination .current {
+	background: var(--itu-black);
+	color: var(--itu-white);
+	border-color: var(--itu-black);
+}
+
+/* ==========================================================================
+   FEATURE MATRIX TABLE
+   ========================================================================== */
+
+.itu-matrix {
+	margin-top: var(--wp--preset--spacing--40);
+	overflow-x: auto;
+}
+
+.itu-matrix__table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: var(--wp--preset--font-size--small);
+}
+
+.itu-matrix__table thead tr {
+	border-bottom: 2px solid var(--itu-black);
+}
+
+.itu-matrix__table th {
+	padding: 16px 20px;
+	text-align: center;
+	font-weight: 700;
+	font-size: var(--wp--preset--font-size--medium);
+	color: var(--itu-black);
+}
+
+.itu-matrix__feature-col {
+	text-align: left !important;
+	width: 40%;
+}
+
+.itu-matrix__plan-col {
+	width: 20%;
+}
+
+.itu-matrix__plan-col--featured {
+	background: rgba(192, 38, 211, 0.04);
+	color: #C026D3 !important;
+}
+
+.itu-matrix__table tbody tr {
+	border-bottom: 1px solid var(--itu-gray-200);
+}
+
+.itu-matrix__table tbody tr:last-child {
+	border-bottom: none;
+}
+
+.itu-matrix__table tbody td {
+	padding: 14px 20px;
+	color: var(--itu-gray-600);
+	text-align: center;
+}
+
+.itu-matrix__table tbody td:first-child {
+	text-align: left;
+	font-weight: 500;
+	color: var(--itu-black);
+}
+
+/* Checkmark style for ✕ */
+.itu-matrix__table tbody td:not(:first-child) {
+	font-size: 1rem;
+	font-weight: 700;
+}
+
+/* Featured column highlight — TurboPro (last column) */
+.itu-matrix__table tbody td:nth-child(4) {
+	background: rgba(192, 38, 211, 0.04);
+}
+
+
+.itu-matrix--yes {
+	color: #C026D3 !important;
+	font-weight: 700 !important;
+	font-size: 1.125rem !important;
+}
+
+.itu-matrix--no {
+	color: var(--itu-gray-200) !important;
+	font-weight: 400 !important;
+}
+
+.itu-matrix--val {
+	color: var(--itu-gray-600) !important;
+	font-weight: 600 !important;
+	font-size: var(--wp--preset--font-size--small) !important;
+}
+
+@media (max-width: 600px) {
+	.itu-matrix__table th,
+	.itu-matrix__table td {
+		padding: 10px 12px;
+		font-size: 0.75rem;
+	}
+}
+
+/* ==========================================================================
+   SINGLE PRODUCT LAYOUT
+   ========================================================================== */
+
+.itu-product-hero {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--wp--preset--spacing--50);
+}
+
+.itu-product-hero__content {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+.itu-product-hero__image {
+	width: 350px;
+	min-width: 350px;
+	height: 350px;
+	flex-shrink: 0;
+	border-radius: 50%;
+	overflow: hidden;
+}
+
+.itu-product-avatar-img {
+	width: 350px !important;
+	height: 350px !important;
+	max-width: none !important;
+	object-fit: cover !important;
+	display: block !important;
+}
+
+/* Product tabs — floating pill bar */
+.itu-product-tabs-bar {
+	position: relative;
+	z-index: 10;
+	margin-bottom: -30px;
+}
+
+.itu-product-tabs {
+	display: inline-flex;
+	background: var(--itu-black);
+	border-radius: 999px;
+	padding: 6px;
+	gap: 4px;
+}
+
+.itu-product-tabs__btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 28px;
+	border: none;
+	border-radius: 999px;
+	background: none;
+	font-family: var(--wp--preset--font-family--manrope);
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: var(--itu-gray-400);
+	cursor: pointer;
+	box-shadow: none;
+	appearance: none;
+	transition: all var(--itu-transition);
+}
+
+.itu-product-tabs__btn svg {
+	width: 18px;
+	height: 18px;
+	stroke: currentColor;
+	fill: none;
+	stroke-width: 1.5;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.itu-product-tabs__btn:hover {
+	color: var(--itu-white);
+}
+
+.itu-product-tabs__btn.is-active {
+	background: #C026D3;
+	color: var(--itu-white);
+}
+
+.itu-product-tab-panel {
+	display: none;
+}
+
+.itu-product-tab-panel.is-active {
+	display: block;
+}
+
+/* Course outline */
+.itu-outline {
+	margin-bottom: var(--wp--preset--spacing--50);
+}
+
+.itu-outline__header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 16px;
+	margin-bottom: var(--wp--preset--spacing--40);
+	flex-wrap: wrap;
+}
+
+.itu-outline__title {
+	font-size: var(--wp--preset--font-size--x-large) !important;
+	font-weight: 800 !important;
+	margin: 0 !important;
+}
+
+.itu-outline__title a {
+	color: var(--itu-black) !important;
+	text-decoration: none !important;
+}
+
+.itu-outline__title a:hover {
+	color: #C026D3 !important;
+}
+
+.itu-outline__module {
+	border: 1px solid var(--itu-gray-200);
+	background: var(--itu-white);
+	margin-bottom: 8px;
+}
+
+.itu-outline__module-title {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 14px 20px;
+	font-family: var(--wp--preset--font-family--manrope);
+	font-size: var(--wp--preset--font-size--medium);
+	font-weight: 600;
+	color: var(--itu-black);
+	cursor: pointer;
+	list-style: none;
+}
+
+.itu-outline__module-title::-webkit-details-marker {
+	display: none;
+}
+
+.itu-outline__module-title::marker {
+	display: none;
+	content: '';
+}
+
+.itu-outline__module-title::after {
+	content: '';
+	flex-shrink: 0;
+	width: 12px;
+	height: 8px;
+	background: url("data:image/svg+xml,%3Csvg viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='1 1 6 6 11 1' fill='none' stroke='%239E9E9E' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center;
+	transition: transform 300ms ease;
+}
+
+.itu-outline__module[open] .itu-outline__module-title::after {
+	transform: rotate(180deg);
+	background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='1 1 6 6 11 1' fill='none' stroke='%23C026D3' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.itu-outline__module-title:hover {
+	color: #C026D3;
+}
+
+.itu-outline__module summary:focus {
+	outline: none;
+}
+
+.itu-outline__lessons {
+	list-style: none;
+	padding: 0 20px 16px;
+	margin: 0;
+}
+
+.itu-outline__lesson {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 0;
+	font-size: var(--wp--preset--font-size--small);
+	color: var(--itu-gray-600);
+	border-bottom: 1px solid var(--itu-gray-100);
+}
+
+.itu-outline__lesson:last-child {
+	border-bottom: none;
+}
+
+.itu-outline__lesson svg {
+	flex-shrink: 0;
+	color: #C026D3;
+}
+
+/* Enroll tab cards */
+.itu-enroll-intro {
+	margin-bottom: var(--wp--preset--spacing--40);
+}
+
+.itu-enroll-cards {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 20px;
+}
+
+.itu-enroll-card {
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	padding: 32px;
+	display: flex;
+	flex-direction: column;
+}
+
+.itu-enroll-card h3 {
+	font-size: var(--wp--preset--font-size--x-large);
+	margin: 0 0 12px;
+}
+
+.itu-enroll-card p {
+	font-size: var(--wp--preset--font-size--small);
+	color: var(--itu-gray-600);
+	line-height: 1.5;
+	margin: 0 0 24px;
+	flex-grow: 1;
+}
+
+.itu-enroll-card--full {
+	grid-column: 1 / -1 !important;
+	background: rgba(192, 38, 211, 0.06) !important;
+	border: 2px dotted #C026D3 !important;
+}
+
+@media (max-width: 768px) {
+	.itu-enroll-cards {
 		grid-template-columns: 1fr;
 	}
 
-	.itu-reseller__cta {
+	.itu-enroll-card--full {
 		flex-direction: column;
+		align-items: flex-start;
 	}
+}
+
+.itu-product-hero__desc {
+	margin-top: 12px;
+	font-size: 1.05rem;
+	line-height: 1.6;
+	color: var(--itu-gray-400);
+	max-width: 640px;
+}
+
+.itu-product-stats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: var(--wp--preset--spacing--40);
+}
+
+.itu-product-body {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: var(--wp--preset--spacing--50) var(--wp--preset--spacing--50);
+}
+
+@media (max-width: 768px) {
+	.itu-product-hero {
+		flex-direction: column-reverse;
+		align-items: flex-start;
+	}
+
+	.itu-product-avatar,
+	.itu-product-avatar img {
+		width: 120px !important;
+		height: 120px !important;
+	}
+}
+
+/* ==========================================================================
+   ABOUT US PAGE
+   ========================================================================== */
+
+.itu-about-stats {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 20px;
+}
+
+.itu-about-stat {
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	padding: 24px;
+	text-align: center;
+}
+
+.itu-about-stat__number {
+	display: block;
+	font-size: var(--wp--preset--font-size--xx-large);
+	font-weight: 800;
+	color: #C026D3;
+	line-height: 1;
+	margin-bottom: 8px;
+}
+
+.itu-about-stat__label {
+	font-size: var(--wp--preset--font-size--small);
+	color: var(--itu-gray-600);
+	line-height: 1.4;
+}
+
+.itu-about-features {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 16px;
+	margin-top: var(--wp--preset--spacing--40);
+}
+
+.itu-about-feature {
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	padding: 24px;
+}
+
+.itu-about-feature h3 {
+	font-size: var(--wp--preset--font-size--large);
+	margin: 0 0 8px;
+}
+
+.itu-about-feature p {
+	font-size: var(--wp--preset--font-size--small);
+	color: var(--itu-gray-600);
+	line-height: 1.5;
+	margin: 0;
+}
+
+.itu-about-award {
+	display: flex;
+	align-items: flex-start;
+	gap: 20px;
+	background: var(--itu-gray-100);
+	border: 1px solid var(--itu-gray-200);
+	padding: 24px;
+	margin-top: var(--wp--preset--spacing--40);
+}
+
+.itu-about-award__number {
+	font-size: var(--wp--preset--font-size--xx-large);
+	font-weight: 800;
+	color: #C026D3;
+	line-height: 1;
+	flex-shrink: 0;
+}
+
+.itu-about-award p {
+	font-size: var(--wp--preset--font-size--small);
+	color: var(--itu-gray-600);
+	line-height: 1.6;
+	margin: 0;
+}
+
+.itu-about-award strong {
+	color: var(--itu-black);
+}
+
+.itu-about-closing {
+	border-left: 3px solid #C026D3;
+	padding: 0 0 0 24px;
+	margin: 0;
+}
+
+.itu-about-closing p {
+	font-size: var(--wp--preset--font-size--x-large);
+	font-weight: 800;
+	line-height: 1.4;
+	color: var(--itu-black);
+	margin: 0;
+}
+
+@media (max-width: 768px) {
+	.itu-about-stats {
+		grid-template-columns: 1fr;
+	}
+
+	.itu-about-features {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ==========================================================================
+   RESOURCE CARDS
+   ========================================================================== */
+
+.itu-resource-cards {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	gap: 16px;
+}
+
+.itu-resource-card {
+	background: var(--itu-white);
+	border: 1px solid var(--itu-gray-200);
+	padding: 24px 20px;
+	text-decoration: none;
+	display: flex;
+	flex-direction: column;
+	transition: border-color var(--itu-transition), box-shadow var(--itu-transition);
+}
+
+.itu-resource-card:hover {
+	border-color: #C026D3;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.itu-resource-card__number {
+	font-family: var(--wp--preset--font-family--fira-code);
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: #C026D3;
+	margin-bottom: 12px;
+}
+
+.itu-resource-card h3 {
+	font-size: var(--wp--preset--font-size--large);
+	color: var(--itu-black);
+	margin: 0 0 8px;
+}
+
+.itu-resource-card p {
+	font-size: var(--wp--preset--font-size--small);
+	color: var(--itu-gray-600);
+	line-height: 1.5;
+	margin: 0 0 16px;
+	flex-grow: 1;
+}
+
+.itu-resource-card__link {
+	font-size: var(--wp--preset--font-size--small);
+	font-weight: 600;
+	color: #C026D3;
+}
+
+@media (max-width: 960px) {
+	.itu-resource-cards {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+@media (max-width: 600px) {
+	.itu-resource-cards {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ==========================================================================
+   WOOCOMMERCE PAGES (Cart, Checkout, My Account)
+   ========================================================================== */
+
+main[data-page="cart"] > *,
+main[data-page="checkout"] > *,
+main[data-page="order-confirmation"] > *,
+main[data-page="myaccount"] > * {
+	max-width: 1200px !important;
+	margin-left: auto !important;
+	margin-right: auto !important;
+	box-sizing: border-box !important;
+}
+
+main[data-page="cart"] .wp-block-site-logo img,
+main[data-page="checkout"] .wp-block-site-logo img,
+main[data-page="order-confirmation"] .wp-block-site-logo img,
+main[data-page="myaccount"] .wp-block-site-logo img,
+main[data-page="cart"] .custom-logo,
+main[data-page="checkout"] .custom-logo,
+main[data-page="order-confirmation"] .custom-logo,
+main[data-page="myaccount"] .custom-logo {
+	filter: invert(1) !important;
+}
+
+.wp-block-woocommerce-checkout-order-summary-block {
+	border: 2px dotted #C026D3 !important;
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+	padding: var(--wp--preset--spacing--40) !important;
+	background: rgba(192, 38, 211, 0.06) !important;
 }
 
 /* ==========================================================================
@@ -1478,15 +4403,6 @@ a.itu-certs__card-image {
 	padding-top: 8px;
 }
 
-.itu-catalog__sidebar-eyebrow {
-	display: block;
-	font-family: var(--wp--preset--font-family--fira-code);
-	font-size: 1rem;
-	letter-spacing: 2px;
-	text-transform: uppercase;
-	color: #C026D3;
-	margin-bottom: 20px;
-}
 
 .itu-catalog__filter-list {
 	list-style: none;
@@ -1554,6 +4470,7 @@ a.itu-certs__card-image {
 .itu-catalog__content {
 	flex: 1;
 	min-width: 0;
+	padding-top: 8px;
 }
 
 /* Loading state */
@@ -1823,15 +4740,6 @@ a.itu-certs__card-image {
 	margin: 0 auto 0;
 }
 
-.itu-cat-row__eyebrow {
-	display: block;
-	font-family: var(--wp--preset--font-family--fira-code);
-	font-size: 1rem;
-	letter-spacing: 2px;
-	text-transform: uppercase;
-	color: #C026D3;
-	margin-bottom: 6px;
-}
 
 .itu-cat-row__desc {
 	font-size: 0.875rem;
@@ -2008,4 +4916,232 @@ a.itu-certs__card-title:hover {
 		align-items: flex-start;
 		gap: 12px;
 	}
+}
+
+/* ==========================================================================
+   PRACTICE TEST OVERRIDES
+   ========================================================================== */
+
+/* Loading state */
+.ptm-loading {
+	text-align: center;
+	padding: 60px 20px;
+}
+
+.ptm-loading__spinner {
+	width: 40px;
+	height: 40px;
+	border: 3px solid var(--itu-gray-200);
+	border-top-color: var(--itu-accent);
+	border-radius: 50%;
+	animation: ptm-spin 0.8s linear infinite;
+	margin: 0 auto 16px;
+}
+
+@keyframes ptm-spin {
+	to { transform: rotate(360deg); }
+}
+
+.ptm-loading__text {
+	font-size: 14px;
+	color: var(--itu-gray-400);
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	font-weight: 600;
+}
+
+/* Fix white text — override plugin styles for light background */
+/* Free course — Enroll Now as direct link in tab bar */
+.itu-product-tabs__btn--cta {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	background: #C026D3 !important;
+	color: #ffffff !important;
+	text-decoration: none !important;
+	padding: 10px 20px !important;
+	font-weight: 700 !important;
+	letter-spacing: 0.5px !important;
+	font-size: var(--wp--preset--font-size--small) !important;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition: background 300ms ease;
+}
+
+.itu-product-tabs__btn--cta:hover,
+.itu-product-tabs__btn--cta:focus {
+	background: #a21caf !important;
+	text-decoration: none !important;
+}
+
+.itu-product-tabs__btn--cta svg {
+	width: 18px;
+	height: 18px;
+	fill: none;
+	stroke: #ffffff;
+	stroke-width: 2;
+}
+
+.wp-block-post-content p {
+	margin-bottom: 20px !important;
+}
+
+.wp-block-post-content h2,
+.wp-block-post-content h3 {
+	margin-top: 32px;
+	margin-bottom: 12px;
+}
+
+.wp-block-post-content ul,
+.wp-block-post-content ol {
+	margin-top: 12px;
+	margin-bottom: 20px;
+}
+
+.wp-block-post-content blockquote {
+	border-left: 4px solid #1d2327;
+	margin: 24px 0;
+	padding: 20px 24px;
+	background: #f3f4f6;
+	font-style: italic;
+	color: #374151;
+	border-radius: 0 6px 6px 0;
+	font-size: 1.05rem;
+	line-height: 1.7;
+}
+
+.wp-block-post-content blockquote p {
+	margin-bottom: 8px !important;
+}
+
+.wp-block-post-content blockquote p:last-child {
+	margin-bottom: 0 !important;
+}
+
+/* Callout boxes for key takeaways, tips, warnings, etc. */
+.wp-block-post-content .itu-callout {
+	margin: 24px 0;
+	padding: 20px 24px;
+	border-radius: 6px;
+	border-left: 4px solid;
+	font-style: normal;
+}
+
+.wp-block-post-content .itu-callout p {
+	margin-bottom: 8px !important;
+}
+
+.wp-block-post-content .itu-callout p:last-child {
+	margin-bottom: 0 !important;
+}
+
+.wp-block-post-content .itu-callout strong:first-child {
+	display: block;
+	margin-bottom: 6px;
+	font-size: 0.9rem;
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+}
+
+/* Callout variants */
+.wp-block-post-content .itu-callout--tip {
+	background: #f0fdf4;
+	border-color: #16a34a;
+	color: #15803d;
+}
+
+.wp-block-post-content .itu-callout--info {
+	background: #eff6ff;
+	border-color: #2563eb;
+	color: #1e40af;
+}
+
+.wp-block-post-content .itu-callout--warning {
+	background: #fffbeb;
+	border-color: #d97706;
+	color: #92400e;
+}
+
+.wp-block-post-content .itu-callout--key {
+	background: #faf5ff;
+	border-color: #9333ea;
+	color: #6b21a8;
+}
+
+.wp-block-post-content .table-wrap {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	margin: 24px 0;
+}
+
+.wp-block-post-content table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 24px 0;
+	font-size: 0.95rem;
+	min-width: 300px;
+}
+
+.wp-block-post-content table th,
+.wp-block-post-content table td {
+	padding: 10px 14px;
+	text-align: left;
+	border: 1px solid var(--itu-gray-200, #e5e7eb);
+}
+
+.wp-block-post-content table th {
+	background: #f3f4f6;
+	font-weight: 600;
+	font-size: 0.85rem;
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+}
+
+.wp-block-post-content table tr:nth-child(even) {
+	background: #f9fafb;
+}
+
+.itu-practice-test .ptm-instruction {
+	color: var(--itu-gray-500) !important;
+}
+
+.itu-practice-test .ptm-question {
+	color: var(--itu-black) !important;
+}
+
+.itu-practice-test .ptm-answer {
+	border-color: var(--itu-gray-200) !important;
+	background-color: var(--itu-white) !important;
+	color: var(--itu-black) !important;
+}
+
+.itu-practice-test .ptm-answer:hover {
+	border-color: var(--itu-gray-400) !important;
+}
+
+.itu-practice-test .ptm-answer-label {
+	color: var(--itu-black) !important;
+}
+
+.itu-practice-test .ptm-answer.ptm-correct {
+	border-color: #82B440 !important;
+	background-color: rgba(130, 180, 64, 0.05) !important;
+}
+
+.itu-practice-test .ptm-answer.ptm-incorrect {
+	border-color: #dc2626 !important;
+	background-color: rgba(220, 38, 38, 0.05) !important;
+}
+
+.itu-practice-test .ptm-next-btn {
+	background-color: var(--itu-black) !important;
+	color: var(--itu-white) !important;
+	border-radius: 0 !important;
+	font-weight: 700 !important;
+	letter-spacing: 0.5px !important;
+	text-transform: uppercase !important;
+}
+
+.itu-practice-test .ptm-next-btn:hover {
+	background-color: var(--itu-accent) !important;
 }

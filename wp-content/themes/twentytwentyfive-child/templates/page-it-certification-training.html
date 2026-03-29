@@ -1,0 +1,432 @@
+<!-- wp:template-part {"slug":"header","area":"header"} /-->
+
+<!-- wp:group {"tagName":"main","layout":{"type":"default"}} -->
+<main class="wp-block-group">
+
+	<!-- wp:shortcode -->
+	[itu_breadcrumbs]
+	<!-- /wp:shortcode -->
+
+	<!-- wp:html -->
+	<section class="itu-section">
+		<div class="itu-section__inner">
+
+			<!-- Yearly plans (default) -->
+			<div class="itu-plans-layout" id="plans-annual">
+				<!-- Row 1: Intro | 1-Year card -->
+				<div class="itu-plans-layout__intro">
+					<span class="itu-eyebrow">[ Individual Training ]</span>
+					<h1 class="itu-page-title">Training Plans<em>.</em></h1>
+					<p class="itu-description" style="margin-bottom:var(--wp--preset--spacing--40)">Self-paced, on-demand courses designed to get you certified and career-ready.</p>
+					<div class="itu-plan-toggle">
+						<button class="itu-plan-toggle__btn is-active" data-billing="annual">Yearly <span class="itu-plan-savings" style="color:#C026D3; font-weight:700">Save 30%</span></button>
+						<button class="itu-plan-toggle__btn" data-billing="monthly">Monthly</button>
+					</div>
+				</div>
+				<div class="itu-plan-card itu-plan-card--wide itu-plan-card--featured" data-plan="annual">
+					<span class="itu-plan-card__badge">Most Popular</span>
+					<div class="itu-plan-card__left">
+						<span class="itu-eyebrow" style="margin-bottom:8px; font-size:0.75rem">[ Annual ]</span>
+						<h3>1-Year All Access</h3>
+						<p class="itu-plan-card__desc">The best value for serious learners. Full access for 12 months at the lowest monthly rate.</p>
+						<div class="itu-plan-card__price">
+							<span class="itu-plan-card__original" style="display:none"></span>
+							<span class="itu-plan-card__amount">$19</span>
+							<span class="itu-plan-card__per">/month</span>
+						</div>
+						<p class="itu-plan-card__billing">Billed annually at $228</p>
+						<a href="#" class="itu-button" style="text-align:center; background:#C026D3; display:block">Get Started</a>
+						<a href="#" class="itu-plan-card__details" data-plan-detail>Plan Details →</a>
+					</div>
+					<div class="itu-plan-card__right">
+						<p class="itu-plan-card__includes-title">What's included</p>
+						<ul class="itu-plan-card__features">
+							<li><span data-stat="hours">3,000</span>+ hours of on-demand IT training</li>
+							<li><span data-stat="questions">22,000</span>+ interactive practice questions</li>
+							<li>AI Study Buddy for personalized learning</li>
+							<li>Certificate of completion for every course</li>
+							<li>Career path programs</li>
+													</ul>
+					</div>
+				</div>
+
+				<!-- Test drive row — spans both columns -->
+				<a href="https://teams.itulearning.com/login/create_demo_account" target="_blank" class="itu-plans-testdrive">Take A Quick Test Drive →</a>
+
+				<!-- Row 2: Sprint Pass | Lifetime card -->
+				<div class="itu-sprint-card" data-plan="quarterly">
+					<span class="itu-eyebrow" style="margin-bottom:8px; font-size:0.75rem">[ Sprint Pass ]</span>
+					<h3>90-Day ExamCram</h3>
+					<p class="itu-plan-card__desc">Quarterly access — focused certification prep that auto-renews every 90 days.</p>
+					<div class="itu-plan-card__price">
+						<span class="itu-plan-card__original" style="display:none"></span>
+						<span class="itu-plan-card__amount">$33</span>
+						<span class="itu-plan-card__per">/ month</span>
+					</div>
+					<p class="itu-plan-card__billing">Billed every 90 days · cancel anytime</p>
+					<a href="#" class="itu-button" style="text-align:center; background:#C026D3; display:block">Start My Sprint</a>
+					<a href="#" class="itu-plan-card__details" data-plan-detail>Plan Details →</a>
+				</div>
+				<div class="itu-plan-card itu-plan-card--wide" data-plan="lifetime">
+					<div class="itu-plan-card__left">
+						<span class="itu-eyebrow" style="margin-bottom:8px; font-size:0.75rem">[ Lifetime ]</span>
+						<h3>Lifetime All Access</h3>
+						<p class="itu-plan-card__desc">One payment, forever access. Never worry about renewals or losing your progress.</p>
+						<div class="itu-plan-card__price">
+							<span class="itu-plan-card__original" style="display:none"></span>
+							<span class="itu-plan-card__amount">$499</span>
+							<span class="itu-plan-card__per">one-time</span>
+						</div>
+						<p class="itu-plan-card__billing">Lifetime access · never expires</p>
+						<a href="#" class="itu-button" style="text-align:center; background:#C026D3; display:block" data-product-id="">Get Started</a>
+						<a href="#" class="itu-plan-card__details" data-plan-detail>Plan Details →</a>
+					</div>
+					<div class="itu-plan-card__right">
+						<p class="itu-plan-card__includes-title">What's included</p>
+						<ul class="itu-plan-card__features">
+							<li>Everything in 1-Year All Access</li>
+							<li>All future course updates included</li>
+							<li>No renewal — access never expires</li>
+							<li>Lock in today's price forever</li>
+						</ul>
+					</div>
+				</div>
+			</div>
+
+			<!-- Monthly plans (hidden by default) -->
+			<div class="itu-plans-layout" id="plans-monthly" style="display:none">
+				<div class="itu-plans-layout__intro">
+					<span class="itu-eyebrow">[ Individual Training ]</span>
+					<h1 class="itu-page-title">Training Plans<em>.</em></h1>
+					<p class="itu-description" style="margin-bottom:var(--wp--preset--spacing--40)">Self-paced, on-demand courses designed to get you certified and career-ready.</p>
+					<div class="itu-plan-toggle">
+						<button class="itu-plan-toggle__btn" data-billing="annual">Yearly <span class="itu-plan-savings" style="color:#C026D3; font-weight:700">Save 30%</span></button>
+						<button class="itu-plan-toggle__btn is-active" data-billing="monthly">Monthly</button>
+					</div>
+				</div>
+				<div class="itu-plan-card itu-plan-card--wide" data-plan="monthly">
+					<div class="itu-plan-card__left">
+						<span class="itu-eyebrow" style="margin-bottom:8px; font-size:0.75rem">[ Monthly ]</span>
+						<h3>Monthly Access</h3>
+						<p class="itu-plan-card__desc">Full access on a month-to-month basis. No commitment — cancel anytime.</p>
+						<div class="itu-plan-card__price">
+							<span class="itu-plan-card__original" style="display:none"></span>
+							<span class="itu-plan-card__amount">$29</span>
+							<span class="itu-plan-card__per">/month</span>
+						</div>
+						<p class="itu-plan-card__billing">Billed monthly</p>
+						<a href="#" class="itu-button" style="text-align:center; background:#C026D3; display:block">Get Started</a>
+						<a href="#" class="itu-plan-card__details" data-plan-detail>Plan Details →</a>
+					</div>
+					<div class="itu-plan-card__right">
+						<p class="itu-plan-card__includes-title">What's included</p>
+						<ul class="itu-plan-card__features">
+							<li>Full course library access</li>
+							<li>Practice exams included</li>
+							<li>AI Study Buddy</li>
+							<li>Certificate of completion</li>
+						</ul>
+					</div>
+				</div>
+			</div>
+
+		</div>
+	</section>
+	<!-- /wp:html -->
+
+	<!-- PICK YOUR SPECIALTY — commented out for now
+	<section class="itu-section">
+		<div class="itu-section__inner">
+			<span class="itu-eyebrow">[ Pick Your Specialty ]</span>
+			<h2>Focus on what matters to your career<em>.</em></h2>
+			<p class="itu-description">Not sure where to start? Pick a specialty track and follow a guided path to certification.</p>
+
+			<div class="itu-specialty-cards">
+
+				<a href="/product-category/comptia/" class="itu-specialty-card">
+					<span class="itu-specialty-card__number">01</span>
+					<h3>CompTIA</h3>
+					<p>A+, Network+, Security+, CySA+, Cloud+, PenTest+ — the industry-standard foundation for every IT career.</p>
+					<span class="itu-specialty-card__link">Explore CompTIA →</span>
+				</a>
+
+				<a href="/product-category/cybersecurity/" class="itu-specialty-card">
+					<span class="itu-specialty-card__number">02</span>
+					<h3>Cybersecurity</h3>
+					<p>From Security+ to CEH to CISSP — protect networks, respond to threats, and build a career in security.</p>
+					<span class="itu-specialty-card__link">Explore Cybersecurity →</span>
+				</a>
+
+				<a href="/product-category/project-management/" class="itu-specialty-card">
+					<span class="itu-specialty-card__number">03</span>
+					<h3>Project Management</h3>
+					<p>CAPM, PMP, Agile, Scrum Master — lead projects, manage teams, and drive delivery from day one.</p>
+					<span class="itu-specialty-card__link">Explore PM →</span>
+				</a>
+
+				<a href="/product-category/it-support/" class="itu-specialty-card">
+					<span class="itu-specialty-card__number">04</span>
+					<h3>Tech Support</h3>
+					<p>CompTIA A+, Windows Server, Microsoft 365, help desk skills — launch or level up your IT support career.</p>
+					<span class="itu-specialty-card__link">Explore Tech Support →</span>
+				</a>
+
+				<a href="/product-category/artificial-intelligence/" class="itu-specialty-card">
+					<span class="itu-specialty-card__number">05</span>
+					<h3>AI Skill Development</h3>
+					<p>AI fundamentals, prompt engineering, AI ethics, SecAI+ — the fastest-growing skill set in IT.</p>
+					<span class="itu-specialty-card__link">Explore AI →</span>
+				</a>
+
+			</div>
+		</div>
+	</section>
+	END PICK YOUR SPECIALTY -->
+
+	<!-- wp:html -->
+	<section class="itu-section itu-section--gray" style="padding-top: 50px; padding-bottom: 50px;">
+		<div class="itu-section__inner">
+			<div class="itu-faq-layout">
+
+				<div class="itu-faq-layout__intro">
+					<span class="itu-eyebrow">[ Quick Answers ]</span>
+					<h2>A few frequently asked questions<em>.</em></h2>
+				</div>
+
+				<div class="itu-faq-layout__list">
+
+					<details class="itu-faq-item">
+						<summary>After signing up, when can I access my training?</summary>
+						<p>You will have immediate access to our LMS once you have completed the checkout process.</p>
+					</details>
+
+					<details class="itu-faq-item">
+						<summary>What do I get with my training plan?</summary>
+						<p>Every plan includes full access to our complete course library — <span data-stat="hours">3,000</span>+ hours of on-demand video training, <span data-stat="questions">22,000</span>+ interactive practice questions, AI Study Buddy, certificates of completion, and career path programs. The only difference between plans is the billing period.</p>
+					</details>
+
+					<details class="itu-faq-item">
+						<summary>Can I cancel my subscription anytime?</summary>
+						<p>Yes. Monthly and quarterly plans can be canceled anytime before your next billing cycle. Annual plans can be canceled before renewal. Lifetime plans are a one-time purchase with no recurring charges. There are no cancellation fees on any plan.</p>
+					</details>
+
+					<details class="itu-faq-item">
+						<summary>What's the difference between monthly, quarterly, and annual?</summary>
+						<p>All plans include the same content and features. The only difference is how you pay. Annual saves the most per month. The 90-Day Exam Cram is ideal for focused certification prep. Monthly gives you maximum flexibility with no commitment.</p>
+					</details>
+
+					<details class="itu-faq-item">
+						<summary>Do you offer a free trial?</summary>
+						<p>Yes — you can take a quick test drive of our platform before committing. <a href="https://teams.itulearning.com/login/create_demo_account" target="_blank">Create a free demo account</a> to explore the LMS, browse courses, and see the learning experience firsthand.</p>
+					</details>
+
+					<details class="itu-faq-item">
+						<summary>Can I switch or upgrade my plan later?</summary>
+						<p>Absolutely. You can upgrade from monthly to annual or lifetime at any time. Contact our support team and we'll help you transition to the plan that fits best.</p>
+					</details>
+
+					<details class="itu-faq-item">
+						<summary>Do I get a certificate when I complete a course?</summary>
+						<p>Yes. Every course you complete comes with a verifiable certificate of completion that you can download, share on LinkedIn, or provide to your employer as proof of professional development.</p>
+					</details>
+
+					<details class="itu-faq-item">
+						<summary>Do I get access to new and updated courses?</summary>
+						<p>Yes. With our Lifetime program, you get updated content for life. With all other plans, you get new and updated content for as long as your plan is active.</p>
+					</details>
+
+				</div>
+
+			</div>
+		</div>
+	</section>
+	<!-- /wp:html -->
+
+	<!-- wp:post-content {"layout":{"type":"constrained","contentSize":"1200px"}} /-->
+
+	<!-- Plan detail drawer -->
+	<div class="itu-plan-drawer-overlay" id="plan-drawer-overlay"></div>
+	<div class="itu-plan-drawer" id="plan-drawer">
+		<div class="itu-plan-drawer__header">
+			<h3 id="plan-drawer-title"></h3>
+			<button class="itu-plan-drawer__close" id="plan-drawer-close">✕</button>
+		</div>
+		<div class="itu-plan-drawer__body" id="plan-drawer-body"></div>
+	</div>
+
+	<script>
+	(function() {
+		// Toggle billing
+		var allToggleBtns = document.querySelectorAll('.itu-plan-toggle__btn');
+		var annualPlans = document.getElementById('plans-annual');
+		var monthlyPlans = document.getElementById('plans-monthly');
+		allToggleBtns.forEach(function(btn) {
+			btn.addEventListener('click', function() {
+				var billing = this.dataset.billing;
+				allToggleBtns.forEach(function(b) {
+					b.classList.toggle('is-active', b.dataset.billing === billing);
+				});
+				if (billing === 'annual') {
+					annualPlans.style.display = '';
+					monthlyPlans.style.display = 'none';
+				} else {
+					annualPlans.style.display = 'none';
+					monthlyPlans.style.display = '';
+				}
+			});
+		});
+
+		// Plan detail drawer
+		var catArrow = '<span class="itu-cat-expander__arrow"><svg viewBox="0 0 12 8"><polyline points="1 1 6 6 11 1"/></svg></span>';
+		var _catHTMLCache = null;
+		function getCategoriesHTML() {
+			if (_catHTMLCache) return _catHTMLCache;
+			var cats = (typeof ituDrawerCategories !== 'undefined') ? ituDrawerCategories : [];
+			if (!cats.length) return '';
+			_catHTMLCache = '<div class="itu-plan-drawer__card itu-plan-drawer__categories">' +
+				'<h4>Training Categories<em>.</em></h4>' +
+				'<p>Your plan includes full access to every course in all our training categories.</p>' +
+				'<div class="itu-plan-drawer__cat-list">' +
+				cats.map(function(c) {
+					return '<div class="itu-cat-expander" data-cat-slug="' + c.slug + '">' +
+						'<button class="itu-cat-expander__trigger">' + c.name + catArrow + '</button>' +
+						'<div class="itu-cat-expander__body"></div></div>';
+				}).join('') +
+				'</div></div>';
+			return _catHTMLCache;
+		}
+
+		var planDetails = {
+			'1-Year All Access': {
+				type: 'Annual',
+				title: '1-Year All Access',
+				planKey: 'annual',
+				content: '<div class="itu-plan-drawer__card"><h4>Plan Overview<em>.</em></h4><p>12 months of unlimited access to our complete IT training library. The best value for professionals committed to advancing their careers.</p></div><div class="itu-plan-drawer__card"><h4>What\'s Included<em>.</em></h4><ul><li><span data-stat="hours">3,000</span>+ hours of on-demand IT training</li><li><span data-stat="questions">22,000</span>+ interactive practice questions</li><li>AI Study Buddy for personalized learning</li><li>Certificate of completion for every course</li><li>Career path programs</li><li>New courses added regularly at no extra cost</li></ul></div><div class="itu-plan-drawer__card"><h4>Billing<em>.</em></h4><p>Billed annually. Cancel before renewal to avoid charges for the next year.</p></div>'
+			},
+			'Lifetime All Access': {
+				type: 'Lifetime',
+				title: 'Lifetime All Access',
+				planKey: 'lifetime',
+				content: '<div class="itu-plan-drawer__card"><h4>Plan Overview<em>.</em></h4><p>One payment, forever access. The ultimate investment in your IT career — never worry about renewals or price increases again.</p></div><div class="itu-plan-drawer__card"><h4>What\'s Included<em>.</em></h4><ul><li>Everything in the 1-Year All Access plan</li><li>All future course updates and new content</li><li>Access never expires — it\'s yours forever</li><li>Lock in today\'s price permanently</li></ul></div><div class="itu-plan-drawer__card"><h4>Billing<em>.</em></h4><p>One-time payment. No recurring charges, no renewals, no surprises.</p></div>'
+			},
+			'Monthly Access': {
+				type: 'Monthly',
+				title: 'Monthly Access',
+				planKey: 'monthly',
+				content: '<div class="itu-plan-drawer__card"><h4>Plan Overview<em>.</em></h4><p>Full access to the complete training library on a flexible month-to-month basis. Perfect for exploring or short-term study needs.</p></div><div class="itu-plan-drawer__card"><h4>What\'s Included<em>.</em></h4><ul><li>Full course library access</li><li>Practice exams included</li><li>AI Study Buddy</li><li>Certificate of completion</li></ul></div><div class="itu-plan-drawer__card"><h4>Billing<em>.</em></h4><p>Billed monthly. Cancel anytime — no contracts, no cancellation fees.</p></div>'
+			},
+			'90-Day Exam Cram': {
+				type: 'Sprint Pass',
+				title: '90-Day Exam Cram Pass',
+				planKey: 'quarterly',
+				content: '<div class="itu-plan-drawer__card"><h4>Plan Overview<em>.</em></h4><p>Quarterly access designed for focused certification prep. Auto-renews every 90 days so you stay on track without committing to a full year.</p></div><div class="itu-plan-drawer__card"><h4>What\'s Included<em>.</em></h4><ul><li>Full course library access</li><li>Practice exams included</li><li>AI Study Buddy</li><li>Certificate of completion</li></ul></div><div class="itu-plan-drawer__card"><h4>Billing<em>.</em></h4><p>Billed every 90 days. Cancel anytime before your next renewal.</p></div>'
+			}
+		};
+
+		var drawer = document.getElementById('plan-drawer');
+		var overlay = document.getElementById('plan-drawer-overlay');
+		var drawerTitle = document.getElementById('plan-drawer-title');
+		var drawerBody = document.getElementById('plan-drawer-body');
+		var closeBtn = document.getElementById('plan-drawer-close');
+
+		function openDrawer(planName) {
+			var plan = planDetails[planName];
+			if (!plan) return;
+			var cartUrl = '#';
+			if (typeof ituPlanPrices !== 'undefined' && plan.planKey && ituPlanPrices[plan.planKey]) {
+				cartUrl = ituPlanPrices[plan.planKey].url;
+			}
+			drawerTitle.innerHTML = '<span class="itu-eyebrow" style="margin-bottom:8px; font-size:0.75rem">[ ' + plan.type + ' ]</span>' + plan.title;
+			drawerBody.innerHTML = '<a href="' + cartUrl + '" class="itu-button itu-plan-drawer__cta">Add to Cart</a>' + plan.content + getCategoriesHTML();
+			// Update dynamic stats in drawer content
+			if (typeof ituLibraryStats !== 'undefined') {
+				var hrs = ituLibraryStats.hours ? ituLibraryStats.hours.toLocaleString() : '';
+				var qs = ituLibraryStats.questions ? ituLibraryStats.questions.toLocaleString() : '';
+				drawerBody.querySelectorAll('[data-stat="hours"]').forEach(function(el) { if (hrs) el.textContent = hrs; });
+				drawerBody.querySelectorAll('[data-stat="questions"]').forEach(function(el) { if (qs) el.textContent = qs; });
+			}
+			drawer.classList.add('is-open');
+			overlay.classList.add('is-open');
+			document.body.style.overflow = 'hidden';
+		}
+
+		function closeDrawer() {
+			drawer.classList.remove('is-open');
+			overlay.classList.remove('is-open');
+			document.body.style.overflow = '';
+		}
+
+		document.querySelectorAll('[data-plan-detail]').forEach(function(link) {
+			link.addEventListener('click', function(e) {
+				e.preventDefault();
+				// Find the plan name from the closest card's h3 or h4
+				var card = this.closest('.itu-plan-card, .itu-sprint-card');
+				var heading = card.querySelector('h3, h4');
+				if (heading) openDrawer(heading.textContent.trim());
+			});
+		});
+
+		closeBtn.addEventListener('click', closeDrawer);
+		overlay.addEventListener('click', closeDrawer);
+		window.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeDrawer(); });
+
+		// Category expander — AJAX load products
+		var catCache = {};
+		document.addEventListener('click', function(e) {
+			var trigger = e.target.closest('.itu-cat-expander__trigger');
+			if (!trigger) return;
+			var expander = trigger.closest('.itu-cat-expander');
+			var slug = expander.dataset.catSlug;
+			var body = expander.querySelector('.itu-cat-expander__body');
+
+			// Toggle open/close
+			if (expander.classList.contains('is-open')) {
+				expander.classList.remove('is-open');
+				return;
+			}
+
+			// Close other expanders
+			document.querySelectorAll('.itu-cat-expander.is-open').forEach(function(el) {
+				el.classList.remove('is-open');
+			});
+
+			expander.classList.add('is-open');
+
+			// Already loaded
+			if (catCache[slug]) {
+				body.innerHTML = catCache[slug];
+				return;
+			}
+
+			body.innerHTML = '<div class="itu-cat-expander__loading"></div>';
+
+			fetch('/wp-json/itu/v1/category-products?slug=' + slug)
+				.then(function(r) { return r.json(); })
+				.then(function(products) {
+					if (!products.length) {
+						catCache[slug] = '<div class="itu-cat-expander__loading">No courses found.</div>';
+						body.innerHTML = catCache[slug];
+						return;
+					}
+					var html = '<div class="itu-cat-expander__products">';
+					products.forEach(function(p) {
+						html += '<a href="' + p.permalink + '" class="itu-cat-product">' +
+							'<img class="itu-cat-product__img" src="' + p.image + '" alt="' + p.name + '" loading="lazy">' +
+							'<p class="itu-cat-product__title">' + p.name + '</p>' +
+							'</a>';
+					});
+					html += '</div>';
+					catCache[slug] = html;
+					body.innerHTML = html;
+				})
+				.catch(function() {
+					body.innerHTML = '<div class="itu-cat-expander__loading">Could not load courses.</div>';
+				});
+		});
+	})();
+	</script>
+
+</main>
+<!-- /wp:group -->
+
+<!-- wp:template-part {"slug":"footer","area":"footer"} /-->

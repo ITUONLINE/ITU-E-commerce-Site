@@ -7,17 +7,26 @@
 	[itu_breadcrumbs]
 	<!-- /wp:shortcode -->
 
-	<!-- wp:html -->
-	<section class="itu-section" style="padding-bottom:0">
-		<div class="itu-section__inner">
-			<span class="itu-eyebrow">[ Blog ]</span>
-			<h1 class="itu-page-title">Latest Articles<em>.</em></h1>
-		</div>
-	</section>
-	<!-- /wp:html -->
+	<!-- wp:shortcode -->
+	[itu_plans_bar]
+	<!-- /wp:shortcode -->
 
 	<!-- wp:query {"queryId":1,"query":{"perPage":10,"pages":0,"offset":0,"postType":"post","order":"desc","orderBy":"date","inherit":true},"className":"itu-blog-query"} -->
 	<div class="wp-block-query itu-blog-query">
+
+		<!-- wp:html -->
+		<div class="itu-archive-header">
+		<!-- /wp:html -->
+
+		<!-- wp:query-title {"type":"archive","className":"itu-archive-title"} /-->
+
+		<!-- wp:shortcode -->
+		[ivory-search id="1004565" title="AJAX Search Form"]
+		<!-- /wp:shortcode -->
+
+		<!-- wp:html -->
+		</div>
+		<!-- /wp:html -->
 
 		<!-- wp:post-template {"layout":{"type":"grid","columnCount":3},"className":"itu-blog-grid"} -->
 

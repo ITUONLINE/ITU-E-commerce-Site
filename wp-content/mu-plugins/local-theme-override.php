@@ -1,22 +1,18 @@
 <?php
 /**
- * Force a different theme on local/staging environments.
+ * Force the twentytwentyfive-child theme and disable Elementor.
  *
  * This file lives in mu-plugins/ so it loads automatically and cannot be
- * deactivated from the admin. It does NOT modify the database — the
- * production theme setting stays untouched.
+ * deactivated from the admin. It does NOT modify the database.
  *
  * How it works:
- * - Checks the current hostname
- * - If it matches a local/staging domain, overrides the active theme
- * - Production sees no change whatsoever
+ * - Checks the current hostname against the config list
+ * - If it matches, overrides the active theme to the child theme
+ * - Also strips Elementor from active plugins so block templates render
  */
 
 defined('ABSPATH') || exit;
 
-// Temporary debug — remove after confirming
-error_log('ITU MU-PLUGIN: HTTP_HOST = ' . $_SERVER['HTTP_HOST']);
-error_log('ITU MU-PLUGIN: Resolved host = ' . strtolower(explode(':', $_SERVER['HTTP_HOST'])[0]));
 
 
 /**
@@ -26,16 +22,21 @@ error_log('ITU MU-PLUGIN: Resolved host = ' . strtolower(explode(':', $_SERVER['
  */
 function itu_environment_config() {
     return [
+        'ituonline.com' => [
+            'url'    => 'https://ituonline.com',
+            'parent' => 'twentytwentyfive',
+            'child'  => 'twentytwentyfive-child',
+        ],
+        'www.ituonline.com' => [
+            'url'    => 'https://www.ituonline.com',
+            'parent' => 'twentytwentyfive',
+            'child'  => 'twentytwentyfive-child',
+        ],
         'staging.ituonline.com' => [
             'url'    => 'https://staging.ituonline.com',
             'parent' => 'twentytwentyfive',
             'child'  => 'twentytwentyfive-child',
         ],
-        // 'itu.local' => [
-        //     'url'    => 'http://itu.local',
-        //     'parent' => 'twentytwentyfive',
-        //     'child'  => 'twentytwentyfive-child',
-        // ],
     ];
 }
 
@@ -56,7 +57,6 @@ function itu_get_environment_override() {
 add_filter('pre_option_template', function () {
     $override = itu_get_environment_override();
     if ($override) {
-        error_log('ITU MU-PLUGIN: Forcing template to ' . $override['parent']);
         return $override['parent'];
     }
     return false; // false = let WordPress query the database as normal
@@ -65,7 +65,6 @@ add_filter('pre_option_template', function () {
 add_filter('pre_option_stylesheet', function () {
     $override = itu_get_environment_override();
     if ($override) {
-        error_log('ITU MU-PLUGIN: Forcing stylesheet to ' . $override['child']);
         return $override['child'];
     }
     return false;

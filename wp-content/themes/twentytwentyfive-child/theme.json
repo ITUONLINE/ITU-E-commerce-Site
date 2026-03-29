@@ -290,7 +290,7 @@
 			},
 			"h2": {
 				"typography": {
-					"fontSize": "var:preset|font-size|xx-large"
+					"fontSize": "var:preset|font-size|x-large"
 				}
 			},
 			"h3": {
@@ -460,6 +460,26 @@
 			"name": "page-team-training",
 			"postTypes": ["page"],
 			"title": "Team Training"
+		},
+		{
+			"name": "page-it-certification-training",
+			"postTypes": ["page"],
+			"title": "IT Certification Training"
+		},
+		{
+			"name": "page-privacy-policy",
+			"postTypes": ["page"],
+			"title": "Privacy Policy"
+		},
+		{
+			"name": "page-about-us",
+			"postTypes": ["page"],
+			"title": "About Us"
+		},
+		{
+			"name": "single-practice-test",
+			"postTypes": ["post"],
+			"title": "Practice Test"
 		},
 		{
 			"name": "single-product",

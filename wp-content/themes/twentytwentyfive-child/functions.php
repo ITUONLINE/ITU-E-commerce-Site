@@ -95,7 +95,568 @@ add_action('after_setup_theme', function () {
         'flex-height' => true,
         'flex-width'  => true,
     ]);
+
+    // Load child theme stylesheet in the Site Editor
+    add_editor_style('style.css');
 });
+
+/**
+ * Override VTS plugin inline styles (loads last to win specificity wars).
+ */
+add_action('wp_head', function () {
+    echo '<style>
+/* VTS — scoped overrides with #teams-contact for max specificity */
+#teams-contact .vts-plans,
+#teams-contact .vts-plans .vts-plans__left,
+#teams-contact .vts-plans .vts-includes__list li,
+#teams-contact .vts-plans .vts-inputlabel,
+#teams-contact .vts-plans .vts-total,
+#teams-contact .vts-plans .vts-total span,
+#teams-contact .vts-plans .vts-note,
+#teams-contact .vts-plans .vts-price__per{color:#111!important}
+#teams-contact .vts-plans{background:none!important;padding:0!important;border-radius:0!important}
+#teams-contact .vts-plans__inner{background:#fff!important;border:1px solid #e0e0e0!important;overflow:hidden!important;display:grid!important;grid-template-columns:1.6fr 0.8fr!important;gap:0!important;align-items:stretch!important;box-shadow:0 4px 24px rgba(0,0,0,0.06)!important}
+#teams-contact .vts-plans__left{padding:32px!important}
+#teams-contact .vts-switch{display:inline-flex!important;width:auto!important;margin:0 0 24px!important}
+#teams-contact .vts-switch__track{background:none!important;border:1px solid #e0e0e0!important;border-radius:999px!important;display:inline-flex!important;position:relative!important}
+#teams-contact .vts-switch__label{color:#9e9e9e!important;padding:10px 24px!important;font-size:.8125rem!important;font-weight:600!important;position:relative!important;z-index:2!important;text-align:center!important}
+#teams-contact .vts-switch__thumb{background:#111!important;border-radius:999px!important;top:0!important;left:0!important;width:50%!important;height:100%!important;z-index:1!important;position:absolute!important}
+#teams-contact .vts-switch__input:not(:checked)+.vts-switch__track .vts-switch__label--left{color:#fff!important}
+#teams-contact .vts-switch__input:checked+.vts-switch__track .vts-switch__label--right{color:#fff!important}
+#teams-contact .vts-includes{display:grid!important;grid-template-columns:1fr 1fr!important;gap:4px 30px!important}
+#teams-contact .vts-includes__list{list-style:none!important;margin:0!important;padding:0!important}
+#teams-contact .vts-includes__list li{list-style:none!important;position:relative!important;padding:6px 0 6px 20px!important;margin:0!important;line-height:1.4!important;font-size:.8125rem!important;color:#686868!important;border-bottom:none!important}
+#teams-contact .vts-includes__list li::marker{content:""!important;display:none!important}
+#teams-contact .vts-includes__list li::before{content:"✓"!important;position:absolute!important;left:0!important;top:6px!important;width:auto!important;height:auto!important;border-radius:0!important;background:none!important;color:#C026D3!important;font-weight:700!important;font-size:.75rem!important;-webkit-mask:none!important;mask:none!important}
+#teams-contact .vts-card{background:#f5f5f5!important;border:none!important;border-left:1px solid #e0e0e0!important;border-radius:0!important;padding:32px!important;max-width:none!important}
+#teams-contact .vts-price__number{font-size:2.5rem!important;font-weight:800!important;color:#111!important;letter-spacing:-0.02em!important;display:flex!important;align-items:baseline!important;gap:4px!important}
+#teams-contact .vts-price__per{color:#9e9e9e!important;font-size:.8125rem!important;opacity:1!important}
+#teams-contact .vts-savings{color:#C026D3!important;background:rgba(192,38,211,.06)!important;border:1px solid rgba(192,38,211,.2)!important;border-radius:6px!important;font-size:.75rem!important;margin:8px 0 16px!important;padding:6px 10px!important;display:block!important;text-align:center!important}
+#teams-contact .vts-inputlabel{color:#9e9e9e!important;font-weight:600!important;font-size:.6875rem!important;text-transform:uppercase!important;letter-spacing:.5px!important;display:block!important;margin:12px 0 6px!important}
+#teams-contact .vts-input{background:#fff!important;color:#111!important;border:1px solid #e0e0e0!important;border-radius:6px!important;padding:12px 16px!important;width:100%!important;outline:none!important}
+#teams-contact .vts-input:focus{border-color:#C026D3!important}
+#teams-contact .vts-total{color:#111!important;display:flex!important;justify-content:space-between!important;align-items:center!important;margin:16px 0!important}
+#teams-contact .vts-total__amount{font-weight:800!important;font-size:1.5rem!important;color:#111!important}
+#teams-contact .vts-cta{background:#C026D3!important;color:#fff!important;border:0!important;border-radius:0!important;border-top-right-radius:12px!important;box-shadow:none!important;-webkit-appearance:none!important;padding:.875rem 2rem!important;font-weight:600!important;letter-spacing:.5px!important;text-transform:uppercase!important;font-size:.8125rem!important;width:100%!important;cursor:pointer!important}
+#teams-contact .vts-cta:hover{background:#111!important;color:#fff!important}
+#teams-contact .vts-note{color:#9e9e9e!important;font-size:.8125rem!important}
+@media(max-width:960px){#teams-contact .vts-plans__inner{grid-template-columns:1fr!important}#teams-contact .vts-card{border-left:none!important;border-top:1px solid #e0e0e0!important}}
+</style>';
+}, 999);
+
+/**
+ * Inject promo cards into blog archive grids via JS.
+ */
+add_action('wp_footer', function () {
+    if (!is_archive() && !is_home()) return;
+    $promos = itu_get_promo_cards();
+    ?>
+    <script>
+    (function() {
+        var grid = document.querySelector('.itu-blog-grid');
+        if (!grid) return;
+        var items = grid.querySelectorAll(':scope > li');
+        if (items.length < 4) return;
+
+        var promos = <?php echo json_encode(array_values($promos)); ?>;
+
+        function makePromoLi(p) {
+            return '<li class="wp-block-post itu-promo-li">'
+                + '<div class="wp-block-group itu-blog-card itu-promo-card">'
+                + '<span class="itu-promo-card__eyebrow">' + p.eyebrow + '</span>'
+                + '<h3 class="itu-promo-card__title">' + p.title + '</h3>'
+                + '<p class="itu-promo-card__desc">' + p.description + '</p>'
+                + '<a href="' + p.cta_url + '" class="itu-promo-card__cta">' + p.cta_text + '</a>'
+                + '</div></li>';
+        }
+
+        // Insert both promos: after position 4 and position 8 (making 10 blogs + 2 promos = 12 = 3x4 grid)
+        var inserted = 0;
+        var refreshedItems = grid.querySelectorAll(':scope > li');
+        if (refreshedItems.length >= 5) {
+            refreshedItems[4].insertAdjacentHTML('afterend', makePromoLi(promos[0]));
+            inserted++;
+        }
+        refreshedItems = grid.querySelectorAll(':scope > li');
+        if (refreshedItems.length >= 10) {
+            refreshedItems[9].insertAdjacentHTML('afterend', makePromoLi(promos[1 % promos.length]));
+            inserted++;
+        }
+    })();
+    </script>
+    <?php
+}, 50);
+
+/**
+ * VTS seat count validation — minimum 2 users required.
+ */
+add_action('wp_footer', function () {
+    ?>
+    <script>
+    window.addEventListener('load', function() {
+        setTimeout(function() {
+            var seatsInput = document.getElementById('vts-seat-count');
+            var origBtn = document.getElementById('vts-add-to-cart');
+            var noteEl = document.querySelector('.vts-note');
+            if (!seatsInput || !origBtn) return;
+
+            // Clone button to strip ALL plugin event listeners
+            var addBtn = origBtn.cloneNode(true);
+            origBtn.parentNode.replaceChild(addBtn, origBtn);
+
+            function validateSeats() {
+                var qty = parseInt(seatsInput.value || '0', 10);
+                if (isNaN(qty) || qty < 2) {
+                    addBtn.disabled = true;
+                    addBtn.style.opacity = '0.5';
+                    addBtn.style.cursor = 'not-allowed';
+                    if (noteEl) {
+                        noteEl.textContent = 'A minimum of 2 users is required for team plans.';
+                        noteEl.style.color = '#C026D3';
+                        noteEl.style.fontWeight = '600';
+                        noteEl.style.fontSize = '0.8125rem';
+                    }
+                } else {
+                    addBtn.disabled = false;
+                    addBtn.style.opacity = '1';
+                    addBtn.style.cursor = 'pointer';
+                    if (noteEl) {
+                        noteEl.textContent = '';
+                    }
+                }
+            }
+
+            seatsInput.addEventListener('input', validateSeats);
+            seatsInput.addEventListener('change', validateSeats);
+            seatsInput.addEventListener('keyup', validateSeats);
+
+            addBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var qty = parseInt(seatsInput.value || '0', 10);
+                if (isNaN(qty) || qty < 2) {
+                    validateSeats();
+                    return;
+                }
+                var sec = document.querySelector('.vts-plans');
+                if (!sec) return;
+                var toggle = document.getElementById('vts-billing-toggle');
+                var currentMode = toggle && toggle.checked ? 'monthly' : 'annual';
+                var productId = currentMode === 'monthly' ? sec.dataset.monthlyId : sec.dataset.annualId;
+                var url = new URL(window.location.origin + '/');
+                url.searchParams.set('add-to-cart', productId);
+                url.searchParams.set('quantity', qty);
+                url.searchParams.set('vts_plan_mode', currentMode);
+                url.searchParams.set('vts_seat_count', qty);
+                url.searchParams.set('vts_to_checkout', '1');
+                if (noteEl) noteEl.textContent = 'Adding to cart…';
+                window.location.href = url.toString();
+            });
+
+            // Also intercept any navigation attempt as a final safety net
+            window.addEventListener('beforeunload', function(e) {
+                var qty = parseInt(seatsInput.value || '0', 10);
+                if (document.activeElement === addBtn && (isNaN(qty) || qty < 2)) {
+                    e.preventDefault();
+                }
+            });
+
+            validateSeats();
+        }, 500); // Wait for plugin script to finish
+    });
+    </script>
+    <?php
+}, 997);
+
+/**
+ * Replace site-title block with logo image on WooCommerce block pages (cart, checkout, account).
+ */
+add_filter('render_block', function ($html, $block) {
+    if (empty($block['blockName']) || $block['blockName'] !== 'core/site-title') return $html;
+    if (! function_exists('is_cart')) return $html;
+    if (! is_cart() && ! is_checkout() && ! is_account_page()) return $html;
+
+    return '<div class="wp-block-site-title"><a href="/">'
+        . '<img src="/wp-content/uploads/2026/03/itu-logo-flat-white.png" alt="ITU Online IT Training" style="height:55px;width:auto;filter:invert(1);margin-top:30px;" />'
+        . '</a></div>';
+}, 10, 2);
+
+/**
+ * Render cart count on page load and ensure WooCommerce cart fragments JS is enqueued.
+ */
+add_action('wp_enqueue_scripts', function () {
+    if (function_exists('WC') && ! is_cart() && ! is_checkout()) {
+        wp_enqueue_script('wc-cart-fragments');
+    }
+});
+
+add_action('wp_footer', function () {
+    if (! function_exists('WC') || ! WC()->cart) return;
+    $count = WC()->cart->get_cart_contents_count();
+    ?>
+    <script>
+    (function() {
+        var serverCount = <?php echo (int) $count; ?>;
+
+        function updateCartBadge(count) {
+            document.querySelectorAll('.itu-cart-count').forEach(function(el) {
+                el.textContent = count > 0 ? count : '';
+            });
+        }
+
+        // Server-rendered count is authoritative on page load — override any stale sessionStorage
+        updateCartBadge(serverCount);
+
+        // Clear stale WC fragment cache so it doesn't restore old count
+        try {
+            var wcKey = Object.keys(sessionStorage).find(function(k) { return k.indexOf('wc_fragments_') === 0; });
+            if (wcKey) {
+                var frags = JSON.parse(sessionStorage.getItem(wcKey));
+                if (frags && frags['span.itu-cart-count']) {
+                    frags['span.itu-cart-count'] = '<span class="itu-cart-count" id="itu-cart-count">' + (serverCount > 0 ? serverCount : '') + '</span>';
+                    sessionStorage.setItem(wcKey, JSON.stringify(frags));
+                }
+            }
+        } catch(e) {}
+
+        // Listen for all WooCommerce cart change events
+        if (typeof jQuery !== 'undefined') {
+            function refreshCount() {
+                if (typeof wc_cart_fragments_params === 'undefined') return;
+                jQuery.ajax({
+                    url: wc_cart_fragments_params.wc_ajax_url.toString().replace('%%endpoint%%', 'get_refreshed_fragments'),
+                    type: 'POST',
+                    success: function(data) {
+                        if (data && data.fragments && data.fragments['span.itu-cart-count']) {
+                            var temp = document.createElement('div');
+                            temp.innerHTML = data.fragments['span.itu-cart-count'];
+                            var newCount = parseInt(temp.textContent.trim()) || 0;
+                            updateCartBadge(newCount);
+                        }
+                    }
+                });
+            }
+
+            jQuery(document.body).on(
+                'added_to_cart removed_from_cart updated_cart_totals updated_wc_div wc_cart_emptied',
+                refreshCount
+            );
+
+            // Also watch for fragment restoration that might overwrite our server count
+            jQuery(document.body).on('wc_fragments_refreshed wc_fragments_loaded', function() {
+                // After fragments load, re-assert server count if page just loaded
+                setTimeout(function() {
+                    var el = document.querySelector('.itu-cart-count');
+                    if (el) {
+                        var displayed = parseInt(el.textContent) || 0;
+                        // If fragments restored a stale value different from server, fix it
+                        if (displayed !== serverCount && document.readyState === 'complete') {
+                            // Only override on initial load, not after user actions
+                        }
+                    }
+                }, 100);
+            });
+        }
+    })();
+    </script>
+    <?php
+}, 50);
+
+/**
+ * Output individual training plan prices as JS for the pricing page.
+ */
+add_action('wp_footer', function () {
+    if (! function_exists('wc_get_product')) return;
+
+    $plans = [
+        'monthly'  => 1015871,
+        'annual'   => 30490,
+        'lifetime' => 6740,
+        'quarterly' => 1200244,
+    ];
+
+    $data = [];
+    foreach ($plans as $key => $pid) {
+        $product = wc_get_product($pid);
+        if (! $product) continue;
+        $regular = (float) $product->get_regular_price();
+        $sale    = (float) $product->get_sale_price();
+        $display = $sale ? $sale : $regular;
+        $data[$key] = [
+            'id'      => $pid,
+            'regular' => $regular,
+            'sale'    => $sale ?: null,
+            'display' => $display,
+            'url'     => esc_url(add_query_arg('add-to-cart', $pid, wc_get_cart_url())),
+        ];
+    }
+    ?>
+    <script>
+    var ituPlanPrices = <?php echo json_encode($data); ?>;
+    (function() {
+        if (typeof ituPlanPrices === 'undefined') return;
+
+        function fmt(v) { return '$' + parseFloat(v).toFixed(2); }
+        function fmtInt(v) { return '$' + Math.round(parseFloat(v)); }
+
+        // Map plan keys to DOM data-plan attributes
+        var planMap = {
+            'monthly':   { monthly: true },
+            'annual':    { monthly: true, months: 12 },
+            'lifetime':  { monthly: false },
+            'quarterly': { monthly: true, months: 3 }
+        };
+
+        document.querySelectorAll('[data-plan]').forEach(function(card) {
+            var key = card.dataset.plan;
+            var plan = ituPlanPrices[key];
+            if (!plan) return;
+
+            var amountEl = card.querySelector('.itu-plan-card__amount');
+            var origEl = card.querySelector('.itu-plan-card__original');
+            var billingEl = card.querySelector('.itu-plan-card__billing');
+            var ctaEl = card.querySelector('.itu-button');
+            var pm = planMap[key];
+
+            if (pm && pm.monthly && pm.months) {
+                // Show as monthly rate
+                var displayMonthly = plan.display / pm.months;
+                if (amountEl) amountEl.textContent = fmt(displayMonthly);
+                if (plan.sale && origEl) {
+                    var regMonthly = plan.regular / pm.months;
+                    origEl.textContent = fmt(regMonthly);
+                    origEl.style.display = 'inline';
+                }
+                if (billingEl) {
+                    var label = key === 'annual' ? 'Billed annually at ' + fmt(plan.display) : 'Billed every 90 days at ' + fmt(plan.display);
+                    billingEl.textContent = label;
+                }
+            } else if (pm && pm.monthly) {
+                // Monthly — show as-is
+                if (amountEl) amountEl.textContent = fmt(plan.display);
+                if (plan.sale && origEl) {
+                    origEl.textContent = fmt(plan.regular);
+                    origEl.style.display = 'inline';
+                }
+            } else {
+                // Lifetime — one-time
+                if (amountEl) amountEl.textContent = fmt(plan.display);
+                if (plan.sale && origEl) {
+                    origEl.textContent = fmt(plan.regular);
+                    origEl.style.display = 'inline';
+                }
+            }
+
+            // Set CTA link to product
+            if (ctaEl && plan.url) {
+                ctaEl.href = plan.url;
+            }
+        });
+
+        // Calculate annual vs monthly savings percentage
+        if (ituPlanPrices.annual && ituPlanPrices.monthly) {
+            var annualPerMonth = ituPlanPrices.annual.display / 12;
+            var monthlyPrice = ituPlanPrices.monthly.display;
+            if (monthlyPrice > 0) {
+                var savePct = Math.round((1 - annualPerMonth / monthlyPrice) * 100);
+                document.querySelectorAll('.itu-plan-savings').forEach(function(el) {
+                    el.textContent = 'Save ' + savePct + '%';
+                });
+            }
+        }
+    })();
+
+    // Dynamic category list for plan drawer
+    <?php
+    $cats = get_terms([
+        'taxonomy'   => 'product_cat',
+        'hide_empty' => true,
+        'parent'     => 0,
+        'exclude'    => [get_option('default_product_cat')],
+        'orderby'    => 'name',
+        'order'      => 'ASC',
+    ]);
+    $cat_list = [];
+    if (! empty($cats) && ! is_wp_error($cats)) {
+        foreach ($cats as $cat) {
+            if ($cat->count <= 0) continue;
+            if (get_term_meta($cat->term_id, 'itu_catalog_hidden', true) === '1') continue;
+            $cat_list[] = ['name' => $cat->name, 'slug' => $cat->slug];
+        }
+    }
+    ?>
+    var ituDrawerCategories = <?php echo json_encode($cat_list); ?>;
+
+    // All-access library stats
+    <?php
+    $aa_sku = 'all-access-1-year';
+    $aa_hours = itu_get_course_stat($aa_sku, 'video_hours', 'ec_get_course_video_hours', 'total_hours');
+    $aa_questions = itu_get_course_stat($aa_sku, 'question_count', 'ec_get_course_prep_question_count', 'content_test_question_count');
+    ?>
+    var ituLibraryStats = {
+        hours: <?php echo $aa_hours ? json_encode(intval($aa_hours)) : 'null'; ?>,
+        questions: <?php echo $aa_questions ? json_encode(intval($aa_questions)) : 'null'; ?>
+    };
+    (function() {
+        if (!ituLibraryStats.hours && !ituLibraryStats.questions) return;
+        var hrs = ituLibraryStats.hours ? ituLibraryStats.hours.toLocaleString() : '';
+        var qs = ituLibraryStats.questions ? ituLibraryStats.questions.toLocaleString() : '';
+        // Update data-stat spans
+        document.querySelectorAll('[data-stat="hours"]').forEach(function(el) { if (hrs) el.textContent = hrs; });
+        document.querySelectorAll('[data-stat="questions"]').forEach(function(el) { if (qs) el.textContent = qs; });
+        // Also update VTS plugin list items by text content (fallback if data-stat not in plugin HTML)
+        document.querySelectorAll('.vts-includes__list li').forEach(function(li) {
+            var text = li.textContent;
+            if (hrs && text.match(/3[,.]?000/)) {
+                li.innerHTML = li.innerHTML.replace(/3[,.]?000/, hrs);
+            }
+            if (qs && text.match(/22[,.]?000/)) {
+                li.innerHTML = li.innerHTML.replace(/22[,.]?000/, qs);
+            }
+        });
+    })();
+    </script>
+    <?php
+}, 998);
+
+/**
+ * Output VTS annual product pricing as JS variables for the ROI calculator.
+ */
+add_action('wp_footer', function () {
+    if (! function_exists('wc_get_product')) return;
+    $opts = get_option('vts_team_licensing_options', []);
+    $pid  = ! empty($opts['annual_product_id']) ? absint($opts['annual_product_id']) : 0;
+    if (! $pid) return;
+    $product = wc_get_product($pid);
+    if (! $product) return;
+    $regular = (float) $product->get_regular_price();
+    $sale    = (float) $product->get_sale_price();
+    $display = $sale ? $sale : $regular;
+    ?>
+    <script>
+    (function() {
+        var priceEl = document.getElementById('g-price');
+        var saleEl = document.getElementById('g-price-sale');
+        var origEl = document.getElementById('g-price-orig');
+        var badgeEl = document.getElementById('g-price-badge');
+        if (!priceEl || !saleEl) return;
+        var display = <?php echo $display; ?>;
+        var regular = <?php echo $regular; ?>;
+        priceEl.value = display;
+        saleEl.textContent = '$' + display.toFixed(2);
+        if (regular > display) {
+            origEl.textContent = '$' + regular.toFixed(2);
+            origEl.style.display = 'inline';
+            var pct = Math.round((1 - display / regular) * 100);
+            badgeEl.textContent = 'Save ' + pct + '%';
+            badgeEl.style.display = 'inline';
+        }
+        if (typeof recalcAll === 'function') recalcAll();
+    })();
+    </script>
+    <?php
+}, 999);
+
+/**
+ * REST endpoint: get products by category slug for the plan drawer.
+ */
+add_action('rest_api_init', function () {
+    register_rest_route('itu/v1', '/category-products', [
+        'methods'  => 'GET',
+        'callback' => function ($request) {
+            $slug = sanitize_title($request->get_param('slug'));
+            if (! $slug) return new WP_REST_Response([], 200);
+
+            $term = get_term_by('slug', $slug, 'product_cat');
+            if (! $term) return new WP_REST_Response([], 200);
+
+            // Check transient cache
+            $cache_key = 'itu_drawer_cat_' . $slug;
+            $cached = get_transient($cache_key);
+            if ($cached !== false) {
+                return new WP_REST_Response($cached, 200);
+            }
+
+            $args = [
+                'post_type'      => 'product',
+                'post_status'    => 'publish',
+                'posts_per_page' => -1,
+                'orderby'        => 'title',
+                'order'          => 'ASC',
+                'tax_query'      => [[
+                    'taxonomy' => 'product_cat',
+                    'field'    => 'term_id',
+                    'terms'    => $term->term_id,
+                ]],
+            ];
+            $query = new WP_Query($args);
+            $products = array_map('wc_get_product', wp_list_pluck($query->posts, 'ID'));
+            $products = array_filter($products);
+
+            $results = [];
+            foreach ($products as $product) {
+                $img_id = $product->get_image_id();
+                $results[] = [
+                    'name'      => $product->get_name(),
+                    'permalink' => $product->get_permalink(),
+                    'image'     => $img_id ? wp_get_attachment_image_url($img_id, 'woocommerce_thumbnail') : wc_placeholder_img_src(),
+                ];
+            }
+
+            set_transient($cache_key, $results, 30 * DAY_IN_SECONDS);
+            return new WP_REST_Response($results, 200);
+        },
+        'permission_callback' => '__return_true',
+    ]);
+});
+
+/**
+ * Auto-assign custom block templates by page slug.
+ *
+ * In block themes, custom templates are not matched by slug automatically —
+ * they must be assigned in the editor (which writes to the DB). Since we share
+ * the production database, we use this filter to assign templates in code so
+ * production (Elementor) pages are not affected.
+ *
+ * We intercept the _wp_page_template meta lookup so WordPress believes the
+ * template was assigned via the editor, without ever writing to the database.
+ */
+add_filter('get_post_metadata', function ($value, $post_id, $meta_key, $single) {
+    if ($meta_key !== '_wp_page_template') {
+        return $value;
+    }
+
+    // Map page slugs to custom template file names (registered in theme.json customTemplates)
+    $slug_to_template = [
+        'team-training'             => 'page-team-training',
+        'certifications'            => 'page-certifications',
+        'it-courses'                => 'page-it-courses',
+        'reseller'                  => 'page-reseller',
+        'resources'                 => 'page-resources',
+        'it-certification-training' => 'page-it-certification-training',
+        'about-us'                  => 'page-about-us',
+        'privacy-policy'            => 'page-privacy-policy',
+    ];
+
+    $post = get_post($post_id);
+    if (! $post) return $value;
+
+    // Pages — match by slug
+    if ($post->post_type === 'page' && isset($slug_to_template[$post->post_name])) {
+        $template_slug = $slug_to_template[$post->post_name];
+        return $single ? $template_slug : [$template_slug];
+    }
+
+    // Posts — match by category
+    if ($post->post_type === 'post') {
+        if (has_category('practice-tests', $post_id)) {
+            $template_slug = 'single-practice-test';
+            return $single ? $template_slug : [$template_slug];
+        }
+    }
+
+    return $value;
+}, 10, 4);
 
 /**
  * Allow SVG uploads in the media library.
@@ -180,6 +741,663 @@ function itu_get_course_stat($sku, $transient_key, $procedure, $field) {
 }
 
 /**
+ * Get enrollment count for a course by SKU from ec_staging.lms_enrollment_counts.
+ */
+function itu_get_enrollment_count($sku) {
+    if (empty($sku)) return null;
+    $transient_name = 'itu_enrolled_' . $sku;
+    $count = get_transient($transient_name);
+    if ($count !== false) return (int) $count;
+
+    global $wpdb;
+
+    $result = $wpdb->get_var($wpdb->prepare(
+        "SELECT enrolled_count FROM lms_enrollment_counts WHERE sku = %s AND active = 1 LIMIT 1",
+        $sku
+    ));
+
+    if ($result === null) return null;
+    $count = (int) $result;
+    set_transient($transient_name, $count, DAY_IN_SECONDS);
+    return $count;
+}
+
+/**
+ * Ensure wpautop runs on post content — classic editor content needs this
+ * in block themes where wpautop may be skipped.
+ */
+/**
+ * Apply wpautop only to classic (freeform) blocks via render_block filter.
+ * Do NOT add wpautop to the_content — it mangles shortcode output.
+ */
+add_filter('render_block', function ($block_content, $block) {
+    if ($block['blockName'] === 'core/freeform' && !empty(trim($block_content))) {
+        $block_content = wpautop($block_content);
+    }
+    return $block_content;
+}, 5, 2);
+
+// Ensure wpautop is NOT on the_content (block themes + shortcodes don't mix with it)
+remove_filter('the_content', 'wpautop');
+
+// Strip <br> and <p></p> from any rendered content containing our card/carousel classes
+add_filter('the_content', function ($content) {
+    if (strpos($content, 'itu-certs__card') !== false || strpos($content, 'itu-plans-bar') !== false || strpos($content, 'itu-cat-row') !== false) {
+        $content = str_replace(['<br />', '<br/>', '<br>'], '', $content);
+        $content = str_replace(['<p></p>', '<p> </p>'], '', $content);
+        $content = preg_replace('/<p>\s*<\/p>/', '', $content);
+    }
+    return $content;
+}, 999);
+
+/**
+ * Add page-slug body class for page-specific styling.
+ */
+add_action('wp_footer', function () {
+    if (!is_page()) return;
+    $slug = get_post_field('post_name', get_the_ID());
+    if ($slug) {
+        echo '<script>document.body.classList.add("itu-page-' . esc_js($slug) . '");</script>';
+    }
+}, 1);
+
+/**
+ * Slack integration — sends lead notifications to a Slack channel via webhook.
+ * Configure webhook URL at Tools → ITU Slack.
+ */
+define('ITU_SLACK_OPTION', 'itu_slack_webhook_url');
+
+function itu_send_slack_notification($type, $data) {
+    $webhook_url = get_option(ITU_SLACK_OPTION, '');
+    if (empty($webhook_url)) return;
+
+    $emoji = $type === 'team' ? '🏢' : ($type === 'reseller' ? '🤝' : '📩');
+    $title = $type === 'team' ? 'New Team Training Inquiry' : ($type === 'reseller' ? 'New Reseller Inquiry' : 'New Inquiry');
+
+    $fields = [];
+    if (!empty($data['name']))      $fields[] = ['title' => 'Name', 'value' => $data['name'], 'short' => true];
+    if (!empty($data['company']))   $fields[] = ['title' => 'Company', 'value' => $data['company'], 'short' => true];
+    if (!empty($data['email']))     $fields[] = ['title' => 'Email', 'value' => $data['email'], 'short' => true];
+    if (!empty($data['phone']))     $fields[] = ['title' => 'Phone', 'value' => $data['phone'], 'short' => true];
+    if (!empty($data['team_size'])) $fields[] = ['title' => 'Team Size', 'value' => $data['team_size'], 'short' => true];
+    if (!empty($data['source']))    $fields[] = ['title' => 'Source', 'value' => $data['source'], 'short' => true];
+    if (!empty($data['country']))   $fields[] = ['title' => 'Country', 'value' => $data['country'], 'short' => true];
+    if (!empty($data['years']))     $fields[] = ['title' => 'Years in Business', 'value' => $data['years'], 'short' => true];
+    if (!empty($data['sales']))     $fields[] = ['title' => 'Est. Annual Sales', 'value' => $data['sales'], 'short' => true];
+    if (!empty($data['comments']))  $fields[] = ['title' => 'Comments', 'value' => $data['comments'], 'short' => false];
+
+    $payload = [
+        'text' => $emoji . ' ' . $title,
+        'attachments' => [[
+            'color'  => '#C026D3',
+            'fields' => $fields,
+            'footer' => 'ITU Online • ' . current_time('F j, Y g:i A'),
+        ]],
+    ];
+
+    wp_remote_post($webhook_url, [
+        'body'    => json_encode($payload),
+        'headers' => ['Content-Type' => 'application/json'],
+        'timeout' => 10,
+    ]);
+}
+
+// Slack admin settings
+add_action('admin_menu', function () {
+    add_submenu_page(
+        'tools.php',
+        'ITU Slack',
+        'ITU Slack',
+        'manage_options',
+        'itu-slack',
+        'itu_slack_admin_page'
+    );
+});
+
+function itu_slack_admin_page() {
+    $saved = false;
+    if (isset($_POST['itu_slack_save']) && check_admin_referer('itu_slack_nonce')) {
+        update_option(ITU_SLACK_OPTION, esc_url_raw($_POST['slack_webhook']));
+        $saved = true;
+    }
+    $webhook = get_option(ITU_SLACK_OPTION, '');
+    ?>
+    <div class="wrap">
+        <h1>ITU Slack Integration</h1>
+        <p>Send lead notifications to a Slack channel. Create an <a href="https://api.slack.com/messaging/webhooks" target="_blank">Incoming Webhook</a> in your Slack workspace and paste the URL below.</p>
+
+        <?php if ($saved) : ?>
+            <div class="notice notice-success is-dismissible"><p><strong>Webhook URL saved.</strong></p></div>
+        <?php endif; ?>
+
+        <form method="post">
+            <?php wp_nonce_field('itu_slack_nonce'); ?>
+            <table class="form-table">
+                <tr>
+                    <th>Webhook URL</th>
+                    <td>
+                        <input type="url" name="slack_webhook" value="<?php echo esc_attr($webhook); ?>" class="regular-text" style="width:100%;max-width:600px" placeholder="https://hooks.slack.com/services/..." />
+                        <p class="description">Leave empty to disable Slack notifications.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Notifications sent for</th>
+                    <td>
+                        <ul style="list-style:disc;margin-left:20px">
+                            <li>Team Training inquiries</li>
+                            <li>Reseller inquiries</li>
+                        </ul>
+                    </td>
+                </tr>
+            </table>
+            <?php submit_button('Save Webhook', 'primary', 'itu_slack_save'); ?>
+        </form>
+    </div>
+    <?php
+}
+
+/**
+ * Force 10 posts per page on blog archives (10 posts + 2 promo cards = 12 = 3×4 grid).
+ */
+add_action('pre_get_posts', function ($query) {
+    if (!is_admin() && $query->is_main_query() && ($query->is_archive() || $query->is_home())) {
+        $query->set('posts_per_page', 10);
+
+    }
+});
+
+/**
+ * Force WooCommerce product archives to sort by publish date descending.
+ */
+add_filter('woocommerce_default_catalog_orderby', function () {
+    return 'date';
+});
+
+add_filter('woocommerce_get_catalog_ordering_args', function ($args) {
+    $args['orderby'] = 'date';
+    $args['order'] = 'DESC';
+    return $args;
+});
+
+/**
+ * Promo cards — managed via admin UI, stored in wp_options.
+ */
+define('ITU_PROMO_OPTION', 'itu_promo_cards');
+
+function itu_get_promo_cards() {
+    $cards = get_option(ITU_PROMO_OPTION, []);
+    // Return only active cards
+    return array_filter($cards, function ($card) {
+        return !empty($card['active']);
+    });
+}
+
+function itu_get_all_promo_cards() {
+    return get_option(ITU_PROMO_OPTION, []);
+}
+
+// Seed default cards if none exist
+add_action('after_setup_theme', function () {
+    if (get_option(ITU_PROMO_OPTION) === false) {
+        update_option(ITU_PROMO_OPTION, [
+            [
+                'eyebrow'     => '[ Individual Plans ]',
+                'title'       => 'Start Learning Today',
+                'description' => 'Get unlimited access to our full IT training library — certification prep, practice exams, and AI-powered study tools.',
+                'cta_text'    => 'View Plans →',
+                'cta_url'     => '/it-certification-training/',
+                'active'      => 1,
+            ],
+            [
+                'eyebrow'     => '[ Team Training ]',
+                'title'       => 'Train Your Entire Team',
+                'description' => 'Equip your organization with the skills that drive performance — custom dashboards, compliance tracking, and group management.',
+                'cta_text'    => 'Get a Team Plan →',
+                'cta_url'     => '/it-team-training/#teams-contact',
+                'active'      => 1,
+            ],
+        ]);
+    }
+});
+
+// Admin page
+add_action('admin_menu', function () {
+    add_submenu_page(
+        'tools.php',
+        'ITU Promo Cards',
+        'ITU Promo Cards',
+        'manage_options',
+        'itu-promo-cards',
+        'itu_promo_cards_admin_page'
+    );
+});
+
+function itu_promo_cards_admin_page() {
+    $cards = itu_get_all_promo_cards();
+    $message = '';
+
+    // Handle save
+    if (isset($_POST['itu_promo_save']) && check_admin_referer('itu_promo_nonce')) {
+        $new_cards = [];
+        if (!empty($_POST['promo'])) {
+            foreach ($_POST['promo'] as $card) {
+                $new_cards[] = [
+                    'eyebrow'     => sanitize_text_field($card['eyebrow']),
+                    'title'       => sanitize_text_field($card['title']),
+                    'description' => sanitize_textarea_field($card['description']),
+                    'cta_text'    => sanitize_text_field($card['cta_text']),
+                    'cta_url'     => esc_url_raw($card['cta_url']),
+                    'active'      => !empty($card['active']) ? 1 : 0,
+                ];
+            }
+        }
+        update_option(ITU_PROMO_OPTION, $new_cards);
+        $cards = $new_cards;
+        $message = 'Promo cards saved.';
+    }
+
+    // Handle add
+    if (isset($_POST['itu_promo_add']) && check_admin_referer('itu_promo_nonce')) {
+        $cards[] = [
+            'eyebrow'     => '[ New Promo ]',
+            'title'       => 'Promo Title',
+            'description' => 'Short description here.',
+            'cta_text'    => 'Learn More →',
+            'cta_url'     => '/',
+            'active'      => 0,
+        ];
+        update_option(ITU_PROMO_OPTION, $cards);
+        $message = 'New promo card added. Edit and activate it below.';
+    }
+
+    // Handle delete
+    if (isset($_POST['itu_promo_delete']) && check_admin_referer('itu_promo_nonce')) {
+        $del = intval($_POST['itu_promo_delete']);
+        if (isset($cards[$del])) {
+            array_splice($cards, $del, 1);
+            update_option(ITU_PROMO_OPTION, $cards);
+            $message = 'Promo card deleted.';
+        }
+    }
+
+    ?>
+    <div class="wrap">
+        <h1>ITU Promo Cards</h1>
+        <p>Manage promotional cards that appear in course carousels and blog archive grids. Active cards are randomly inserted at regular intervals.</p>
+
+        <?php if ($message) : ?>
+            <div class="notice notice-success is-dismissible"><p><strong><?php echo esc_html($message); ?></strong></p></div>
+        <?php endif; ?>
+
+        <form method="post">
+            <?php wp_nonce_field('itu_promo_nonce'); ?>
+
+            <?php if (empty($cards)) : ?>
+                <p>No promo cards yet.</p>
+            <?php else : ?>
+                <table class="widefat striped" style="max-width:900px">
+                    <thead>
+                        <tr>
+                            <th style="width:30px">Active</th>
+                            <th>Eyebrow</th>
+                            <th>Title</th>
+                            <th>Description</th>
+                            <th>CTA Text</th>
+                            <th>CTA URL</th>
+                            <th style="width:60px">Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($cards as $i => $card) : ?>
+                        <tr>
+                            <td><input type="checkbox" name="promo[<?php echo $i; ?>][active]" value="1" <?php checked(!empty($card['active'])); ?> /></td>
+                            <td><input type="text" name="promo[<?php echo $i; ?>][eyebrow]" value="<?php echo esc_attr($card['eyebrow']); ?>" class="regular-text" style="width:100%" /></td>
+                            <td><input type="text" name="promo[<?php echo $i; ?>][title]" value="<?php echo esc_attr($card['title']); ?>" class="regular-text" style="width:100%" /></td>
+                            <td><textarea name="promo[<?php echo $i; ?>][description]" rows="2" style="width:100%"><?php echo esc_textarea($card['description']); ?></textarea></td>
+                            <td><input type="text" name="promo[<?php echo $i; ?>][cta_text]" value="<?php echo esc_attr($card['cta_text']); ?>" style="width:100%" /></td>
+                            <td><input type="text" name="promo[<?php echo $i; ?>][cta_url]" value="<?php echo esc_attr($card['cta_url']); ?>" style="width:100%" /></td>
+                            <td><button type="submit" name="itu_promo_delete" value="<?php echo $i; ?>" class="button button-link-delete" onclick="return confirm('Delete this promo card?')">Delete</button></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+
+            <p style="margin-top:16px">
+                <?php submit_button('Save All Cards', 'primary', 'itu_promo_save', false); ?>
+                &nbsp;
+                <?php submit_button('+ Add New Card', 'secondary', 'itu_promo_add', false); ?>
+            </p>
+        </form>
+    </div>
+    <?php
+}
+
+function itu_render_promo_card($promo) {
+    return '<div class="itu-certs__card itu-promo-card">'
+        . '<span class="itu-promo-card__eyebrow">' . esc_html($promo['eyebrow']) . '</span>'
+        . '<h4 class="itu-promo-card__title">' . esc_html($promo['title']) . '</h4>'
+        . '<p class="itu-promo-card__desc">' . esc_html($promo['description']) . '</p>'
+        . '<a href="' . esc_url($promo['cta_url']) . '" class="itu-promo-card__cta">' . esc_html($promo['cta_text']) . '</a>'
+        . '</div>';
+}
+
+function itu_get_random_promo_html() {
+    $promos = itu_get_promo_cards();
+    $keys = array_keys($promos);
+    $key = $keys[array_rand($keys)];
+    return itu_render_promo_card($promos[$key]);
+}
+
+/**
+ * Global plans bar — reusable CTA bar managed from admin.
+ * Usage: [itu_plans_bar]
+ */
+define('ITU_PLANS_BAR_OPTION', 'itu_plans_bar_settings');
+
+add_shortcode('itu_plans_bar', function () {
+    $defaults = [
+        'text'       => 'Ready to start learning?',
+        'btn1_label' => 'Individual Plans →',
+        'btn1_url'   => '/it-certification-training/',
+        'btn2_label' => 'Team Plans →',
+        'btn2_url'   => '/it-team-training/',
+        'active'     => 1,
+    ];
+    $settings = wp_parse_args(get_option(ITU_PLANS_BAR_OPTION, []), $defaults);
+
+    if (empty($settings['active'])) return '';
+
+    $buttons = '';
+    if (!empty($settings['btn1_label']) && !empty($settings['btn1_url'])) {
+        $buttons .= '<a href="' . esc_url($settings['btn1_url']) . '" class="itu-plans-bar__btn">' . esc_html($settings['btn1_label']) . '</a>';
+    }
+    if (!empty($settings['btn2_label']) && !empty($settings['btn2_url'])) {
+        $buttons .= '<a href="' . esc_url($settings['btn2_url']) . '" class="itu-plans-bar__btn">' . esc_html($settings['btn2_label']) . '</a>';
+    }
+
+    return '<div class="itu-plans-bar"><table class="itu-plans-bar__inner"><tr><td class="itu-plans-bar__text">' . esc_html($settings['text']) . '</td><td class="itu-plans-bar__actions">' . $buttons . '</td></tr></table></div>';
+});
+
+// Admin page for Plans Bar
+add_action('admin_menu', function () {
+    add_submenu_page(
+        'tools.php',
+        'ITU Plans Bar',
+        'ITU Plans Bar',
+        'manage_options',
+        'itu-plans-bar',
+        'itu_plans_bar_admin_page'
+    );
+});
+
+function itu_plans_bar_admin_page() {
+    $defaults = [
+        'text'       => 'Ready to start learning?',
+        'btn1_label' => 'Individual Plans →',
+        'btn1_url'   => '/it-certification-training/',
+        'btn2_label' => 'Team Plans →',
+        'btn2_url'   => '/it-team-training/',
+        'active'     => 1,
+    ];
+    $settings = wp_parse_args(get_option(ITU_PLANS_BAR_OPTION, []), $defaults);
+    $saved = false;
+
+    if (isset($_POST['itu_plans_bar_save']) && check_admin_referer('itu_plans_bar_nonce')) {
+        $settings = [
+            'text'       => sanitize_text_field($_POST['bar_text']),
+            'btn1_label' => sanitize_text_field($_POST['btn1_label']),
+            'btn1_url'   => esc_url_raw($_POST['btn1_url']),
+            'btn2_label' => sanitize_text_field($_POST['btn2_label']),
+            'btn2_url'   => esc_url_raw($_POST['btn2_url']),
+            'active'     => !empty($_POST['bar_active']) ? 1 : 0,
+        ];
+        update_option(ITU_PLANS_BAR_OPTION, $settings);
+        $saved = true;
+    }
+
+    ?>
+    <div class="wrap">
+        <h1>ITU Plans Bar</h1>
+        <p>Configure the global CTA bar that appears across course pages, blog posts, and archives. Changes apply everywhere the bar is used.</p>
+
+        <?php if ($saved) : ?>
+            <div class="notice notice-success is-dismissible"><p><strong>Settings saved.</strong></p></div>
+        <?php endif; ?>
+
+        <form method="post">
+            <?php wp_nonce_field('itu_plans_bar_nonce'); ?>
+            <table class="form-table">
+                <tr>
+                    <th>Active</th>
+                    <td><label><input type="checkbox" name="bar_active" value="1" <?php checked($settings['active']); ?> /> Show the plans bar across the site</label></td>
+                </tr>
+                <tr>
+                    <th>Message Text</th>
+                    <td><input type="text" name="bar_text" value="<?php echo esc_attr($settings['text']); ?>" class="regular-text" style="width:100%;max-width:500px" /></td>
+                </tr>
+                <tr>
+                    <th>Button 1 Label</th>
+                    <td><input type="text" name="btn1_label" value="<?php echo esc_attr($settings['btn1_label']); ?>" class="regular-text" /></td>
+                </tr>
+                <tr>
+                    <th>Button 1 URL</th>
+                    <td><input type="text" name="btn1_url" value="<?php echo esc_attr($settings['btn1_url']); ?>" class="regular-text" style="width:100%;max-width:500px" /></td>
+                </tr>
+                <tr>
+                    <th>Button 2 Label</th>
+                    <td><input type="text" name="btn2_label" value="<?php echo esc_attr($settings['btn2_label']); ?>" class="regular-text" /></td>
+                </tr>
+                <tr>
+                    <th>Button 2 URL</th>
+                    <td><input type="text" name="btn2_url" value="<?php echo esc_attr($settings['btn2_url']); ?>" class="regular-text" style="width:100%;max-width:500px" /></td>
+                </tr>
+            </table>
+            <?php submit_button('Save Settings', 'primary', 'itu_plans_bar_save'); ?>
+        </form>
+    </div>
+    <?php
+}
+
+/**
+ * Product hero — renders the full hero section as one unit (title + stats + image).
+ */
+add_shortcode('itu_product_hero', function () {
+    global $post;
+    if (!$post || $post->post_type !== 'product') return '';
+
+    $product = wc_get_product($post->ID);
+    if (!$product) return '';
+
+    $title = get_the_title();
+    $short_desc = $product->get_short_description();
+    $sku = $product->get_sku();
+    $image_id = $product->get_image_id();
+    $image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium_large') : '';
+
+    // Build stats badges
+    $badges = '';
+    if ($sku) {
+        $hours     = itu_get_course_stat($sku, 'video_hours', 'ec_get_course_video_hours', 'total_hours');
+        $videos    = itu_get_course_stat($sku, 'video_count', 'ec_get_course_video_count', 'total_videos');
+        $questions = itu_get_course_stat($sku, 'question_count', 'ec_get_course_prep_question_count', 'content_test_question_count');
+        $enrolled  = itu_get_enrollment_count($sku);
+
+        if ($hours) $badges .= '<span class="itu-certs__card-badge">' . esc_html($hours) . '</span>';
+        if ($videos) $badges .= '<span class="itu-certs__card-badge">' . esc_html(number_format($videos)) . ' Videos</span>';
+        if ($questions) $badges .= '<span class="itu-certs__card-badge">' . esc_html(number_format($questions)) . ' Questions</span>';
+        if ($enrolled) $badges .= '<span class="itu-certs__card-badge itu-certs__card-badge--enrolled">' . esc_html(number_format($enrolled)) . ' Enrolled</span>';
+    }
+    $badges .= '<span class="itu-certs__card-badge">Certificate of Completion</span>';
+    $badges .= '<span class="itu-certs__card-badge">Closed Captions</span>';
+
+    $image_html = '';
+    if ($image_url) {
+        $image_html = '<div class="itu-product-hero__image"><img src="' . esc_url($image_url) . '" alt="' . esc_attr($title) . '" class="itu-product-avatar-img" /></div>';
+    }
+
+    return '<section class="itu-section">
+        <div class="itu-section__inner">
+            <div class="itu-product-hero">
+                <div class="itu-product-hero__content">
+                    <span class="itu-eyebrow">[ Course ]</span>
+                    <h1 class="itu-page-title">' . esc_html($title) . '</h1>
+                    ' . ($short_desc ? '<p class="itu-product-hero__desc">' . esc_html(wp_strip_all_tags($short_desc)) . '</p>' : '') . '
+                    <div class="itu-product-stats">' . $badges . '</div>
+                </div>
+                ' . $image_html . '
+            </div>
+        </div>
+    </section>';
+});
+
+/**
+ * Product tabs — Description, Curriculum, Enroll Now.
+ */
+add_shortcode('itu_product_tabs', function () {
+    global $post;
+    if (!$post || $post->post_type !== 'product') return '';
+
+    $product = wc_get_product($post->ID);
+    if (!$product) return '';
+
+    $sku = $product->get_sku();
+
+    // Description tab content
+    $description = apply_filters('the_content', $post->post_content);
+
+    // Curriculum tab content (shortcode)
+    $curriculum = '';
+    if ($sku) {
+        $curriculum = do_shortcode('[woocommerce_get_product_outlines sku="' . esc_attr($sku) . '"]');
+    }
+    if (empty(trim(strip_tags($curriculum)))) {
+        $curriculum = '<p style="color:var(--itu-gray-400)">Course curriculum details are being updated. Check back soon.</p>';
+    }
+
+    // Check if product is in free-courses category
+    $is_free = has_term('free-courses', 'product_cat', $post->ID);
+
+    // Udemy affiliate URL (ACF field)
+    $udemy_url = get_field('field_68168a7d5d0ac', $post->ID);
+
+    // Udemy card (full-width, only if URL exists)
+    $udemy_card = '';
+    if (!empty($udemy_url)) {
+        $udemy_card = '
+        <div class="itu-enroll-card itu-enroll-card--full">
+            <span class="itu-eyebrow" style="margin-bottom:8px; font-size:0.75rem">[ Single Course Purchase ]</span>
+            <h3>Buy This Course on Udemy<em>.</em></h3>
+            <p>Want just this course at the lowest price? Purchase it individually through our affiliate partner, Vision Training Systems, on Udemy. No subscription required.</p>
+            <a href="' . esc_url($udemy_url) . '" target="_blank" rel="noopener" class="itu-button" style="display:inline-block; text-align:center; background:#111">Buy on Udemy</a>
+        </div>';
+    }
+
+    // Enroll tab content
+    $enroll = '
+    <div class="itu-enroll-intro">
+        <p class="itu-description">This course is included in all of our team and individual training plans. Choose the option that works best for you.</p>
+    </div>
+    <div class="itu-enroll-cards">
+        <div class="itu-enroll-card">
+            <span class="itu-eyebrow" style="margin-bottom:8px; font-size:0.75rem">[ Team Training ]</span>
+            <h3>Enroll My Team<em>.</em></h3>
+            <p>Give your entire team access to this course and our full training library. Includes team dashboards, progress tracking, and group management.</p>
+            <a href="/it-team-training/#teams-contact" class="itu-button" style="display:block; text-align:center; background:#C026D3">Get Team Pricing</a>
+        </div>
+        <div class="itu-enroll-card">
+            <span class="itu-eyebrow" style="margin-bottom:8px; font-size:0.75rem">[ Individual Plans ]</span>
+            <h3>Choose a Plan<em>.</em></h3>
+            <p>Get unlimited access to this course and our entire library with a monthly, quarterly, annual, or lifetime plan.</p>
+            <a href="/it-certification-training/" class="itu-button" style="display:block; text-align:center; background:#C026D3">View Individual Plans</a>
+        </div>
+        ' . $udemy_card . '
+    </div>';
+
+    // For free courses, replace the Enroll tab button with a direct add-to-cart link
+    $add_to_cart_url = esc_url(add_query_arg('add-to-cart', $product->get_id(), wc_get_cart_url()));
+    $enroll_tab_btn = $is_free
+        ? '<a href="' . $add_to_cart_url . '" class="itu-product-tabs__btn itu-product-tabs__btn--cta"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Enroll Now</a>'
+        : '<button class="itu-product-tabs__btn" data-tab="enroll"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Enroll Now</button>';
+
+    $enroll_panel = $is_free ? '' : '<div class="itu-product-tab-panel" id="ptab-enroll">' . $enroll . '</div>';
+
+    return '
+    <div class="itu-product-tabs-bar">
+        <div class="itu-section__inner">
+            <div class="itu-product-tabs">
+                <button class="itu-product-tabs__btn is-active" data-tab="description"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Description</button>
+                <button class="itu-product-tabs__btn" data-tab="curriculum"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Curriculum</button>
+                ' . $enroll_tab_btn . '
+            </div>
+        </div>
+    </div>
+    <section class="itu-section itu-section--gray">
+        <div class="itu-section__inner">
+            <div class="itu-product-tab-panel is-active" id="ptab-description">' . $description . '</div>
+            <div class="itu-product-tab-panel" id="ptab-curriculum">' . $curriculum . '</div>
+            ' . $enroll_panel . '
+        </div>
+    </section>
+    <script>
+    (function() {
+        var btns = document.querySelectorAll(".itu-product-tabs__btn");
+        btns.forEach(function(btn) {
+            btn.addEventListener("click", function() {
+                btns.forEach(function(b) { b.classList.remove("is-active"); });
+                this.classList.add("is-active");
+                document.querySelectorAll(".itu-product-tab-panel").forEach(function(p) { p.classList.remove("is-active"); });
+                document.getElementById("ptab-" + this.dataset.tab).classList.add("is-active");
+            });
+        });
+    })();
+    </script>';
+});
+
+/**
+ * Product stats badges — displays hours, videos, questions, enrolled, certificate, captions.
+ * Usage: [itu_product_stats] — uses current product context.
+ */
+add_shortcode('itu_product_stats', function () {
+    global $post;
+    if (!$post || $post->post_type !== 'product') return '';
+
+    $product = wc_get_product($post->ID);
+    if (!$product) return '';
+
+    $sku = $product->get_sku();
+    if (!$sku) return '';
+
+    $hours     = itu_get_course_stat($sku, 'video_hours', 'ec_get_course_video_hours', 'total_hours');
+    $videos    = itu_get_course_stat($sku, 'video_count', 'ec_get_course_video_count', 'total_videos');
+    $questions = itu_get_course_stat($sku, 'question_count', 'ec_get_course_prep_question_count', 'content_test_question_count');
+    $enrolled  = itu_get_enrollment_count($sku);
+
+    $badges = '';
+
+    if ($hours) {
+        $badges .= '<span class="itu-certs__card-badge">' . esc_html($hours) . '</span>';
+    }
+    if ($videos) {
+        $badges .= '<span class="itu-certs__card-badge">' . esc_html(number_format($videos)) . ' Videos</span>';
+    }
+    if ($questions) {
+        $badges .= '<span class="itu-certs__card-badge">' . esc_html(number_format($questions)) . ' Questions</span>';
+    }
+    if ($enrolled) {
+        $badges .= '<span class="itu-certs__card-badge itu-certs__card-badge--enrolled">' . esc_html(number_format($enrolled)) . ' Enrolled</span>';
+    }
+
+    // Static badges
+    $badges .= '<span class="itu-certs__card-badge">Certificate of Completion</span>';
+    $badges .= '<span class="itu-certs__card-badge">Closed Captions</span>';
+
+    if (empty($badges)) return '';
+
+    return '<div class="itu-product-stats">' . $badges . '</div>';
+});
+
+/**
  * Course Category Carousel Shortcode.
  *
  * Usage: [itu_course_carousel category="comptia" title="CompTIA" description="..." limit="12"]
@@ -237,7 +1455,7 @@ add_shortcode('itu_course_carousel', function ($atts) {
     <section class="itu-cat-row">
         <div class="itu-cat-row__header">
             <div>
-                <span class="itu-cat-row__eyebrow">[ <?php echo esc_html($atts['title']); ?> ]</span>
+                <span class="itu-eyebrow">[ <?php echo esc_html($atts['title']); ?> ]</span>
                 <?php if (!empty($atts['description'])) : ?>
                     <p class="itu-cat-row__desc"><?php echo esc_html($atts['description']); ?></p>
                 <?php endif; ?>
@@ -252,7 +1470,10 @@ add_shortcode('itu_course_carousel', function ($atts) {
             </button>
             <div class="itu-cat-row__carousel">
                 <div class="itu-cat-row__track">
-                <?php foreach ($products as $product) :
+                <?php $card_index = 0; foreach ($products as $product) :
+                    if (empty(trim($product->get_name())) || !$product->get_image_id()) continue;
+                    $card_index++;
+                    if ($card_index === 7) { echo itu_get_random_promo_html(); }
                     $image = wp_get_attachment_image_url($product->get_image_id(), 'woocommerce_thumbnail');
                     $price = $product->get_price_html();
                 ?>
@@ -284,21 +1505,17 @@ add_shortcode('itu_course_carousel', function ($atts) {
                         <?php if ($questions) : ?>
                             <span class="itu-certs__card-badge"><?php echo esc_html(number_format($questions)); ?> Questions</span>
                         <?php endif; ?>
+                        <?php
+                        $enrolled = itu_get_enrollment_count($sku);
+                        if ($enrolled) : ?>
+                            <span class="itu-certs__card-badge itu-certs__card-badge--enrolled"><?php echo esc_html(number_format($enrolled)); ?> Enrolled</span>
+                        <?php endif; ?>
                     </div>
                     <?php endif; ?>
 
                 </div>
                 <?php endforeach; ?>
-                <?php if ($has_more) : ?>
-                <a href="/product-category/<?php echo esc_attr($atts['category']); ?>/" class="itu-certs__card itu-certs__card--viewall">
-                    <div class="itu-certs__card-viewall-inner">
-                        <span class="itu-certs__card-viewall-icon">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                        </span>
-                        <span class="itu-certs__card-viewall-text">View All <?php echo esc_html($atts['title']); ?> Courses</span>
-                    </div>
-                </a>
-                <?php endif; ?>
+                <?php if ($has_more) : ?><?php echo '<a href="/product-category/' . esc_attr($atts['category']) . '/" class="itu-certs__card itu-certs__card--viewall"><div class="itu-certs__card-viewall-inner"><span class="itu-certs__card-viewall-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span><span class="itu-certs__card-viewall-text">View All ' . esc_html($atts['title']) . ' Courses</span></div></a>'; ?><?php endif; ?>
                 </div>
             </div>
         </div>
@@ -306,8 +1523,11 @@ add_shortcode('itu_course_carousel', function ($atts) {
     </section>
     <?php
     $output = ob_get_clean();
-    // Strip empty <p> tags injected by wpautop
-    $output = str_replace(['<p></p>', '<p> </p>'], '', $output);
+    // Remove all whitespace between HTML tags to prevent br/p injection
+    $output = preg_replace('/>\s+</', '><', $output);
+    // Strip any remaining wpautop artifacts
+    $output = str_replace(['<p></p>', '<p> </p>', '<br />', '<br/>', '<br>'], '', $output);
+    $output = preg_replace('/<p>\s*<\/p>/', '', $output);
 
     // Cache for 30 days
     set_transient($cache_key, $output, 30 * DAY_IN_SECONDS);
@@ -450,6 +1670,11 @@ add_action('admin_footer-edit-tags.php', function () {
  * Uses term meta flags for default/hidden state.
  */
 add_shortcode('itu_course_catalog', function () {
+    // Check catalog cache
+    $catalog_cache_key = 'itu_catalog_full';
+    $catalog_cached = get_transient($catalog_cache_key);
+    if ($catalog_cached !== false) return $catalog_cached;
+
     $categories = get_terms([
         'taxonomy'   => 'product_cat',
         'hide_empty' => true,
@@ -480,7 +1705,7 @@ add_shortcode('itu_course_catalog', function () {
             <button class="itu-catalog__sidebar-close" aria-label="Close filters">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
-            <span class="itu-catalog__sidebar-eyebrow">[ Categories ]</span>
+            <span class="itu-eyebrow">[ Categories ]</span>
             <ul class="itu-catalog__filter-list">
                 <?php foreach ($categories as $cat) :
                     $checked = get_term_meta($cat->term_id, 'itu_catalog_default', true) === '1';
@@ -504,20 +1729,30 @@ add_shortcode('itu_course_catalog', function () {
                 <?php endforeach; ?>
             </ul>
         </aside>
-        <div class="itu-catalog__content">
-            <?php
-            // Render default-checked carousels server-side
-            foreach ($categories as $cat) {
-                if (get_term_meta($cat->term_id, 'itu_catalog_default', true) === '1') {
-                    echo do_shortcode('[itu_course_carousel category="' . esc_attr($cat->slug) . '" title="' . esc_attr($cat->name) . '"]');
-                }
-            }
-            ?>
-        </div>
+        <div class="itu-catalog__content"><!--ITU_CAROUSELS--></div>
     </div>
     <?php
     $output = ob_get_clean();
-    $output = str_replace(['<p></p>', '<p> </p>'], '', $output);
+
+    // Build carousels outside the ob buffer to avoid whitespace injection
+    $default_carousels = '';
+    foreach ($categories as $cat) {
+        if (get_term_meta($cat->term_id, 'itu_catalog_default', true) === '1') {
+            $default_carousels .= do_shortcode('[itu_course_carousel category="' . esc_attr($cat->slug) . '" title="' . esc_attr($cat->name) . '"]');
+        }
+    }
+
+    // Inject carousels at placeholder
+    $output = str_replace('<!--ITU_CAROUSELS-->', $default_carousels, $output);
+
+    // Final cleanup
+    $output = preg_replace('/>\s+</', '><', $output);
+    $output = str_replace(['<p></p>', '<p> </p>', '<br />', '<br/>', '<br>'], '', $output);
+    $output = preg_replace('/<p>\s*<\/p>/', '', $output);
+
+    // Cache the full catalog for 30 days
+    set_transient($catalog_cache_key, $output, 30 * DAY_IN_SECONDS);
+
     return $output;
 });
 
@@ -594,9 +1829,49 @@ function itu_render_breadcrumbs() {
         $crumbs[] = '<span class="itu-breadcrumbs__current">' . esc_html(get_the_title()) . '</span>';
     } elseif (is_singular('post')) {
         $crumbs[] = '<a href="/resources/" class="itu-breadcrumbs__link">Resources</a>';
+        $cats = get_the_category();
+        $is_practice_test = false;
+        if (!empty($cats)) {
+            foreach ($cats as $c) {
+                if ($c->slug === 'practice-tests') { $is_practice_test = true; break; }
+            }
+        }
+        if ($is_practice_test) {
+            // Practice tests — show Practice Tests category, no Blogs
+            $pt_cat = get_category_by_slug('practice-tests');
+            if ($pt_cat) {
+                $crumbs[] = '<a href="' . esc_url(get_category_link($pt_cat->term_id)) . '" class="itu-breadcrumbs__link">Practice Tests</a>';
+            }
+        } else {
+            // All other posts — always show Blogs, then category if different
+            $blogs_cat = get_category_by_slug('blogs');
+            if ($blogs_cat) {
+                $crumbs[] = '<a href="' . esc_url(get_category_link($blogs_cat->term_id)) . '" class="itu-breadcrumbs__link">Blogs</a>';
+            }
+            if (!empty($cats)) {
+                $cat = $cats[0];
+                if (!$blogs_cat || $cat->term_id !== $blogs_cat->term_id) {
+                    $crumbs[] = '<a href="' . esc_url(get_category_link($cat->term_id)) . '" class="itu-breadcrumbs__link">' . esc_html($cat->name) . '</a>';
+                }
+            }
+        }
         $crumbs[] = '<span class="itu-breadcrumbs__current">' . esc_html(get_the_title()) . '</span>';
     } elseif (is_archive()) {
-        $crumbs[] = '<span class="itu-breadcrumbs__current">' . esc_html(get_the_archive_title()) . '</span>';
+        $archive_title = get_the_archive_title();
+        $archive_title = wp_strip_all_tags($archive_title);
+        // Always show Resources > Blogs on post archives
+        $crumbs[] = '<a href="/resources/" class="itu-breadcrumbs__link">Resources</a>';
+        if (is_category()) {
+            $current_cat = get_queried_object();
+            // If not the Blogs category itself, show Blogs link first
+            if ($current_cat && $current_cat->slug !== 'blogs') {
+                $blogs_cat = get_category_by_slug('blogs');
+                if ($blogs_cat) {
+                    $crumbs[] = '<a href="' . esc_url(get_category_link($blogs_cat->term_id)) . '" class="itu-breadcrumbs__link">Blogs</a>';
+                }
+            }
+        }
+        $crumbs[] = '<span class="itu-breadcrumbs__current">' . esc_html($archive_title) . '</span>';
     } elseif (is_search()) {
         $crumbs[] = '<span class="itu-breadcrumbs__current">Search results</span>';
     } else {
@@ -624,8 +1899,8 @@ add_shortcode('itu_category_grid', function () {
         'status'     => 'publish',
         'limit'      => -1,
         'category'   => [$term->slug],
-        'orderby'    => 'title',
-        'order'      => 'ASC',
+        'orderby'    => 'date',
+        'order'      => 'DESC',
         'visibility' => 'visible',
     ]);
 
@@ -679,6 +1954,11 @@ add_shortcode('itu_category_grid', function () {
                     <?php if ($questions) : ?>
                         <span class="itu-certs__card-badge"><?php echo esc_html(number_format($questions)); ?> Questions</span>
                     <?php endif; ?>
+                    <?php
+                    $enrolled = itu_get_enrollment_count($sku);
+                    if ($enrolled) : ?>
+                        <span class="itu-certs__card-badge itu-certs__card-badge--enrolled"><?php echo esc_html(number_format($enrolled)); ?> Enrolled</span>
+                    <?php endif; ?>
                 </div>
                 <?php endif; ?>
 
@@ -725,6 +2005,77 @@ add_action('admin_enqueue_scripts', function ($hook) {
     wp_enqueue_style('wp-jquery-ui-dialog');
     wp_enqueue_script('jquery-ui-sortable');
 });
+
+/**
+ * Sync WP product description into the AICG prompt textarea
+ * when the description is updated on product edit screens.
+ */
+add_action('admin_footer-post.php', 'itu_sync_description_to_aicg');
+add_action('admin_footer-post-new.php', 'itu_sync_description_to_aicg');
+function itu_sync_description_to_aicg() {
+    $screen = get_current_screen();
+    if (!$screen || $screen->post_type !== 'product') return;
+    ?>
+    <script>
+    (function() {
+        var aicgField = document.getElementById('aicg_prompt');
+        if (!aicgField) return;
+
+        function getDescriptionText() {
+            // Try TinyMCE (visual editor) first
+            if (typeof tinymce !== 'undefined') {
+                var editor = tinymce.get('content');
+                if (editor && !editor.isHidden()) {
+                    return editor.getContent({ format: 'text' });
+                }
+            }
+            // Fall back to the plain text editor textarea
+            var textarea = document.getElementById('content');
+            return textarea ? textarea.value.replace(/<[^>]*>/g, '') : '';
+        }
+
+        function syncToAicg() {
+            var text = getDescriptionText().trim();
+            if (text) {
+                aicgField.value = text;
+                aicgField.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
+
+        // Watch TinyMCE visual editor for changes
+        if (typeof tinymce !== 'undefined') {
+            tinymce.on('AddEditor', function(e) {
+                if (e.editor.id !== 'content') return;
+                e.editor.on('Change NodeChange KeyUp', function() {
+                    syncToAicg();
+                });
+            });
+            // If editor already exists
+            var existing = tinymce.get('content');
+            if (existing) {
+                existing.on('Change NodeChange KeyUp', function() {
+                    syncToAicg();
+                });
+            }
+        }
+
+        // Watch plain text textarea for changes
+        var contentTextarea = document.getElementById('content');
+        if (contentTextarea) {
+            contentTextarea.addEventListener('input', syncToAicg);
+        }
+
+        // Also sync on initial load after a short delay (let AICG plugin initialize)
+        setTimeout(function() {
+            aicgField = document.getElementById('aicg_prompt');
+            if (aicgField && !aicgField.value.trim()) {
+                syncToAicg();
+            }
+        }, 2000);
+    })();
+    </script>
+    <?php
+}
 
 // AJAX product search for the admin page
 add_action('wp_ajax_itu_search_products', function () {
@@ -1040,9 +2391,10 @@ add_shortcode('itu_certification_spotlight', function () {
 
     ob_start();
     ?>
-    <section class="itu-spotlight">
-        <span class="itu-spotlight__eyebrow">[ Certification Spotlight ]</span>
-        <div class="itu-spotlight__inner">
+    <section class="itu-section itu-section--gray itu-spotlight">
+        <div class="itu-section__inner">
+            <span class="itu-eyebrow" style="margin-bottom:32px">[ Certification Spotlight ]</span>
+            <div class="itu-spotlight__inner">
 
             <div class="itu-spotlight__info">
                 <?php if ($first_logo_url) : ?>
@@ -1098,6 +2450,11 @@ add_shortcode('itu_certification_spotlight', function () {
                             <?php if ($questions) : ?>
                                 <span class="itu-certs__card-badge"><?php echo esc_html(number_format($questions)); ?> Questions</span>
                             <?php endif; ?>
+                            <?php
+                            $enrolled = itu_get_enrollment_count($sku);
+                            if ($enrolled) : ?>
+                                <span class="itu-certs__card-badge itu-certs__card-badge--enrolled"><?php echo esc_html(number_format($enrolled)); ?> Enrolled</span>
+                            <?php endif; ?>
                         </div>
                         <?php endif; ?>
                     </div>
@@ -1105,6 +2462,7 @@ add_shortcode('itu_certification_spotlight', function () {
                 </div>
             </div>
 
+            </div>
         </div>
     </section>
     <?php
@@ -1122,7 +2480,12 @@ function itu_auto_clear_caches($post_id) {
     global $wpdb;
     $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_itu_carousel_%' OR option_name LIKE '_transient_timeout_itu_carousel_%'");
     $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_itu_catgrid_%' OR option_name LIKE '_transient_timeout_itu_catgrid_%'");
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_itu_drawer_cat_%' OR option_name LIKE '_transient_timeout_itu_drawer_cat_%'");
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_itu_enrolled_%' OR option_name LIKE '_transient_timeout_itu_enrolled_%'");
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_course_videos_%' OR option_name LIKE '_transient_timeout_course_videos_%'");
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_product_outlines_%' OR option_name LIKE '_transient_timeout_product_outlines_%'");
     delete_transient('itu_spotlight_html');
+    delete_transient('itu_catalog_full');
 }
 add_action('save_post_product', 'itu_auto_clear_caches');
 add_action('woocommerce_update_product', 'itu_auto_clear_caches');
@@ -1170,15 +2533,125 @@ function inject_faq_jsonld_script() {
 
     global $post;
 
-    // Get the raw JSON-LD from the ACF field
+    // Try field key first, fall back to field name
     $jsonld = get_field('field_6816d54e3951d', $post->ID);
-
-    // If it exists, output it inside a script tag
-    if ($jsonld) {
-        echo "<script type=\"application/ld+json\">\n" . $jsonld . "\n</script>\n";
+    if (!$jsonld) {
+        $jsonld = get_field('faq_schema', $post->ID);
     }
+    if (!$jsonld) {
+        $jsonld = get_field('faq_json_ld', $post->ID);
+    }
+
+    if (empty($jsonld)) return;
+
+    // Strip any existing script tags the author may have pasted in
+    $jsonld = trim($jsonld);
+    $jsonld = preg_replace('#^\s*<script[^>]*>\s*#i', '', $jsonld);
+    $jsonld = preg_replace('#\s*</script>\s*$#i', '', $jsonld);
+    $jsonld = trim($jsonld);
+
+    // Validate JSON
+    $decoded = json_decode($jsonld, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('ITU FAQ Schema: Invalid JSON on post ' . $post->ID . ' — ' . json_last_error_msg());
+        }
+        return;
+    }
+
+    // Ensure it has required schema.org structure
+    if (empty($decoded['@type'])) {
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('ITU FAQ Schema: Missing @type on post ' . $post->ID);
+        }
+        return;
+    }
+
+    // Re-encode to sanitize (removes any injected HTML/JS within the JSON values)
+    $clean_json = wp_json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (!$clean_json) return;
+
+    echo "<script type=\"application/ld+json\">\n" . $clean_json . "\n</script>\n";
 }
 add_action('wp_head', 'inject_faq_jsonld_script');
+
+/**
+ * Render product FAQ section from ACF field.
+ * Parses the JSON-LD schema to extract Q&A pairs and renders them
+ * as styled details/summary accordion items.
+ */
+add_shortcode('itu_product_faq', function () {
+    if (!is_singular()) return '';
+
+    global $post;
+
+    // Get the FAQ HTML content field
+    $faq_html = get_field('product_faq', $post->ID);
+
+    // If no HTML field, try to build from the schema JSON
+    if (empty($faq_html)) {
+        $jsonld = get_field('faq_schema', $post->ID);
+        if (!$jsonld) $jsonld = get_field('field_6816d54e3951d', $post->ID);
+        if (empty($jsonld)) return '';
+
+        $jsonld = trim($jsonld);
+        $jsonld = preg_replace('#^\s*<script[^>]*>\s*#i', '', $jsonld);
+        $jsonld = preg_replace('#\s*</script>\s*$#i', '', $jsonld);
+        $decoded = json_decode(trim($jsonld), true);
+
+        if (!$decoded || empty($decoded['mainEntity'])) return '';
+
+        // Build FAQ HTML from schema
+        $faqs = $decoded['mainEntity'];
+    } else {
+        // Add itu-faq-item class to <details> elements and clean up inner markup
+        $faq_html = str_replace('<details>', '<details class="itu-faq-item">', $faq_html);
+        $faq_html = str_replace('<details class="faq-item">', '<details class="itu-faq-item">', $faq_html);
+        // Replace faq-content divs with simple paragraph flow
+        $faq_html = preg_replace('#<div class="faq-content">\s*#i', '', $faq_html);
+        $faq_html = preg_replace('#\s*</div>\s*</details>#i', '</details>', $faq_html);
+
+        ob_start();
+        ?>
+        <div class="itu-faq-layout" style="margin-top:60px;padding-bottom:20px;max-width:1200px;margin-left:auto;margin-right:auto">
+            <div class="itu-faq-layout__intro">
+                <span class="itu-eyebrow">[ FAQ ]</span>
+                <h2>Frequently Asked Questions<em>.</em></h2>
+            </div>
+            <div class="itu-faq-layout__list">
+                <?php echo $faq_html; ?>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    // Build from parsed schema mainEntity array
+    if (empty($faqs)) return '';
+
+    ob_start();
+    ?>
+    <div class="itu-faq-layout" style="margin-top:60px;padding-bottom:20px;max-width:1200px;margin-left:auto;margin-right:auto">
+            <div class="itu-faq-layout__intro">
+                <span class="itu-eyebrow">[ FAQ ]</span>
+                <h2>Frequently Asked Questions<em>.</em></h2>
+            </div>
+            <div class="itu-faq-layout__list">
+                    <?php foreach ($faqs as $faq) :
+                        $q = wp_strip_all_tags($faq['name'] ?? '');
+                        $a = wp_kses_post($faq['acceptedAnswer']['text'] ?? '');
+                        if (empty($q) || empty($a)) continue;
+                    ?>
+                    <details class="itu-faq-item">
+                        <summary><?php echo esc_html($q); ?></summary>
+                        <p><?php echo $a; ?></p>
+                    </details>
+                    <?php endforeach; ?>
+            </div>
+    </div>
+    <?php
+    return ob_get_clean();
+});
 
  function connect_another_db_power() {
 	global $power_db;
@@ -1193,7 +2666,11 @@ add_shortcode( 'hubspot-form', function() {
 
 add_filter('woocommerce_add_to_cart_fragments', 'iconic_cart_count_fragments', 10, 1);
 function iconic_cart_count_fragments( $fragments ) {
-    $fragments['div.header-cart-count'] = '<a class="cart-contents" href="' . wc_get_cart_url() . '" title="View your shopping cart">' . sprintf ( _n( '%d item', '%d items', WC()->cart->get_cart_contents_count() ), WC()->cart->get_cart_contents_count() ) . ' - ' . WC()->cart->get_cart_total() . '</a>';
+    $count = WC()->cart->get_cart_contents_count();
+    // Legacy fragment (old theme)
+    $fragments['div.header-cart-count'] = '<a class="cart-contents" href="' . wc_get_cart_url() . '" title="View your shopping cart">' . sprintf ( _n( '%d item', '%d items', $count ), $count ) . ' - ' . WC()->cart->get_cart_total() . '</a>';
+    // New child theme cart count badge
+    $fragments['span.itu-cart-count'] = '<span class="itu-cart-count" id="itu-cart-count">' . ($count > 0 ? $count : '') . '</span>';
     return $fragments;
 }
 
@@ -1292,26 +2769,28 @@ function woocommerce_get_product_videos_shortcode($course_id, $title) {
         global $lmsdb;
         $sql = "CALL ec_course_outlines(" . strval($course_id) . ");";
         $nav_results = $lmsdb->get_results($sql);
-        $course_string = '<div><h2 style="font-size: 1.75em;"><a rel="nofollow" href="https://www.itulearning.com/course/create_new_outline/' . $course_id . '">' . $title . ' Course Content</a></h2>';
-        $course_string .= '<a rel="nofollow" href="https://www.itulearning.com/course/create_new_outline/' . $course_id . '"><button style="margin-bottom: 10px;">Download Outline</button></a>';
+        $course_string = '<div class="itu-outline">';
+        $course_string .= '<div class="itu-outline__header">';
+        $course_string .= '<h2 class="itu-outline__title"><a rel="nofollow" href="https://www.itulearning.com/course/create_new_outline/' . $course_id . '">' . esc_html($title) . ' Course Content</a></h2>';
+        $course_string .= '<a rel="nofollow" href="https://www.itulearning.com/course/create_new_outline/' . $course_id . '" class="itu-button itu-outline__download" style="background:#C026D3; display:inline-block; text-align:center; font-size:0.75rem; padding:8px 20px" target="_blank">Download Outline</a>';
+        $course_string .= '</div>';
         foreach ($nav_results as $video) {
             $current_id = $video->module_id;
             if ($current_id != $prior_id && $prior_id != 0) {
-                $course_string .= "</ul></details>";
+                $course_string .= '</ul></details>';
             }
             if ($current_id == 0 || $current_id != $prior_id) {
-                if ($prior_id == 0) {
-                    $course_string .= '<details style="margin: 5px; padding: 2px; padding-left: 0px;"><summary><h3 style="display: inline; font-weight: 500; font-size: 16px;">' . $video->module_title . '</h3></summary><ul style="list-style-type: none; margin-bottom: 20px; margin-top: 20px;" class="video-list">';
-                } else {
-                    $course_string .= '<details style="margin: 5px; padding: 2px; padding-left: 0px;"><summary><h3 style="display: inline; font-weight: 500; font-size: 16px;">' . $video->module_title . '</h3></summary><ul style="list-style-type: none; margin-bottom: 20px;margin-top: 20px;" class="video-list">';
-                }
+                $course_string .= '<details class="itu-outline__module"><summary class="itu-outline__module-title">' . esc_html($video->module_title) . '</summary><ul class="itu-outline__lessons">';
             }
             $prior_id = $video->module_id;
             if ($prior_id == $current_id) {
-                $course_string .= '<li style="list-style-type: none; font-size: 15px; margin-left: -20px;"><span style="font-size: 14px;"><i class="fa fa-video"></i>&nbsp;&nbsp;&nbsp;' . $video->video_title . '</span></li>';
+                $course_string .= '<li class="itu-outline__lesson"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>' . esc_html($video->video_title) . '</li>';
             }
         }
-        $course_string .= '</ul></details></div>';
+        if ($prior_id != 0) {
+            $course_string .= '</ul></details>';
+        }
+        $course_string .= '</div>';
         set_transient($transient_name, $course_string, 84 * HOUR_IN_SECONDS);
     }
     return $course_string;
@@ -1685,20 +3164,39 @@ add_filter('http_request_timeout', function ($timeout) {
 function turn_rm_faq_to_accordion() {
     ?>
     <script>
-        jQuery(document).ready(function() {
-            var faqBlock = jQuery("div#rank-math-faq");
-            var faqItems = faqBlock.find("div.rank-math-list-item");
-            faqItems.bind("click", function(event) {
-                var answer = jQuery(this).find("div.rank-math-answer");
-                if (answer.css("overflow") == "hidden") {
-                    answer.css("overflow", "visible");
-                    answer.css("max-height", "100vh");
-                } else {
-                    answer.css("overflow", "hidden");
-                    answer.css("max-height", "0");
-                }
+    (function() {
+        var faqBlock = document.getElementById('rank-math-faq');
+        if (!faqBlock) return;
+
+        // Inject chevron icon into each question
+        var arrow = '<span class="itu-faq-item__icon"><svg viewBox="0 0 12 8" width="12" height="8"><polyline points="1 1 6 6 11 1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+
+        var items = faqBlock.querySelectorAll('.rank-math-list-item');
+        items.forEach(function(item) {
+            // Add our class for styling
+            item.classList.add('itu-faq-item');
+
+            var question = item.querySelector('.rank-math-question');
+            if (question && !question.querySelector('.itu-faq-item__icon')) {
+                question.innerHTML = '<span>' + question.textContent + '</span>' + arrow;
+            }
+
+            var answer = item.querySelector('.rank-math-answer');
+            if (answer) {
+                answer.classList.add('itu-faq-item__body');
+                answer.style.maxHeight = '';
+                answer.style.overflow = '';
+            }
+
+            item.addEventListener('click', function(e) {
+                var isOpen = this.classList.contains('is-open');
+                // Close all
+                items.forEach(function(el) { el.classList.remove('is-open'); });
+                // Toggle clicked
+                if (!isOpen) this.classList.add('is-open');
             });
         });
+    })();
     </script>
     <?php
 }
@@ -1805,12 +3303,33 @@ function search_terms($search, $page = 1) {
 }
 
 function build_faq_schema($results) {
+    if (empty($results)) return '';
+
     $faqs = [];
     foreach ($results as $term) {
-        $faqs[] = ['@type' => 'Question', 'name' => "What is " . $term->term . "?", 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $term->definition]];
+        if (empty($term->term) || empty($term->definition)) continue;
+        $faqs[] = [
+            '@type' => 'Question',
+            'name' => wp_strip_all_tags("What is " . $term->term . "?"),
+            'acceptedAnswer' => [
+                '@type' => 'Answer',
+                'text' => wp_strip_all_tags($term->definition),
+            ],
+        ];
     }
-    $jsonLd = ['@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => $faqs];
-    return '<script type="application/ld+json">' . json_encode($jsonLd, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . '</script>';
+
+    if (empty($faqs)) return '';
+
+    $jsonLd = [
+        '@context' => 'https://schema.org',
+        '@type' => 'FAQPage',
+        'mainEntity' => $faqs,
+    ];
+
+    $encoded = wp_json_encode($jsonLd, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (!$encoded) return '';
+
+    return '<script type="application/ld+json">' . $encoded . '</script>';
 }
 
 function paginate_terms($letter, $current_page, $total_pages) {
@@ -1989,63 +3508,62 @@ add_action('elementor/query/custom_procedure_query', 'custom_elementor_query');
 
 // Function to handle the email sending
 function handle_custom_team_email() {
-    // Check if it's a POST request
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Get the posted data
-        $firstname = sanitize_text_field($_POST['firstname']);
-        $lastname = sanitize_text_field($_POST['lastname']);
-        $company = sanitize_text_field($_POST['company']);
-        $phone = sanitize_text_field($_POST['phone']);
-        $email = sanitize_email($_POST['email']);
-        $lead_source = sanitize_text_field($_POST['lead_source']);
-        $hubspot_owner_id = sanitize_text_field($_POST['hubspot_owner_id']);
-        $est_emp = sanitize_text_field($_POST['number_of_team_members']);
-		$comments = sanitize_text_field($_POST['comments']);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
 
-        // Format the message body
-        $message = '
-        <html>
-        <head>
-          <title>New Lead Information</title>
-        </head>
-        <body>
-          <h2>New Lead Details</h2>
-          <p><strong>First Name:</strong> ' . $firstname . '</p>
-          <p><strong>Last Name:</strong> ' . $lastname . '</p>
-          <p><strong>Company:</strong> ' . $company . '</p>
-          <p><strong>Phone:</strong> ' . $phone . '</p>
-          <p><strong>Email:</strong> ' . $email . '</p>
-          <p><strong>Lead Source:</strong> ' . $lead_source . '</p>
-          <p><strong>HubSpot Owner ID:</strong> ' . $hubspot_owner_id . '</p>
-          <p><strong>Number of Team Members:</strong> ' . $est_emp . '</p>
-		  <p><strong>Comments:</strong> ' . $comments . '</p>
-        </body>
-        </html>';
+    $firstname   = sanitize_text_field($_POST['firstname'] ?? '');
+    $lastname    = sanitize_text_field($_POST['lastname'] ?? '');
+    $company     = sanitize_text_field($_POST['company'] ?? '');
+    $phone       = sanitize_text_field($_POST['phone'] ?? '');
+    $email       = sanitize_email($_POST['email'] ?? '');
+    $lead_source = sanitize_text_field($_POST['lead_source'] ?? 'Team Training Page');
+    $est_emp     = sanitize_text_field($_POST['number_of_team_members'] ?? '');
+    $comments    = sanitize_text_field($_POST['comments'] ?? '');
+    $timestamp   = current_time('F j, Y \a\t g:i A');
 
-        // The email address to send to
-        $to = 'customerservice@ituonline.com, mbongo@ituonline.com, dlogerquist@ituonline.com, derrickj@ituonline.com, rickj@thepowerlms.com';
-      //  $to = 'tpatechie@hotmail.com';
-        // The subject of the email
-        $subject = 'New Team Lead Information';
-        
-        // Headers
-        $headers = array('Content-Type: text/html; charset=UTF-8');
-
-        // Temporarily set the "From" email address and name
-        add_filter('wp_mail_from', 'custom_wp_mail_from');
-        add_filter('wp_mail_from_name', 'custom_wp_mail_from_name');
-
-        // Send the email
-        $mail_sent = wp_mail($to, $subject, $message, $headers);
-
-        // Remove the filters to avoid affecting other emails
-        remove_filter('wp_mail_from', 'custom_wp_mail_from');
-        remove_filter('wp_mail_from_name', 'custom_wp_mail_from_name');
-        
- 
-    } else {
-        return;
+    // Formatted HTML email
+    $message = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;color:#333;max-width:600px;margin:0 auto">'
+        . '<div style="background:#111;color:#fff;padding:20px 24px;text-align:center">'
+        . '<h1 style="margin:0;font-size:20px;font-weight:700;letter-spacing:1px">NEW TEAM TRAINING INQUIRY</h1>'
+        . '</div>'
+        . '<div style="padding:24px;border:1px solid #e0e0e0;border-top:none">'
+        . '<table style="width:100%;border-collapse:collapse;font-size:14px">'
+        . '<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#999;width:140px">Name</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">' . esc_html($firstname . ' ' . $lastname) . '</td></tr>'
+        . '<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#999">Company</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">' . esc_html($company) . '</td></tr>'
+        . '<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#999">Email</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0"><a href="mailto:' . esc_attr($email) . '" style="color:#C026D3;text-decoration:none">' . esc_html($email) . '</a></td></tr>'
+        . '<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#999">Phone</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0">' . esc_html($phone) . '</td></tr>'
+        . '<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#999">Team Size</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">' . esc_html($est_emp) . ' members</td></tr>'
+        . '<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#999">Source</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0">' . esc_html($lead_source) . '</td></tr>'
+        . '</table>';
+    if (!empty($comments)) {
+        $message .= '<div style="margin-top:16px;padding:16px;background:#f9f9f9;border-left:3px solid #C026D3;font-size:14px">'
+            . '<strong style="display:block;margin-bottom:6px;color:#999;font-size:12px;text-transform:uppercase;letter-spacing:1px">Comments</strong>'
+            . esc_html($comments)
+            . '</div>';
     }
+    $message .= '<div style="margin-top:20px;padding-top:16px;border-top:1px solid #f0f0f0;font-size:12px;color:#999">Submitted on ' . $timestamp . '</div>'
+        . '</div></body></html>';
+
+    // Send email
+    $to = 'customerservice@ituonline.com, mbongo@ituonline.com, dlogerquist@ituonline.com, derrickj@ituonline.com, rickj@ituonline.com';
+    $subject = '🏢 New Team Training Inquiry — ' . esc_html($company) . ' (' . esc_html($est_emp) . ' members)';
+    $headers = ['Content-Type: text/html; charset=UTF-8'];
+
+    add_filter('wp_mail_from', 'custom_wp_mail_from');
+    add_filter('wp_mail_from_name', 'custom_wp_mail_from_name');
+    wp_mail($to, $subject, $message, $headers);
+    remove_filter('wp_mail_from', 'custom_wp_mail_from');
+    remove_filter('wp_mail_from_name', 'custom_wp_mail_from_name');
+
+    // Send to Slack
+    itu_send_slack_notification('team', [
+        'name'      => $firstname . ' ' . $lastname,
+        'company'   => $company,
+        'email'     => $email,
+        'phone'     => $phone,
+        'team_size' => $est_emp,
+        'source'    => $lead_source,
+        'comments'  => $comments,
+    ]);
 }
 
 
@@ -2053,64 +3571,70 @@ function handle_custom_team_email() {
 
 // Function to handle the email sending
 function handle_custom_reseller_email() {
-    // Check if it's a POST request
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Get the posted data
-        $firstname = sanitize_text_field($_POST['firstname']);
-        $lastname = sanitize_text_field($_POST['lastname']);
-        $company = sanitize_text_field($_POST['company']);
-        $phone = sanitize_text_field($_POST['phone']);
-        $email = sanitize_email($_POST['email']);
-        $lead_source = sanitize_text_field($_POST['lead_source']);
-        $hubspot_owner_id = sanitize_text_field($_POST['hubspot_owner_id']);
-		$site_url = sanitize_text_field($_POST['site_url']);
-		$comments = sanitize_text_field($_POST['comments']);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') return;
 
+    $firstname         = sanitize_text_field($_POST['firstname'] ?? '');
+    $lastname          = sanitize_text_field($_POST['lastname'] ?? '');
+    $company           = sanitize_text_field($_POST['company'] ?? '');
+    $phone             = sanitize_text_field($_POST['phone'] ?? '');
+    $email             = sanitize_email($_POST['email'] ?? '');
+    $lead_source       = sanitize_text_field($_POST['lead_source'] ?? 'Reseller Page');
+    $site_url          = sanitize_text_field($_POST['site_url'] ?? '');
+    $country           = sanitize_text_field($_POST['country'] ?? '');
+    $comments          = sanitize_text_field($_POST['comments'] ?? '');
+    $years_in_business = sanitize_text_field($_POST['years_in_business'] ?? '');
+    $est_annual_sales  = sanitize_text_field($_POST['est_annual_sales'] ?? '');
+    $timestamp         = current_time('F j, Y \a\t g:i A');
 
-        // Format the message body
-        $message = '
-        <html>
-        <head>
-          <title>New Lead Information</title>
-        </head>
-        <body>
-          <h2>New Lead Details</h2>
-          <p><strong>First Name:</strong> ' . $firstname . '</p>
-          <p><strong>Last Name:</strong> ' . $lastname . '</p>
-          <p><strong>Company:</strong> ' . $company . '</p>
-          <p><strong>Phone:</strong> ' . $phone . '</p>
-          <p><strong>Email:</strong> ' . $email . '</p>
-		  <p><strong>Site URL:</strong> ' . $site_url . '</p>
-		  <p><strong>Comments:</strong> ' . $comments . '</p>
-          <p><strong>Lead Source:</strong> ' . $lead_source . '</p>
-          <p><strong>HubSpot Owner ID:</strong> ' . $hubspot_owner_id . '</p>
-        </body>
-        </html>';
-
-        // The email address to send to
-        $to = 'customerservice@ituonline.com, mbongo@ituonline.com, dlogerquist@ituonline.com, derrickj@ituonline.com, rickj@thepowerlms.com';
-        // $to = 'rickj@thepowerlms.com';
-        // The subject of the email
-        $subject = 'New Reseller Lead Information';
-        
-        // Headers
-        $headers = array('Content-Type: text/html; charset=UTF-8');
-
-        // Temporarily set the "From" email address and name
-        add_filter('wp_mail_from', 'custom_wp_mail_from');
-        add_filter('wp_mail_from_name', 'custom_wp_mail_from_name');
-
-        // Send the email
-        $mail_sent = wp_mail($to, $subject, $message, $headers);
-
-        // Remove the filters to avoid affecting other emails
-        remove_filter('wp_mail_from', 'custom_wp_mail_from');
-        remove_filter('wp_mail_from_name', 'custom_wp_mail_from_name');
-        
- 
-    } else {
-        return;
+    // Formatted HTML email
+    $message = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;color:#333;max-width:600px;margin:0 auto">'
+        . '<div style="background:#111;color:#fff;padding:20px 24px;text-align:center">'
+        . '<h1 style="margin:0;font-size:20px;font-weight:700;letter-spacing:1px">NEW RESELLER INQUIRY</h1>'
+        . '</div>'
+        . '<div style="padding:24px;border:1px solid #e0e0e0;border-top:none">'
+        . '<table style="width:100%;border-collapse:collapse;font-size:14px">'
+        . '<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#999;width:140px">Name</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">' . esc_html($firstname . ' ' . $lastname) . '</td></tr>'
+        . '<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#999">Company</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;font-weight:600">' . esc_html($company) . '</td></tr>'
+        . '<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#999">Email</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0"><a href="mailto:' . esc_attr($email) . '" style="color:#C026D3;text-decoration:none">' . esc_html($email) . '</a></td></tr>'
+        . '<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#999">Phone</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0">' . esc_html($phone) . '</td></tr>'
+        . '<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#999">Website</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0"><a href="' . esc_url($site_url) . '" style="color:#C026D3;text-decoration:none">' . esc_html($site_url) . '</a></td></tr>'
+        . '<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#999">Country</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0">' . esc_html($country) . '</td></tr>'
+        . '<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#999">Years in Business</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0">' . esc_html($years_in_business) . '</td></tr>'
+        . '<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#999">Est. Annual Sales</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0">' . esc_html($est_annual_sales) . '</td></tr>'
+        . '<tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;color:#999">Source</td><td style="padding:10px 0;border-bottom:1px solid #f0f0f0">' . esc_html($lead_source) . '</td></tr>'
+        . '</table>';
+    if (!empty($comments)) {
+        $message .= '<div style="margin-top:16px;padding:16px;background:#f9f9f9;border-left:3px solid #C026D3;font-size:14px">'
+            . '<strong style="display:block;margin-bottom:6px;color:#999;font-size:12px;text-transform:uppercase;letter-spacing:1px">Comments</strong>'
+            . esc_html($comments)
+            . '</div>';
     }
+    $message .= '<div style="margin-top:20px;padding-top:16px;border-top:1px solid #f0f0f0;font-size:12px;color:#999">Submitted on ' . $timestamp . '</div>'
+        . '</div></body></html>';
+
+    // Send email
+    $to = 'customerservice@ituonline.com, mbongo@ituonline.com, dlogerquist@ituonline.com, derrickj@ituonline.com, rickj@ituonline.com';
+    $subject = '🤝 New Reseller Inquiry — ' . esc_html($company) . ' (' . esc_html($country) . ')';
+    $headers = ['Content-Type: text/html; charset=UTF-8'];
+
+    add_filter('wp_mail_from', 'custom_wp_mail_from');
+    add_filter('wp_mail_from_name', 'custom_wp_mail_from_name');
+    wp_mail($to, $subject, $message, $headers);
+    remove_filter('wp_mail_from', 'custom_wp_mail_from');
+    remove_filter('wp_mail_from_name', 'custom_wp_mail_from_name');
+
+    // Send to Slack
+    itu_send_slack_notification('reseller', [
+        'name'    => $firstname . ' ' . $lastname,
+        'company' => $company,
+        'email'   => $email,
+        'phone'   => $phone,
+        'country' => $country,
+        'years'   => $years_in_business,
+        'sales'   => $est_annual_sales,
+        'source'  => $lead_source,
+        'comments' => $comments,
+    ]);
 }
 
 // Register the endpoint
@@ -2812,11 +4336,28 @@ function itu_cache_admin_page() {
             OR option_name LIKE '_transient_skill_count_%' OR option_name LIKE '_transient_timeout_skill_count_%'"
         );
 
-        // Delete spotlight transient
+        // Delete plan drawer category transients
+        $drawer = $wpdb->query(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_itu_drawer_cat_%' OR option_name LIKE '_transient_timeout_itu_drawer_cat_%'"
+        );
+
+        // Delete plan pricing transients (individual training plans)
+        $pricing = $wpdb->query(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_itu_plan_price_%' OR option_name LIKE '_transient_timeout_itu_plan_price_%'"
+        );
+
+        // Delete course outline transients
+        $outlines = $wpdb->query(
+            "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_course_videos_%' OR option_name LIKE '_transient_timeout_course_videos_%'
+            OR option_name LIKE '_transient_product_outlines_%' OR option_name LIKE '_transient_timeout_product_outlines_%'"
+        );
+
+        // Delete spotlight and catalog transients
         $spotlight = 0;
         if (delete_transient('itu_spotlight_html')) $spotlight = 1;
+        delete_transient('itu_catalog_full');
 
-        $count = $carousel + $catgrid + $lms + $spotlight;
+        $count = $carousel + $catgrid + $lms + $drawer + $pricing + $outlines + $spotlight;
         $flushed = true;
     }
 
@@ -2842,11 +4383,225 @@ function itu_cache_admin_page() {
                             <li>Category grid HTML (product category archive pages)</li>
                             <li>LMS course stats (video hours, video count, question count, skill count)</li>
                             <li>Certification Spotlight HTML (home page)</li>
+                            <li>Plan drawer category products (training plans page)</li>
+                            <li>Plan pricing data (individual training plans)</li>
+                            <li>Enrollment counts (course cards)</li>
+                            <li>Course outlines and curriculum (product pages)</li>
                         </ul>
                     </td>
                 </tr>
             </table>
             <?php submit_button('Clear All ITU Caches', 'primary', 'itu_flush_cache'); ?>
+        </form>
+    </div>
+    <?php
+}
+
+/**
+ * ITU Image Migration — import product featured images from VTS site by SKU.
+ */
+add_action('admin_menu', function () {
+    add_submenu_page(
+        'tools.php',
+        'ITU Image Migration',
+        'ITU Image Migration',
+        'manage_options',
+        'itu-image-migration',
+        'itu_image_migration_page'
+    );
+});
+
+function itu_image_migration_page() {
+    if (!current_user_can('manage_options')) return;
+
+    $results = [];
+    $running = false;
+
+    // Connect to VTS database
+    $csv_data = [];
+    $db_error = '';
+
+    // Load from CSV file (upload vision_images.csv to theme assets folder)
+    $csv_path = get_stylesheet_directory() . '/assets/vision_images.csv';
+    if (file_exists($csv_path) && filesize($csv_path) > 100) {
+        if (($handle = fopen($csv_path, 'r')) !== false) {
+            $header = fgetcsv($handle);
+            while (($row = fgetcsv($handle)) !== false) {
+                if (count($row) >= 5 && !empty(trim($row[1]))) {
+                    $csv_data[] = [
+                        'sku'       => trim($row[1]),
+                        'image_url' => trim($row[3]),
+                        'file_path' => trim($row[4]),
+                    ];
+                }
+            }
+            fclose($handle);
+        }
+    }
+
+    if (empty($csv_data)) {
+        $db_error = 'No data found. Upload vision_images.csv to: ' . $csv_path;
+    }
+
+    // Handle migration
+    if (isset($_POST['itu_run_migration']) && check_admin_referer('itu_image_migration_nonce')) {
+        $running = true;
+        require_once ABSPATH . 'wp-admin/includes/media.php';
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+
+        $batch = isset($_POST['batch_start']) ? intval($_POST['batch_start']) : 0;
+        $batch_size = 10;
+        $batch_items = array_slice($csv_data, $batch, $batch_size);
+
+        foreach ($batch_items as $item) {
+            $sku = $item['sku'];
+            $image_url = $item['image_url'];
+
+            // Fix dev URLs to www
+            $image_url = str_replace('dev.visiontrainingsystems.com', 'www.visiontrainingsystems.com', $image_url);
+
+            // Find product by SKU
+            $product_id = wc_get_product_id_by_sku($sku);
+            if (!$product_id) {
+                $results[] = ['sku' => $sku, 'status' => 'SKIP', 'msg' => 'No product found with this SKU'];
+                continue;
+            }
+
+            // Backup current thumbnail
+            $current_thumb = get_post_meta($product_id, '_thumbnail_id', true);
+            if ($current_thumb) {
+                update_post_meta($product_id, '_thumbnail_id_backup', $current_thumb);
+            }
+
+            // Download and attach new image
+            $tmp = download_url($image_url, 30);
+            if (is_wp_error($tmp)) {
+                $results[] = ['sku' => $sku, 'status' => 'ERROR', 'msg' => 'Download failed: ' . $tmp->get_error_message()];
+                continue;
+            }
+
+            $filename = basename(parse_url($image_url, PHP_URL_PATH));
+            $file_array = [
+                'name'     => $filename,
+                'tmp_name' => $tmp,
+            ];
+
+            $attach_id = media_handle_sideload($file_array, $product_id);
+            if (is_wp_error($attach_id)) {
+                @unlink($tmp);
+                $results[] = ['sku' => $sku, 'status' => 'ERROR', 'msg' => 'Sideload failed: ' . $attach_id->get_error_message()];
+                continue;
+            }
+
+            // Set as featured image
+            set_post_thumbnail($product_id, $attach_id);
+            $results[] = ['sku' => $sku, 'status' => 'OK', 'msg' => 'Image updated (Product #' . $product_id . ', Attachment #' . $attach_id . ')'];
+        }
+    }
+
+    // Handle restore
+    if (isset($_POST['itu_restore_images']) && check_admin_referer('itu_image_migration_nonce')) {
+        $running = true;
+        $restored = 0;
+        $args = [
+            'post_type'      => 'product',
+            'posts_per_page' => -1,
+            'meta_key'       => '_thumbnail_id_backup',
+            'meta_compare'   => 'EXISTS',
+        ];
+        $products = get_posts($args);
+        foreach ($products as $p) {
+            $backup = get_post_meta($p->ID, '_thumbnail_id_backup', true);
+            if ($backup) {
+                set_post_thumbnail($p->ID, $backup);
+                delete_post_meta($p->ID, '_thumbnail_id_backup');
+                $restored++;
+            }
+        }
+        $results[] = ['sku' => '—', 'status' => 'RESTORED', 'msg' => $restored . ' products restored to original images'];
+    }
+
+    ?>
+    <div class="wrap">
+        <h1>ITU Image Migration</h1>
+        <p>Import product featured images from VisionTrainingSystems.com, matched by SKU. Old images are backed up and can be restored.</p>
+
+        <?php if (!empty($results)) : ?>
+            <h3>Results</h3>
+            <table class="widefat striped" style="max-width:800px">
+                <thead><tr><th>SKU</th><th>Status</th><th>Details</th></tr></thead>
+                <tbody>
+                <?php foreach ($results as $r) : ?>
+                    <tr>
+                        <td><code><?php echo esc_html($r['sku']); ?></code></td>
+                        <td><strong style="color:<?php echo $r['status'] === 'OK' ? '#1f7a3f' : ($r['status'] === 'ERROR' ? '#7a1f1f' : '#7a6a1f'); ?>"><?php echo esc_html($r['status']); ?></strong></td>
+                        <td><?php echo esc_html($r['msg']); ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+
+            <?php if ($running && isset($batch) && ($batch + $batch_size) < count($csv_data)) : ?>
+                <form method="post" style="margin-top:16px">
+                    <?php wp_nonce_field('itu_image_migration_nonce'); ?>
+                    <input type="hidden" name="batch_start" value="<?php echo $batch + $batch_size; ?>">
+                    <?php submit_button('Continue Next Batch (' . ($batch + $batch_size) . '–' . min($batch + $batch_size * 2, count($csv_data)) . ' of ' . count($csv_data) . ')', 'primary', 'itu_run_migration'); ?>
+                </form>
+            <?php endif; ?>
+        <?php endif; ?>
+
+        <h3>VTS Database</h3>
+        <?php if (!empty($db_error)) : ?>
+            <div class="notice notice-error"><p><?php echo esc_html($db_error); ?></p></div>
+        <?php endif; ?>
+        <?php if (!empty($vtsdb->last_error)) : ?>
+            <div class="notice notice-error"><p>DB error: <?php echo esc_html($vtsdb->last_error); ?></p></div>
+        <?php endif; ?>
+        <p><strong><?php echo count($csv_data); ?></strong> products with images found in VTS database.</p>
+
+        <?php if (!empty($csv_data)) : ?>
+            <details style="margin-bottom:16px">
+                <summary style="cursor:pointer;font-weight:600">Preview data (first 20 rows)</summary>
+                <table class="widefat striped" style="max-width:800px;margin-top:8px">
+                    <thead><tr><th>SKU</th><th>Image URL</th></tr></thead>
+                    <tbody>
+                    <?php foreach (array_slice($csv_data, 0, 20) as $item) : ?>
+                        <tr>
+                            <td><code><?php echo esc_html($item['sku']); ?></code></td>
+                            <td style="font-size:11px;word-break:break-all"><?php echo esc_html($item['image_url']); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </details>
+        <?php endif; ?>
+
+        <form method="post">
+            <?php wp_nonce_field('itu_image_migration_nonce'); ?>
+            <input type="hidden" name="batch_start" value="0">
+            <table class="form-table">
+                <tr>
+                    <th>Actions</th>
+                    <td>
+                        <?php submit_button('Start Migration (batch of 10)', 'primary', 'itu_run_migration', false); ?>
+                        &nbsp;&nbsp;
+                        <?php submit_button('Restore All Original Images', 'secondary', 'itu_restore_images', false, ['onclick' => 'return confirm("Restore ALL product images to their pre-migration originals?")']); ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th>What happens</th>
+                    <td>
+                        <ul style="list-style:disc;margin-left:20px">
+                            <li>For each SKU in the CSV, finds the matching product on this site</li>
+                            <li>Backs up the current featured image ID to <code>_thumbnail_id_backup</code></li>
+                            <li>Downloads the image from VTS and uploads to this site's media library</li>
+                            <li>Sets the downloaded image as the new featured image</li>
+                            <li>Processes 10 products per batch to avoid timeouts</li>
+                        </ul>
+                    </td>
+                </tr>
+            </table>
         </form>
     </div>
     <?php

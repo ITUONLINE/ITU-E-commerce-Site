@@ -1,14 +1,23 @@
 <!-- wp:template-part {"slug":"header","area":"header"} /-->
 
-<!-- wp:group {"tagName":"main","style":{"spacing":{"margin":{"top":"var:preset|spacing|60"}}},"layout":{"type":"constrained","contentSize":"720px"}} -->
-<main class="wp-block-group" style="margin-top:var(--wp--preset--spacing--60)">
+<!-- wp:group {"tagName":"main","layout":{"type":"default"}} -->
+<main class="wp-block-group">
 
 	<!-- wp:shortcode -->
 	[itu_breadcrumbs]
 	<!-- /wp:shortcode -->
 
-	<!-- wp:post-title {"level":1} /-->
-	<!-- wp:post-content {"layout":{"type":"constrained"}} /-->
+	<!-- wp:html -->
+	<article class="itu-section__inner itu-single-article">
+	<!-- /wp:html -->
+
+	<!-- wp:post-title {"level":1,"className":"itu-page-title"} /-->
+	<!-- wp:post-content {"layout":{"type":"default"}} /-->
+
+	<!-- wp:html -->
+	</article>
+	<!-- /wp:html -->
+
 </main>
 <!-- /wp:group -->
 
