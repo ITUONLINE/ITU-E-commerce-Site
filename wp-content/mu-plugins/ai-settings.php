@@ -56,6 +56,8 @@ function itu_ai_defaults() {
     return [
         'api_key_openai'              => '',
         'api_key_blog_writer'         => '',
+        'api_key_anthropic'           => '',
+        'api_key_gemini'              => '',
         'model_default'               => 'gpt-4.1-nano',
         'model_product_description'   => 'gpt-4.1-nano',
         'model_product_short_desc'    => 'gpt-4.1-nano',
@@ -130,17 +132,30 @@ function itu_ai_render_settings() {
 
     // Built-in models + any custom models added by user
     $builtin_models = [
-        'gpt-4.1'       => 'GPT-4.1 (Latest, best quality)',
-        'gpt-4.1-mini'  => 'GPT-4.1 Mini (Fast, good quality)',
-        'gpt-4.1-nano'  => 'GPT-4.1 Nano (Fastest, cheapest)',
-        'gpt-4o'        => 'GPT-4o (Multimodal)',
-        'gpt-4o-mini'   => 'GPT-4o Mini (Fast, cheap)',
-        'gpt-4.5-preview' => 'GPT-4.5 Preview',
-        'o3'            => 'o3 (Reasoning)',
-        'o3-mini'       => 'o3 Mini (Reasoning, cheaper)',
-        'o4-mini'       => 'o4 Mini (Reasoning)',
-        'gpt-4'         => 'GPT-4 (Legacy)',
-        'gpt-3.5-turbo' => 'GPT-3.5 Turbo (Legacy)',
+        // OpenAI — GPT-5.x Series
+        'gpt-5.4'         => 'OpenAI — GPT-5.4 (Flagship, best quality)',
+        'gpt-5.4-mini'    => 'OpenAI — GPT-5.4 Mini (Fast, efficient)',
+        'gpt-5.4-nano'    => 'OpenAI — GPT-5.4 Nano (Cheapest, high volume)',
+        // OpenAI — GPT-4.x Series
+        'gpt-4.1'         => 'OpenAI — GPT-4.1 (Best 4.x quality)',
+        'gpt-4.1-mini'    => 'OpenAI — GPT-4.1 Mini (Fast, good quality)',
+        'gpt-4.1-nano'    => 'OpenAI — GPT-4.1 Nano (Fastest, cheapest 4.x)',
+        'gpt-4o'          => 'OpenAI — GPT-4o (Multimodal)',
+        'gpt-4o-mini'     => 'OpenAI — GPT-4o Mini (Fast, cheap)',
+        // OpenAI — Reasoning Models
+        'o3'              => 'OpenAI — o3 (Reasoning)',
+        'o3-mini'         => 'OpenAI — o3 Mini (Reasoning, cheaper)',
+        'o4-mini'         => 'OpenAI — o4 Mini (Reasoning)',
+        // OpenAI — Legacy
+        'gpt-4'           => 'OpenAI — GPT-4 (Legacy)',
+        // Anthropic Claude
+        'claude-sonnet-4-20250514'  => 'Claude — Sonnet 4 (Best balance)',
+        'claude-haiku-4-5-20251001' => 'Claude — Haiku 4.5 (Fast, cheap)',
+        'claude-opus-4-20250514'    => 'Claude — Opus 4 (Best quality)',
+        // Google Gemini
+        'gemini-2.5-pro'   => 'Gemini — 2.5 Pro (Best quality)',
+        'gemini-2.5-flash' => 'Gemini — 2.5 Flash (Fast)',
+        'gemini-2.0-flash' => 'Gemini — 2.0 Flash (Cheapest)',
     ];
     $custom_models_raw = get_option('itu_ai_custom_models', '');
     $custom_models = [];
@@ -155,7 +170,9 @@ function itu_ai_render_settings() {
         'API Keys' => [
             'api_key_openai'      => ['label' => 'OpenAI API Key (Products)', 'type' => 'key'],
             'api_key_blog_writer' => ['label' => 'OpenAI API Key (Blog/SEO)', 'type' => 'key'],
-            'custom_models'       => ['label' => 'Custom Models', 'type' => 'models_textarea', 'desc' => 'Add custom model IDs, one per line. These appear in all dropdowns above built-in models.'],
+            'api_key_anthropic'   => ['label' => 'Anthropic API Key (Claude)', 'type' => 'key', 'desc' => 'Get from console.anthropic.com'],
+            'api_key_gemini'      => ['label' => 'Google Gemini API Key', 'type' => 'key', 'desc' => 'Get from aistudio.google.com'],
+            'custom_models'       => ['label' => 'Custom Models', 'type' => 'models_textarea', 'desc' => 'Add custom model IDs, one per line (e.g., gpt-5, claude-5-sonnet). Prefix determines provider: claude- → Anthropic, gemini- → Google, others → OpenAI.'],
         ],
         'Default' => [
             'model_default' => ['label' => 'Default Model', 'desc' => 'Used when no specific model is set for a process'],
@@ -242,10 +259,12 @@ function itu_ai_render_settings() {
             data.push({ name: 'nonce', value: '<?php echo $nonce; ?>' });
             $('#itu-ai-status').text('Saving...');
             $.post(ajaxurl, data, function(resp) {
-                $('#itu-ai-status').html(resp.success
-                    ? '<span style="color:#059669;">Saved!</span>'
-                    : '<span style="color:#dc2626;">Error</span>');
-                setTimeout(function() { $('#itu-ai-status').text(''); }, 3000);
+                if (resp.success) {
+                    $('#itu-ai-status').html('<span style="color:#059669;">Saved! Reloading...</span>');
+                    setTimeout(function() { location.reload(); }, 500);
+                } else {
+                    $('#itu-ai-status').html('<span style="color:#dc2626;">Error</span>');
+                }
             });
         });
 

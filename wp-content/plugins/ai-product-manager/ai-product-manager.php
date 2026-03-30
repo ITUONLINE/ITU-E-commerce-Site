@@ -65,8 +65,16 @@ function aipm_strip_quotes($text) {
 }
 
 function aipm_call_openai($instruction, $user_prompt, $model = '', $temperature = 0.7) {
-    $api_key = function_exists('itu_ai_key') ? itu_ai_key('openai') : get_option('aicg_api_key');
     if (!$model) $model = function_exists('itu_ai_model') ? itu_ai_model('default') : 'gpt-4.1-nano';
+
+    // Use unified provider router if available
+    if (function_exists('itu_ai_call')) {
+        $result = itu_ai_call($instruction, $user_prompt, $model, $temperature, ['key_name' => 'openai']);
+        if (is_wp_error($result)) return $result;
+        return aipm_strip_quotes($result);
+    }
+
+    $api_key = function_exists('itu_ai_key') ? itu_ai_key('openai') : get_option('aicg_api_key');
     if (!$api_key) return new WP_Error('no_key', 'OpenAI API key not configured.');
 
     $messages = [['role' => 'system', 'content' => $instruction]];

@@ -337,6 +337,11 @@ p1, .p1 {
 	line-height: 1.1;
 	letter-spacing: -0.02em;
 	margin-top: 10px;
+	margin-bottom: 0;
+}
+
+.itu-product-hero .itu-page-title {
+	margin-bottom: 0;
 }
 
 /* ==========================================================================
@@ -4098,12 +4103,37 @@ input.is-search-input,
 }
 
 .itu-product-hero__desc {
-	margin-top: 12px;
+	margin-top: 16px;
+	margin-bottom: 0;
 	font-size: 1.05rem;
 	line-height: 1.6;
 	color: var(--itu-gray-400);
 	max-width: 640px;
 }
+
+.itu-hero-enroll-btn {
+	display: inline-block;
+	margin-top: 16px;
+	padding: 0.875rem 2rem;
+	background: var(--itu-black, #111);
+	color: var(--itu-white, #fff);
+	font-size: var(--wp--preset--font-size--small, 0.85rem);
+	font-weight: 600;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+	border: none;
+	border-top-right-radius: 12px;
+	cursor: pointer;
+	transition: background 0.2s ease;
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.itu-hero-enroll-btn:hover {
+	background: #C026D3;
+	color: var(--itu-white, #fff);
+}
+
 
 .itu-product-stats {
 	display: flex;

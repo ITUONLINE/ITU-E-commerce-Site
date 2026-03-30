@@ -68,8 +68,14 @@ function bq_get_settings() {
 // ─── Blog Creator ────────────────────────────────────────────────────────────
 
 function bq_call_openai($instruction, $user_prompt = '', $model = '', $temperature = 0.7) {
-    $api_key = function_exists('itu_ai_key') ? itu_ai_key('blog_writer') : get_option('ai_post_api_key');
     if (!$model) $model = function_exists('itu_ai_model') ? itu_ai_model('blog_queue') : 'gpt-4.1-nano';
+
+    // Use unified provider router if available
+    if (function_exists('itu_ai_call')) {
+        return itu_ai_call($instruction, $user_prompt, $model, $temperature, ['key_name' => 'blog_writer', 'timeout' => 240]);
+    }
+
+    $api_key = function_exists('itu_ai_key') ? itu_ai_key('blog_writer') : get_option('ai_post_api_key');
     if (!$api_key) return new WP_Error('no_key', 'Blog Writer API key not configured.');
 
     $messages = [['role' => 'system', 'content' => $instruction]];

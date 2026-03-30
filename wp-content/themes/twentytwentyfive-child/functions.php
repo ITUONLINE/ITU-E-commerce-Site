@@ -1243,6 +1243,8 @@ add_shortcode('itu_product_hero', function () {
                     <span class="itu-eyebrow">[ Course ]</span>
                     <h1 class="itu-page-title">' . esc_html($title) . '</h1>
                     ' . ($short_desc ? '<p class="itu-product-hero__desc">' . esc_html(wp_strip_all_tags($short_desc)) . '</p>' : '') . '
+                    <button type="button" class="itu-hero-enroll-btn" id="itu-hero-enroll-trigger">Enroll Now &mdash; View Plans</button>
+                    <script>document.getElementById("itu-hero-enroll-trigger").addEventListener("click",function(){var t=document.querySelector("[data-tab=\'enroll\']");if(t){t.click();setTimeout(function(){t.scrollIntoView({behavior:"smooth",block:"center"})},100);}});</script>
                     <div class="itu-product-stats">' . $badges . '</div>
                 </div>
                 ' . $image_html . '
