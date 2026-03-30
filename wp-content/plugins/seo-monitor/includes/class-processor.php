@@ -33,30 +33,38 @@ class SEOM_Processor {
         $settings = seom_get_settings();
         if (!$settings['enabled']) return;
 
-        // Check daily limit
+        global $wpdb;
+
+        // Process ALL pending meta-only items first (no daily limit — fast, low risk)
+        $meta_items = $wpdb->get_results("
+            SELECT * FROM {$wpdb->prefix}seom_refresh_queue
+            WHERE status = 'pending' AND refresh_type = 'meta_only'
+            ORDER BY priority_score DESC
+            LIMIT 20
+        ");
+
+        foreach ($meta_items as $meta_item) {
+            self::execute_refresh($meta_item);
+        }
+
+        // Then process full refreshes with the daily limit
         $today_key = 'seom_daily_count_' . date('Y-m-d');
         $count = (int) get_option($today_key, 0);
         if ($count >= $settings['daily_limit']) return;
 
-        global $wpdb;
-
-        // Get next pending item
         $item = $wpdb->get_row("
             SELECT * FROM {$wpdb->prefix}seom_refresh_queue
-            WHERE status = 'pending'
+            WHERE status = 'pending' AND refresh_type != 'meta_only'
             ORDER BY priority_score DESC
             LIMIT 1
         ");
 
-        if (!$item) return; // Queue empty
+        if (!$item) return;
 
-        // Process it
-        $result = self::execute_refresh($item);
-
-        // Update counter
+        self::execute_refresh($item);
         update_option($today_key, $count + 1);
 
-        // Schedule next in 10 minutes (stagger to avoid Google volatility)
+        // Schedule next full refresh in 10 minutes
         if ($count + 1 < $settings['daily_limit']) {
             wp_schedule_single_event(time() + 600, 'seom_process_next');
         }

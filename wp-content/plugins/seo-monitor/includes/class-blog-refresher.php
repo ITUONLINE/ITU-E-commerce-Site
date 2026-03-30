@@ -28,7 +28,66 @@ class SEOM_Blog_Refresher {
         // *italic* -> <em>italic</em> (but not inside HTML tags)
         $content = preg_replace('/(?<![<\/\w])\*([^*\n]+)\*(?![>])/', '<em>$1</em>', $content);
 
+        // Fix invalid callout classes
+        $content = preg_replace_callback('/itu-callout--([a-z\-]+)/', function ($m) {
+            $v = $m[1];
+            if (strpos($v, 'tip') !== false) return 'itu-callout--tip';
+            if (strpos($v, 'info') !== false || strpos($v, 'note') !== false) return 'itu-callout--info';
+            if (strpos($v, 'warn') !== false || strpos($v, 'caution') !== false) return 'itu-callout--warning';
+            if (strpos($v, 'key') !== false || strpos($v, 'purple') !== false || strpos($v, 'important') !== false) return 'itu-callout--key';
+            if (in_array($v, ['tip','info','warning','key'])) return 'itu-callout--' . $v;
+            return 'itu-callout--tip';
+        }, $content);
+
         return $content;
+    }
+
+    /**
+     * Fix FAQ answers that have raw text without <p> tags inside faq-content divs.
+     */
+    private static function fix_faq_paragraphs($html) {
+        // Find all faq-content div contents and ensure text is wrapped in <p> tags
+        return preg_replace_callback(
+            '/<div class="faq-content">(.*?)<\/div>/s',
+            function ($match) {
+                $content = trim($match[1]);
+
+                // If already has <p> tags, leave it alone
+                if (stripos($content, '<p>') !== false) return $match[0];
+
+                // Split on double newlines or periods followed by spaces (sentence boundaries)
+                // Then wrap each chunk in <p> tags
+                $chunks = preg_split('/\n\s*\n/', $content);
+                if (count($chunks) <= 1) {
+                    // No double newlines — try splitting long text into ~3 sentence chunks
+                    $sentences = preg_split('/(?<=[.!?])\s+/', $content);
+                    $chunks = [];
+                    $current = '';
+                    foreach ($sentences as $i => $s) {
+                        $current .= ($current ? ' ' : '') . $s;
+                        if (($i + 1) % 3 === 0 || $i === count($sentences) - 1) {
+                            $chunks[] = $current;
+                            $current = '';
+                        }
+                    }
+                }
+
+                $wrapped = '';
+                foreach ($chunks as $chunk) {
+                    $chunk = trim($chunk);
+                    if (empty($chunk)) continue;
+                    // Don't wrap if it's already a block element
+                    if (preg_match('/^<(p|ul|ol|table|blockquote|h[2-6]|div)/i', $chunk)) {
+                        $wrapped .= $chunk . "\n";
+                    } else {
+                        $wrapped .= '<p>' . $chunk . "</p>\n";
+                    }
+                }
+
+                return '<div class="faq-content">' . "\n" . $wrapped . '</div>';
+            },
+            $html
+        );
     }
 
     /**
@@ -41,8 +100,9 @@ class SEOM_Blog_Refresher {
     /**
      * Call OpenAI with given instruction and prompt.
      */
-    private static function call_openai($instruction, $user_prompt = '', $model = 'gpt-4.1-nano', $temperature = 0.7) {
-        $api_key = get_option('ai_post_api_key');
+    private static function call_openai($instruction, $user_prompt = '', $model = '', $temperature = 0.7) {
+        $api_key = function_exists('itu_ai_key') ? itu_ai_key('blog_writer') : get_option('ai_post_api_key');
+        if (!$model) $model = function_exists('itu_ai_model') ? itu_ai_model('default') : 'gpt-4.1-nano';
         if (!$api_key) return new WP_Error('no_key', 'Blog Writer API key not configured.');
 
         $messages = [['role' => 'system', 'content' => $instruction]];
@@ -93,11 +153,27 @@ class SEOM_Blog_Refresher {
         $clean_content = preg_replace('/\[[^\]]+\]/', '', $raw_content);
         $existing = wp_strip_all_tags($clean_content);
 
-        // Use existing content as the "outline" for rewriting
-        $outline = mb_substr($existing, 0, 3000);
+        // Step 1a: Generate a detailed outline from the existing content first
+        // This forces the AI to plan 6-8 sections before writing, producing longer content
+        $existing_snippet = mb_substr($existing, 0, 3000);
+
+        $outline_instruction = "You are a content strategist. Given the blog title and existing content below, create a detailed outline for a comprehensive rewrite.\n\n"
+            . "The outline must have:\n"
+            . "- A compelling title in title case\n"
+            . "- At least 6-8 main sections (not counting Introduction and Conclusion)\n"
+            . "- 4-6 detailed bullet points per section covering specific concepts, examples, tools, or steps\n"
+            . "- The outline should expand on the original content, adding depth, new angles, and practical details\n"
+            . "- Do NOT invent certification names or exam codes not in the original content\n\n"
+            . "Return plain text: section headings with bulleted key points. No numbers or Roman numerals.";
+
+        $outline = self::call_openai($outline_instruction, "Title: {$title}\n\nExisting Content:\n{$existing_snippet}");
+        if (is_wp_error($outline)) {
+            // Fall back to using existing content as the outline
+            $outline = $existing_snippet;
+        }
 
         $instruction = "You are a professional IT blog writer for ITU Online Training. Your tone is direct, knowledgeable, and practical. You never sound like a marketing bot or AI. You write for busy IT professionals who scan pages — not people who read every word.\n\n"
-            . "Rewrite and improve the following blog post content to optimize for SEO, freshness, and scannability.\n\n"
+            . "Write a comprehensive blog post from the outline below. This is a rewrite of existing content — improve it significantly with more depth, examples, and actionable advice.\n\n"
             . "BANNED PHRASES — Do NOT use any of these openings or clichés:\n"
             . "- In today's rapidly evolving... / In an ever-changing landscape... / In the fast-paced world of...\n"
             . "- As technology continues to... / In today's digital age... / With the growing importance of...\n"
@@ -111,7 +187,11 @@ class SEOM_Blog_Refresher {
             . "- <ul><li> for unordered lists / <ol><li> for ordered steps or ranked items\n"
             . "- <strong> to bold key terms and important phrases on first mention\n"
             . "- <blockquote> for notable quotes, industry insights, or compelling statements\n"
-            . "- Callout boxes using: <div class=\"itu-callout itu-callout--tip\"><p><strong>Pro Tip</strong></p><p>Content.</p></div> — variants: --tip (green), --info (blue), --warning (amber), --key (purple)\n"
+            . "- Callout boxes — ONLY use these exact classes (do NOT combine or modify):\n"
+            . "  <div class=\"itu-callout itu-callout--tip\"><p><strong>Pro Tip</strong></p><p>Content.</p></div>\n"
+            . "  <div class=\"itu-callout itu-callout--info\"><p><strong>Note</strong></p><p>Content.</p></div>\n"
+            . "  <div class=\"itu-callout itu-callout--warning\"><p><strong>Warning</strong></p><p>Content.</p></div>\n"
+            . "  <div class=\"itu-callout itu-callout--key\"><p><strong>Key Takeaway</strong></p><p>Content.</p></div>\n"
             . "- Use 1-3 callouts/blockquotes per post total\n"
             . "- <table> ONLY for simple 2-column comparisons — never 3+ columns (breaks on mobile). For multi-item comparisons use bullet lists with <strong>bold labels</strong> instead\n"
             . "- <h3> subheadings within long sections\n"
@@ -122,11 +202,14 @@ class SEOM_Blog_Refresher {
             . "- Do NOT use **bold** markdown — use <strong> HTML tags\n"
             . "- Do NOT use - or * for lists — use <ul><li> or <ol><li> HTML tags\n\n"
             . "STRUCTURE:\n"
-            . "- Minimum 1,500 words total\n"
+            . "WORD COUNT — CRITICAL: The post MUST be at least 2,000 words. This is a hard minimum.\n"
+            . "- Each of the 6-8 main sections must be 200-350 words\n"
+            . "- Introduction: at least 150 words. Conclusion: at least 150 words\n"
+            . "- 8 sections × 250 words + intro + conclusion = 2,300 words. Hit that target.\n"
+            . "- Do NOT summarize or abbreviate. Write every section in full detail with examples and actionable advice.\n\n"
             . "- Use <h2> for main sections, <h3> for subsections\n"
             . "- Do NOT include an <h1> tag\n"
-            . "- Introduction: hook with a specific problem, preview key takeaways\n"
-            . "- Conclusion: summarize + clear call to action\n"
+            . "- Cover EVERY section in the outline thoroughly — do not skip any\n"
             . "- Include LSI keywords and named entity 'ITU Online Training' naturally\n"
             . "- Write like a real person. Mix short punchy sentences with longer ones\n"
             . "- Return only the HTML content, no preamble";
@@ -145,7 +228,7 @@ class SEOM_Blog_Refresher {
             $instruction .= "These are real queries people use to find this page. Optimize for them.";
         }
 
-        $prompt = "Blog Title: {$title}\n\nExisting Content:\n{$outline}";
+        $prompt = "Blog Title: {$title}\n\nOutline:\n{$outline}";
 
         $result = self::call_openai($instruction, $prompt);
         if (is_wp_error($result)) return $result;
@@ -195,19 +278,27 @@ class SEOM_Blog_Refresher {
         $snippet = mb_substr($content, 0, 500);
 
         $instruction = "Generate 5 unique, helpful FAQ entries for this blog post. Each FAQ must follow this exact HTML format:\n\n"
-            . "<details><summary>Question here?</summary><div class=\"faq-content\">Answer here.</div></details>\n\n"
-            . "Rules:\n"
+            . "<details><summary>Question here?</summary><div class=\"faq-content\">\n<p>First paragraph of the answer.</p>\n<p>Second paragraph with more detail.</p>\n</div></details>\n\n"
+            . "CRITICAL FORMATTING RULES:\n"
+            . "- Every answer MUST wrap ALL text in <p> tags. Do NOT put raw text inside <div class=\"faq-content\"> without <p> tags\n"
+            . "- Break each answer into 2-4 paragraphs using separate <p> tags\n"
+            . "- Use <ul><li> for lists where appropriate\n"
+            . "- Do NOT write one long unbroken paragraph — split into multiple <p> blocks\n\n"
+            . "Content Rules:\n"
             . "- Focus on topic-specific questions, best practices, definitions, misconceptions\n"
             . "- Do NOT ask generic site/access questions\n"
             . "- Each answer: 200+ words minimum\n"
             . "- Use focused and LSI keywords naturally\n"
-            . "- Use <p> tags for paragraphs and <ul><li> for lists within answers\n"
             . "- IMPORTANT: Do NOT invent or fabricate any certification names or exam codes\n"
             . "- Do NOT number the FAQs or add text outside the <details> blocks";
 
         $prompt = "Title: {$title}\n\nContent:\n{$snippet}";
 
         $result = self::call_openai($instruction, $prompt);
+        if (is_wp_error($result)) return $result;
+
+        // Fix FAQ answers that are missing <p> tags inside faq-content divs
+        $result = self::fix_faq_paragraphs($result);
         if (is_wp_error($result)) return $result;
 
         if (function_exists('update_field')) {

@@ -190,7 +190,7 @@ $('#ai_generate_blog').click(function() {
 // ----------- AJAX: Generate Blog Outline ----------
 add_action('wp_ajax_ai_blog_generate_outline', function() {
     if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
-    $api_key = get_option('ai_post_api_key');
+    $api_key = function_exists('itu_ai_key') ? itu_ai_key('blog_writer') : get_option('ai_post_api_key');
     $topic = sanitize_text_field($_POST['topic'] ?? '');
     if (!$api_key || !$topic) {
         wp_send_json_error('Missing API key or topic.');
@@ -199,7 +199,7 @@ add_action('wp_ajax_ai_blog_generate_outline', function() {
 	$instruction = <<<PROMPT
 Using the given topic or keword, create a compelling blog title using the keyword or words and display in title case.
 
-Generate a detailed and logically structured outline for a long-form blog post (minimum 800 words) on the following topic.
+Generate a very detailed outline for a long-form blog post (2,000-2,500 words when written). Include at least 6-8 main sections with 4-6 bullet points each.
 
 Return the outline in plain text using only section headings and bulleted lists of key points or subtopics for each section. Do not use any numbers, Roman numerals, or lettered lists. Focus on depth and detail—each section should include multiple comprehensive bullet points that capture the full scope of ideas to be covered in the blog post.
 
@@ -227,7 +227,7 @@ Continue this structure for all necessary sections of the blog. Ensure the outli
 PROMPT;
 	
     $request = json_encode([
-        'model' => 'gpt-4.1-nano',
+        'model' => function_exists('itu_ai_model') ? itu_ai_model('blog_content') : 'gpt-4.1-nano',
         'messages' => [
             ['role' => 'system', 'content' => $instruction],
             ['role' => 'user', 'content' => $topic]
@@ -254,13 +254,25 @@ PROMPT;
 add_action('wp_ajax_ai_blog_generate_full_blog', function() {
     if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
 
-    $api_key = get_option('ai_post_api_key');
+    $api_key = function_exists('itu_ai_key') ? itu_ai_key('blog_writer') : get_option('ai_post_api_key');
     $outline = sanitize_textarea_field($_POST['outline'] ?? '');
     $content = sanitize_textarea_field($_POST['content'] ?? '');
     $post_id = intval($_POST['post_id'] ?? 0);
     if (!$api_key || !$outline) {
         wp_send_json_error('Missing API key or outline.');
     }
+
+    // Extract practice_test shortcodes to preserve them
+    $preserved_shortcodes = [];
+    if ($post_id) {
+        $raw_content = get_post_field('post_content', $post_id);
+        if (preg_match_all('/\[practice_test[^\]]*\]/', $raw_content, $matches)) {
+            $preserved_shortcodes = $matches[0];
+        }
+    }
+
+    // Strip ALL shortcodes from content before sending to AI
+    $content = preg_replace('/\[[^\]]+\]/', '', $content);
 
     $content_section = '';
     if (!empty(trim($content))) {
@@ -286,7 +298,9 @@ Instead, open with something specific: a concrete problem, a real scenario, or a
 
 IMPORTANT: Do NOT invent or fabricate any certification names, exam codes, or credential titles. Only mention certifications and exam codes that are explicitly referenced in the outline or existing content.
 
-Write a detailed, long-form blog post (minimum 1,500 words) using the outline below. This is for the WordPress Gutenberg block editor.
+Write a detailed, long-form blog post using the outline below. This is for the WordPress Gutenberg block editor.
+
+WORD COUNT — CRITICAL: The post MUST be at least 2,000 words. Each main section must be 200-350 words. Do NOT summarize or abbreviate — write every section in full detail with specific examples and actionable advice.
 
 DEPTH REQUIREMENTS — This is critical:
 - Each major section (h2) must contain 150-300 words minimum
@@ -304,8 +318,11 @@ SCANNABILITY AND FORMAT VARIETY — Readers scan, they don't read. You MUST use 
 4. <strong> for key terms and important phrases inline — bold the first mention of key concepts so scanners catch them
 5. <blockquote> for notable quotes, industry insights, or a compelling statement — styled as a highlighted pull-quote
 6. Callout boxes for tips, key takeaways, warnings, or important notes — use 1-3 per post total (mix of blockquotes and callouts). Use this exact HTML format for callouts:
-   <div class="itu-callout itu-callout--tip"><p><strong>Pro Tip</strong></p><p>Your tip content here.</p></div>
-   Available variants: itu-callout--tip (green, for tips/best practices), itu-callout--info (blue, for important context), itu-callout--warning (amber, for cautions/pitfalls), itu-callout--key (purple, for key takeaways)
+   ONLY use these exact callout classes (do NOT combine or modify them):
+   <div class="itu-callout itu-callout--tip"><p><strong>Pro Tip</strong></p><p>Content.</p></div>
+   <div class="itu-callout itu-callout--info"><p><strong>Note</strong></p><p>Content.</p></div>
+   <div class="itu-callout itu-callout--warning"><p><strong>Warning</strong></p><p>Content.</p></div>
+   <div class="itu-callout itu-callout--key"><p><strong>Key Takeaway</strong></p><p>Content.</p></div>
 6. <table> ONLY for simple 2-column comparisons (e.g., Feature vs Benefit, Option A vs Option B). Never use tables with 3+ columns — they break on mobile. For multi-item comparisons, use bullet lists with <strong>bold labels</strong> instead
 7. <h3> subheadings within sections to break up long sections — use when a section covers multiple sub-topics
 
@@ -337,7 +354,7 @@ $outline$content_section
 PROMPT;
 
     $request = json_encode([
-        'model' => 'gpt-4.1-nano',
+        'model' => function_exists('itu_ai_model') ? itu_ai_model('blog_content') : 'gpt-4.1-nano',
         'messages' => [
             ['role' => 'system', 'content' => $instruction]
         ],
@@ -364,6 +381,12 @@ PROMPT;
     $blog = preg_replace('/^#\s+(.+)$/m', '<h1>$1</h1>', $blog);
     $blog = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $blog);
 
+    // Prepend preserved practice_test shortcodes back to the top
+    if (!empty($preserved_shortcodes)) {
+        $shortcode_block = implode("\n", $preserved_shortcodes) . "\n\n";
+        $blog = $shortcode_block . $blog;
+    }
+
     // Save content directly to the database
     if ($post_id) {
         wp_update_post(['ID' => $post_id, 'post_content' => $blog]);
@@ -376,7 +399,7 @@ PROMPT;
 add_action('wp_ajax_ai_blog_generate_faqs', function() {
     if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
 
-    $api_key = get_option('ai_post_api_key');
+    $api_key = function_exists('itu_ai_key') ? itu_ai_key('blog_writer') : get_option('ai_post_api_key');
     $post_id = intval($_POST['post_id']);
     $title = sanitize_text_field($_POST['title'] ?? '');
     $content = wp_strip_all_tags($_POST['content'] ?? '');
@@ -397,15 +420,18 @@ RULES:
 - Do not number the FAQs or add any text outside the <details> blocks
 
 FORMAT — Each FAQ must follow this exact HTML format:
-<details><summary>Question here?</summary><div class="faq-content">Answer here.</div></details>
+<details><summary>Question here?</summary><div class="faq-content">
+<p>First paragraph of the answer with key information.</p>
+<p>Second paragraph with additional detail and examples.</p>
+</div></details>
 
-Use <p> tags for paragraphs and <ul><li> for lists within answers where appropriate.
+CRITICAL: Every answer MUST wrap ALL text in <p> tags. Do NOT put raw text directly inside the faq-content div without <p> tags. Break each answer into 2-4 separate paragraphs. Use <ul><li> for lists where appropriate.
 
 Title: $title
 Excerpt: $first_300
 INSTRUCTION;
     $request = json_encode([
-        'model' => 'gpt-4.1-nano',
+        'model' => function_exists('itu_ai_model') ? itu_ai_model('blog_content') : 'gpt-4.1-nano',
         'messages' => [
             ['role' => 'system', 'content' => $instruction]
         ],
@@ -425,6 +451,29 @@ INSTRUCTION;
     $data = json_decode(wp_remote_retrieve_body($response), true);
     $faq_html = trim($data['choices'][0]['message']['content'] ?? '');
 
+    // Fix FAQ answers missing <p> tags — wrap raw text in paragraphs
+    $faq_html = preg_replace_callback(
+        '/<div class="faq-content">(.*?)<\/div>/s',
+        function ($match) {
+            $content = trim($match[1]);
+            if (stripos($content, '<p>') !== false) return $match[0];
+            $sentences = preg_split('/(?<=[.!?])\s+/', $content);
+            $chunks = []; $current = '';
+            foreach ($sentences as $i => $s) {
+                $current .= ($current ? ' ' : '') . $s;
+                if (($i + 1) % 3 === 0 || $i === count($sentences) - 1) { $chunks[] = $current; $current = ''; }
+            }
+            $wrapped = '';
+            foreach ($chunks as $c) {
+                $c = trim($c);
+                if (empty($c)) continue;
+                $wrapped .= preg_match('/^<(p|ul|ol)/i', $c) ? $c . "\n" : '<p>' . $c . "</p>\n";
+            }
+            return '<div class="faq-content">' . "\n" . $wrapped . '</div>';
+        },
+        $faq_html
+    );
+
     // Save FAQ HTML to ACF field server-side
     if ($post_id && function_exists('update_field')) {
         update_field('field_6816a44480234', $faq_html, $post_id);
@@ -436,7 +485,7 @@ INSTRUCTION;
 // -------- AJAX: Generate JSON-LD from FAQ HTML ----------
 add_action('wp_ajax_ai_blog_generate_faq_json', function() {
     if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
-    $api_key = get_option('ai_post_api_key');
+    $api_key = function_exists('itu_ai_key') ? itu_ai_key('blog_writer') : get_option('ai_post_api_key');
 	$faq_html = wp_kses_post(wp_unslash($_POST['faq_html'] ?? ''));
     $post_id = intval($_POST['post_id']);
     if (!$api_key || !$faq_html || !$post_id) {
@@ -480,7 +529,7 @@ EXPECTED FORMAT:
 TEXT;
 
     $request = json_encode([
-        'model' => 'gpt-4.1-nano',
+        'model' => function_exists('itu_ai_model') ? itu_ai_model('blog_content') : 'gpt-4.1-nano',
         'messages' => [
             ['role' => 'system', 'content' => $instruction]
         ],
@@ -507,7 +556,7 @@ TEXT;
 add_action('wp_ajax_ai_blog_generate_meta_description', function() {
     if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
 
-    $api_key = get_option('ai_post_api_key');
+    $api_key = function_exists('itu_ai_key') ? itu_ai_key('blog_writer') : get_option('ai_post_api_key');
     $post_id = intval($_POST['post_id']);
     $title = sanitize_text_field($_POST['title'] ?? '');
     $content = wp_strip_all_tags($_POST['content'] ?? '');
@@ -525,7 +574,7 @@ Title: $title
 Excerpt: $first_300
 DESC;
     $request = json_encode([
-        'model' => 'gpt-4.1-nano',
+        'model' => function_exists('itu_ai_model') ? itu_ai_model('blog_content') : 'gpt-4.1-nano',
         'messages' => [
             ['role' => 'system', 'content' => $instruction]
         ],
@@ -550,7 +599,7 @@ DESC;
     $kw_instruction = "You are an SEO expert. Given the blog title and content below, return a single primary focus keyword (2-4 words) that best represents what this post is about. The keyword should be something people would actually search for. Return ONLY the keyword, nothing else — no quotes, no explanation.";
     $kw_prompt = "Title: {$title}\n\nContent:\n" . mb_substr($first_300, 0, 500);
     $kw_request = json_encode([
-        'model' => 'gpt-4.1-nano',
+        'model' => function_exists('itu_ai_model') ? itu_ai_model('blog_content') : 'gpt-4.1-nano',
         'messages' => [
             ['role' => 'system', 'content' => $kw_instruction],
             ['role' => 'user', 'content' => $kw_prompt]

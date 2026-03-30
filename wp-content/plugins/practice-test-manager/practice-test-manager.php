@@ -50,6 +50,16 @@ if (is_admin()) {
     require_once plugin_dir_path(__FILE__) . 'includes/admin-page.php';
 }
 
+// Auto-schedule crons if they're not scheduled (fixes plugin transfer without activation)
+add_action('init', function () {
+    if (!wp_next_scheduled('ptm_cron_add_answers')) {
+        wp_schedule_event(time(), 'ptm_every_five_minutes', 'ptm_cron_add_answers');
+    }
+    if (!wp_next_scheduled('ptm_cron_add_questions_job')) {
+        wp_schedule_event(time(), 'ptm_every_5_min', 'ptm_cron_add_questions_job');
+    }
+}, 20);
+
 // 1) Add a 15‑minute schedule to WP‑Cron
 add_filter( 'cron_schedules', 'ptm_add_five_min_schedule' );
 function ptm_add_five_min_schedule( $s ) {
@@ -115,7 +125,7 @@ function ptm_generate_answers_for_question( $question_id, $test_id ) {
     }
 
     // 5b) Build the system prompt
-    $api_key = get_option( 'ai_post_api_key' );
+    $api_key = function_exists('itu_ai_key') ? itu_ai_key('blog_writer') : get_option('ai_post_api_key');
     if ( ! $api_key ) {
         error_log( 'ptm: missing API key' );
         return;
@@ -146,7 +156,7 @@ EOT;
 
     // 5c) Call the OpenAI API
     $body = wp_json_encode( [
-        'model'       => 'gpt-4o-mini',
+        'model'       => function_exists('itu_ai_model') ? itu_ai_model('practice_test') : 'gpt-4o-mini',
         'messages'    => [
             [ 'role' => 'system', 'content' => $system ],
         ],
@@ -328,14 +338,14 @@ function ptm_generate_questions_for_test_cron( $test_id, $count ) {
 	$test_title = $test->title;
     
 	// call OpenAI
-    $api_key = get_option( 'ai_post_api_key' );
+    $api_key = function_exists('itu_ai_key') ? itu_ai_key('blog_writer') : get_option('ai_post_api_key');
     if ( ! $api_key ) {
         error_log( 'PTM Cron: Missing API key' );
         return;
     }
 
     $body = wp_json_encode( [
-        'model'       => 'gpt-4o-mini',
+        'model'       => function_exists('itu_ai_model') ? itu_ai_model('practice_test') : 'gpt-4o-mini',
         'messages'    => [
             [ 'role' => 'system', 'content' => $system ],
             [ 'role' => 'user',   'content' => 'Return a JSON array of questions.' ],

@@ -225,7 +225,7 @@ function seom_get_settings() {
         'gsc_property_url'     => '',
         'daily_limit'          => 20,
         'cooldown_days'        => 90,
-        'process_post_types'   => ['product'],
+        'process_post_types'   => ['product', 'post', 'page'],
         'exclude_post_ids'     => '',
         'exclude_categories'   => '',
         'ghost_threshold'      => 0,
@@ -386,6 +386,49 @@ add_action('wp_ajax_seom_skip_item', function () {
     wp_send_json_success();
 });
 
+// Bulk queue actions
+add_action('wp_ajax_seom_queue_bulk', function () {
+    check_ajax_referer('seom_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
+
+    global $wpdb;
+    $table = $wpdb->prefix . 'seom_refresh_queue';
+    $action = sanitize_text_field($_POST['bulk_action'] ?? '');
+    $ids = array_map('intval', (array) ($_POST['ids'] ?? []));
+
+    switch ($action) {
+        case 'skip':
+            if (empty($ids)) wp_send_json_error('No items selected.');
+            $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+            $wpdb->query($wpdb->prepare("UPDATE {$table} SET status = 'skipped' WHERE id IN ($placeholders)", ...$ids));
+            wp_send_json_success(['affected' => count($ids)]);
+            break;
+
+        case 'delete':
+            if (empty($ids)) wp_send_json_error('No items selected.');
+            $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+            $wpdb->query($wpdb->prepare("DELETE FROM {$table} WHERE id IN ($placeholders) AND status = 'pending'", ...$ids));
+            wp_send_json_success(['affected' => count($ids)]);
+            break;
+
+        case 'prioritize':
+            if (empty($ids)) wp_send_json_error('No items selected.');
+            // Set priority to 999 so they process first
+            $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+            $wpdb->query($wpdb->prepare("UPDATE {$table} SET priority_score = 999 WHERE id IN ($placeholders)", ...$ids));
+            wp_send_json_success(['affected' => count($ids)]);
+            break;
+
+        case 'clear':
+            $affected = $wpdb->query("DELETE FROM {$table} WHERE status = 'pending'");
+            wp_send_json_success(['affected' => $affected]);
+            break;
+
+        default:
+            wp_send_json_error('Invalid action.');
+    }
+});
+
 add_action('wp_ajax_seom_save_settings', function () {
     check_ajax_referer('seom_nonce', 'nonce');
     if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
@@ -479,6 +522,14 @@ add_action('wp_ajax_seom_get_indexed', function () {
         case 'limited':
             // Limited Visibility: has some impressions but very few (<100), OR position is 30+
             $filter_sql = ' AND m.impressions > 0 AND (m.impressions < 100 OR m.avg_position >= 30)';
+            break;
+        case 'top_performers':
+            // Top Performers: Driving real traffic — 5+ clicks regardless of position or CTR
+            $filter_sql = ' AND m.clicks >= 5 AND m.impressions > 0';
+            break;
+        case 'stars':
+            // Stars: High-traffic pages carrying the site — 15+ clicks and 200+ impressions
+            $filter_sql = ' AND m.clicks >= 15 AND m.impressions >= 200';
             break;
     }
 
@@ -745,14 +796,22 @@ add_action('wp_ajax_seom_get_tracker', function () {
     $per_page = 25;
     $offset = ($page - 1) * $per_page;
     $days = intval($_POST['days'] ?? 14);
+    $post_type = sanitize_text_field($_POST['post_type'] ?? 'all');
+
+    $type_sql = '';
+    if ($post_type !== 'all') {
+        $type_sql = $wpdb->prepare(" AND p.post_type = %s", $post_type);
+    }
 
     $latest_date = $wpdb->get_var("SELECT MAX(date_collected) FROM {$wpdb->prefix}seom_page_metrics");
 
-    $total = (int) $wpdb->get_var($wpdb->prepare("
-        SELECT COUNT(*) FROM {$wpdb->prefix}seom_refresh_history
-        WHERE refresh_date >= DATE_SUB(NOW(), INTERVAL %d DAY)
-        AND clicks_before IS NOT NULL
-    ", $days));
+    $total = $latest_date ? (int) $wpdb->get_var($wpdb->prepare("
+        SELECT COUNT(*) FROM {$wpdb->prefix}seom_refresh_history h
+        JOIN {$wpdb->posts} p ON h.post_id = p.ID
+        WHERE h.refresh_date >= DATE_SUB(NOW(), INTERVAL %d DAY)
+        AND h.clicks_before IS NOT NULL
+        $type_sql
+    ", $days)) : 0;
 
     $rows = [];
     if ($latest_date) {
@@ -771,28 +830,34 @@ add_action('wp_ajax_seom_get_tracker', function () {
                 ON h.post_id = m.post_id AND m.date_collected = %s
             WHERE h.refresh_date >= DATE_SUB(NOW(), INTERVAL %d DAY)
             AND h.clicks_before IS NOT NULL
+            $type_sql
             ORDER BY h.refresh_date DESC
             LIMIT %d OFFSET %d
         ", $latest_date, $days, $per_page, $offset));
     }
 
-    // Summary counts
-    $summary = ['improving' => 0, 'declining' => 0, 'flat' => 0, 'total' => $total];
+    // Summary counts + click trend
+    $summary = ['improving' => 0, 'declining' => 0, 'flat' => 0, 'total' => $total, 'total_clicks_before' => 0, 'total_clicks_now' => 0];
     if ($latest_date) {
         $all_changes = $wpdb->get_results($wpdb->prepare("
             SELECT (COALESCE(m.clicks,0) - h.clicks_before) as click_change,
                    (COALESCE(m.avg_position,0) - h.position_before) as position_change,
-                   DATEDIFF(NOW(), h.refresh_date) as days_since
+                   DATEDIFF(NOW(), h.refresh_date) as days_since,
+                   h.clicks_before, COALESCE(m.clicks,0) as clicks_now
             FROM {$wpdb->prefix}seom_refresh_history h
+            JOIN {$wpdb->posts} p ON h.post_id = p.ID
             LEFT JOIN {$wpdb->prefix}seom_page_metrics m
                 ON h.post_id = m.post_id AND m.date_collected = %s
             WHERE h.refresh_date >= DATE_SUB(NOW(), INTERVAL %d DAY)
             AND h.clicks_before IS NOT NULL
+            $type_sql
         ", $latest_date, $days));
 
         foreach ($all_changes as $c) {
             $cd = intval($c->click_change);
             $pd = floatval($c->position_change);
+            $summary['total_clicks_before'] += intval($c->clicks_before);
+            $summary['total_clicks_now'] += intval($c->clicks_now);
             if ($cd > 0 || ($cd >= 0 && $pd < -0.3)) $summary['improving']++;
             elseif ($cd < 0) $summary['declining']++;
             else $summary['flat']++;
@@ -904,4 +969,169 @@ add_action('wp_ajax_seom_get_keywords', function () {
         'summary' => $summary,
         'last_collected' => get_option('seom_last_keyword_collect', 'Never'),
     ]);
+});
+
+// ─── Page Trends AJAX (all pages, not just refreshed) ────────────────────────
+
+add_action('wp_ajax_seom_get_page_trends', function () {
+    check_ajax_referer('seom_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
+
+    global $wpdb;
+    $table = $wpdb->prefix . 'seom_page_metrics';
+    $post_type = sanitize_text_field($_POST['post_type'] ?? 'all');
+    $page = max(1, intval($_POST['page'] ?? 1));
+    $per_page = 25;
+    $offset = ($page - 1) * $per_page;
+    $filter = sanitize_text_field($_POST['filter'] ?? 'all');
+
+    $type_sql = '';
+    if ($post_type !== 'all') {
+        $type_sql = $wpdb->prepare(" AND p.post_type = %s", $post_type);
+    }
+
+    // Get two most recent collection dates
+    $dates = $wpdb->get_col("SELECT DISTINCT date_collected FROM {$table} ORDER BY date_collected DESC LIMIT 2");
+    if (count($dates) < 2) {
+        wp_send_json_success(['rows' => [], 'total' => 0, 'page' => 1, 'pages' => 0,
+            'summary' => ['total' => 0, 'improving' => 0, 'declining' => 0, 'flat' => 0, 'total_clicks_now' => 0, 'total_clicks_prev' => 0],
+            'message' => 'Need at least 2 data collections to show trends.']);
+        return;
+    }
+
+    $current_date = $dates[0];
+    $prev_date = $dates[1];
+
+    // Filter SQL for trend direction
+    $having_sql = '';
+    switch ($filter) {
+        case 'improving': $having_sql = ' HAVING click_change > 0'; break;
+        case 'declining': $having_sql = ' HAVING click_change < 0'; break;
+        case 'new_traffic': $having_sql = ' HAVING prev_clicks = 0 AND cur_clicks > 0'; break;
+        case 'lost_traffic': $having_sql = ' HAVING prev_clicks > 0 AND cur_clicks = 0'; break;
+    }
+
+    $rows = $wpdb->get_results($wpdb->prepare("
+        SELECT
+            cur.post_id, p.post_title, p.post_type, cur.url,
+            cur.clicks as cur_clicks, cur.impressions as cur_impressions,
+            cur.avg_position as cur_position, cur.ctr as cur_ctr,
+            COALESCE(prev.clicks, 0) as prev_clicks, COALESCE(prev.impressions, 0) as prev_impressions,
+            COALESCE(prev.avg_position, 0) as prev_position, COALESCE(prev.ctr, 0) as prev_ctr,
+            (cur.clicks - COALESCE(prev.clicks, 0)) as click_change,
+            (cur.avg_position - COALESCE(prev.avg_position, 0)) as position_change,
+            (cur.impressions - COALESCE(prev.impressions, 0)) as impression_change
+        FROM {$table} cur
+        JOIN {$wpdb->posts} p ON cur.post_id = p.ID
+        LEFT JOIN {$table} prev ON cur.post_id = prev.post_id AND prev.date_collected = %s
+        WHERE cur.date_collected = %s AND p.post_status = 'publish'
+        $type_sql
+        $having_sql
+        ORDER BY ABS(cur.clicks - COALESCE(prev.clicks, 0)) DESC
+        LIMIT %d OFFSET %d
+    ", $prev_date, $current_date, $per_page, $offset));
+
+    // Total count
+    $count_rows = $wpdb->get_results($wpdb->prepare("
+        SELECT
+            cur.post_id,
+            cur.clicks as cur_clicks, COALESCE(prev.clicks, 0) as prev_clicks,
+            (cur.clicks - COALESCE(prev.clicks, 0)) as click_change
+        FROM {$table} cur
+        JOIN {$wpdb->posts} p ON cur.post_id = p.ID
+        LEFT JOIN {$table} prev ON cur.post_id = prev.post_id AND prev.date_collected = %s
+        WHERE cur.date_collected = %s AND p.post_status = 'publish'
+        $type_sql
+        $having_sql
+    ", $prev_date, $current_date));
+
+    $total = count($count_rows);
+
+    // Summary
+    $summary = ['total' => $total, 'improving' => 0, 'declining' => 0, 'flat' => 0, 'total_clicks_now' => 0, 'total_clicks_prev' => 0];
+    foreach ($count_rows as $cr) {
+        $cd = intval($cr->click_change);
+        $summary['total_clicks_now'] += intval($cr->cur_clicks);
+        $summary['total_clicks_prev'] += intval($cr->prev_clicks);
+        if ($cd > 0) $summary['improving']++;
+        elseif ($cd < 0) $summary['declining']++;
+        else $summary['flat']++;
+    }
+
+    wp_send_json_success([
+        'rows'         => $rows,
+        'total'        => $total,
+        'page'         => $page,
+        'pages'        => ceil($total / $per_page),
+        'summary'      => $summary,
+        'current_date' => $current_date,
+        'prev_date'    => $prev_date,
+    ]);
+});
+
+// ─── Cron Management AJAX ────────────────────────────────────────────────────
+
+add_action('wp_ajax_seom_cron_action', function () {
+    check_ajax_referer('seom_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
+
+    $hook = sanitize_text_field($_POST['hook'] ?? '');
+    $action = sanitize_text_field($_POST['cron_action'] ?? '');
+
+    // Only allow our hooks
+    $allowed_hooks = [
+        'seom_daily_collect', 'seom_daily_analyze', 'seom_daily_process',
+        'seom_daily_keywords', 'seom_weekly_backfill', 'seom_weekly_autocomplete',
+    ];
+
+    // Schedules for each hook
+    $hook_schedules = [
+        'seom_daily_collect'     => ['recurrence' => 'daily', 'time' => '01:00'],
+        'seom_daily_analyze'     => ['recurrence' => 'daily', 'time' => '02:00'],
+        'seom_daily_process'     => ['recurrence' => 'daily', 'time' => '06:00'],
+        'seom_daily_keywords'    => ['recurrence' => 'daily', 'time' => '01:30'],
+        'seom_weekly_backfill'   => ['recurrence' => 'weekly', 'time' => '03:00'],
+        'seom_weekly_autocomplete' => ['recurrence' => 'weekly', 'time' => '04:00'],
+    ];
+
+    if ($action === 'reschedule_all') {
+        foreach ($hook_schedules as $h => $sched) {
+            wp_clear_scheduled_hook($h);
+            $start = $sched['recurrence'] === 'weekly'
+                ? strtotime('next sunday ' . $sched['time'])
+                : strtotime('today ' . $sched['time']);
+            if ($start < time()) $start += ($sched['recurrence'] === 'weekly' ? 604800 : 86400);
+            wp_schedule_event($start, $sched['recurrence'], $h);
+        }
+        wp_send_json_success('All tasks rescheduled.');
+    }
+
+    if (!in_array($hook, $allowed_hooks)) wp_send_json_error('Invalid hook.');
+
+    switch ($action) {
+        case 'run':
+            if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
+            @set_time_limit(300);
+            do_action($hook);
+            wp_send_json_success('Executed.');
+            break;
+
+        case 'disable':
+            wp_clear_scheduled_hook($hook);
+            wp_send_json_success('Disabled.');
+            break;
+
+        case 'enable':
+            $sched = $hook_schedules[$hook] ?? ['recurrence' => 'daily', 'time' => '01:00'];
+            $start = $sched['recurrence'] === 'weekly'
+                ? strtotime('next sunday ' . $sched['time'])
+                : strtotime('today ' . $sched['time']);
+            if ($start < time()) $start += ($sched['recurrence'] === 'weekly' ? 604800 : 86400);
+            wp_schedule_event($start, $sched['recurrence'], $hook);
+            wp_send_json_success('Enabled.');
+            break;
+
+        default:
+            wp_send_json_error('Invalid action.');
+    }
 });

@@ -22,6 +22,7 @@ wp-content/plugins/*
 !wp-content/plugins/Blog_Writer_Plugin/
 !wp-content/plugins/Product AI Updates/
 !wp-content/plugins/practice-test-manager/
+!wp-content/plugins/blog-queue/
 
 # Ignore node_modules if any
 node_modules/

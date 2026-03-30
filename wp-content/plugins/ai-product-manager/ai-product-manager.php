@@ -25,12 +25,48 @@ function aipm_release_session_lock() {
     }
 }
 
+function aipm_fix_faq_paragraphs($html) {
+    return preg_replace_callback(
+        '/<div class="faq-content">(.*?)<\/div>/s',
+        function ($match) {
+            $content = trim($match[1]);
+            if (stripos($content, '<p>') !== false) return $match[0];
+
+            $sentences = preg_split('/(?<=[.!?])\s+/', $content);
+            $chunks = [];
+            $current = '';
+            foreach ($sentences as $i => $s) {
+                $current .= ($current ? ' ' : '') . $s;
+                if (($i + 1) % 3 === 0 || $i === count($sentences) - 1) {
+                    $chunks[] = $current;
+                    $current = '';
+                }
+            }
+
+            $wrapped = '';
+            foreach ($chunks as $chunk) {
+                $chunk = trim($chunk);
+                if (empty($chunk)) continue;
+                if (preg_match('/^<(p|ul|ol|table|blockquote)/i', $chunk)) {
+                    $wrapped .= $chunk . "\n";
+                } else {
+                    $wrapped .= '<p>' . $chunk . "</p>\n";
+                }
+            }
+
+            return '<div class="faq-content">' . "\n" . $wrapped . '</div>';
+        },
+        $html
+    );
+}
+
 function aipm_strip_quotes($text) {
     return preg_replace('/^(["\'])(.*)\1$/s', '$2', trim($text));
 }
 
-function aipm_call_openai($instruction, $user_prompt, $model = 'gpt-4', $temperature = 0.7) {
-    $api_key = get_option('aicg_api_key');
+function aipm_call_openai($instruction, $user_prompt, $model = '', $temperature = 0.7) {
+    $api_key = function_exists('itu_ai_key') ? itu_ai_key('openai') : get_option('aicg_api_key');
+    if (!$model) $model = function_exists('itu_ai_model') ? itu_ai_model('default') : 'gpt-4.1-nano';
     if (!$api_key) return new WP_Error('no_key', 'OpenAI API key not configured.');
 
     $messages = [['role' => 'system', 'content' => $instruction]];
@@ -120,7 +156,7 @@ function aipm_get_short_desc_instruction() {
 }
 
 function aipm_get_faq_instruction($post_id = 0) {
-    $instruction = "You are an IT certification training expert. Generate 5 FAQ entries for the course below. Each FAQ must follow this exact HTML format:\n\n<details><summary>Question here?</summary><div class=\"faq-content\">Answer here.</div></details>\n\nQUESTION RULES:\n- Ask questions a student would search before enrolling (e.g., \"What topics does the [cert] exam cover?\", \"What prerequisites do I need for [cert]?\", \"How does [cert] compare to [related cert]?\")\n- Include the certification name or exam code in at least 3 of the 5 questions\n- Do NOT ask generic questions about the website, pricing, or account access\n\nANSWER RULES:\n- Each answer: 150-250 words\n- Use <p> tags for paragraphs and <ul><li> for lists where appropriate\n- Include the certification name, exam code, vendor name, and related technologies naturally\n- Cover: exam scope, key domains/topics, career benefits, preparation strategies, and comparisons to related certifications\n- Write authoritatively — demonstrate subject matter expertise\n- Do NOT number the FAQs or add any text outside the <details> blocks";
+    $instruction = "You are an IT certification training expert. Generate 5 FAQ entries for the course below. Each FAQ must follow this exact HTML format:\n\n<details><summary>Question here?</summary><div class=\"faq-content\">\n<p>First paragraph of the answer.</p>\n<p>Second paragraph with more detail.</p>\n</div></details>\n\nCRITICAL FORMATTING:\n- Every answer MUST wrap ALL text in <p> tags. Do NOT put raw text inside faq-content without <p> tags\n- Break each answer into 2-4 separate paragraphs using <p> tags\n- Do NOT write one long unbroken paragraph\n\nQUESTION RULES:\n- Ask questions a student would search before enrolling\n- Include the certification name or exam code in at least 3 of the 5 questions if the course has one\n- Do NOT ask generic questions about the website, pricing, or account access\n- Do NOT invent certification names or exam codes not present in the course content\n\nANSWER RULES:\n- Each answer: 150-250 words\n- Use <p> tags for paragraphs and <ul><li> for lists where appropriate\n- Include the certification name, exam code, vendor name, and related technologies naturally\n- Cover: exam scope, key domains/topics, career benefits, preparation strategies\n- Write authoritatively — demonstrate subject matter expertise\n- Do NOT number the FAQs or add any text outside the <details> blocks";
 
     if ($post_id) {
         $sku = get_post_meta($post_id, '_sku', true);
@@ -216,8 +252,11 @@ function aipm_step_faq_html($post_id) {
     $content = wp_strip_all_tags(get_post_field('post_content', $post_id));
     $prompt  = trim($title . "\n\n" . $content);
 
-    $result = aipm_call_openai(aipm_get_faq_instruction($post_id), $prompt, 'gpt-4o-mini');
+    $result = aipm_call_openai(aipm_get_faq_instruction($post_id), $prompt, function_exists('itu_ai_model') ? itu_ai_model('product_faq') : 'gpt-4o-mini');
     if (is_wp_error($result)) return $result;
+
+    // Fix FAQ answers missing <p> tags
+    $result = aipm_fix_faq_paragraphs($result);
 
     // Save to ACF field
     if (function_exists('update_field')) {
@@ -237,7 +276,7 @@ function aipm_step_faq_json($post_id, $faq_html = '') {
 
     $instruction = "You are an SEO assistant. Convert the following HTML FAQ into a valid JSON-LD FAQPage schema block inside <script type=\"application/ld+json\"> tags. Only return the JSON-LD script tag. Use \\n\\n and \\n formatting as needed. Input HTML:\n\n" . $faq_html;
 
-    $result = aipm_call_openai($instruction, null, 'gpt-4o-mini', 0.3);
+    $result = aipm_call_openai($instruction, null, function_exists('itu_ai_model') ? itu_ai_model('product_faq_json') : 'gpt-4o-mini', 0.3);
     if (is_wp_error($result)) return $result;
 
     // Strip markdown code fences
@@ -1119,10 +1158,13 @@ function aipm_ajax_get_image_years() {
     if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
 
     global $wpdb;
+    // Use the file path year (e.g., 2021/04/image.jpg → 2021) instead of WP upload date
     $years = $wpdb->get_col("
-        SELECT DISTINCT YEAR(p.post_date) as yr
+        SELECT DISTINCT SUBSTRING(pm.meta_value, 1, 4) as yr
         FROM {$wpdb->posts} p
+        JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_wp_attached_file'
         WHERE p.post_type = 'attachment' AND p.post_mime_type LIKE 'image/%'
+        AND pm.meta_value REGEXP '^[0-9]{4}/[0-9]{2}/'
         ORDER BY yr ASC
     ");
     wp_send_json_success($years);
@@ -1142,7 +1184,8 @@ function aipm_ajax_scan_unused() {
     $limit = 500;
     $offset = ($page - 1) * $limit;
 
-    $year_sql = $year ? $wpdb->prepare(" AND YEAR(p.post_date) = %d", $year) : '';
+    // Filter by file path year (e.g., 2021/04/image.jpg) not WP upload date
+    $year_sql = $year ? $wpdb->prepare(" AND SUBSTRING(pm.meta_value, 1, 4) = %s", strval($year)) : '';
 
     $total_images = (int) $wpdb->get_var("
         SELECT COUNT(*) FROM {$wpdb->posts} p
@@ -1276,7 +1319,7 @@ function aipm_ajax_scan_unused() {
             'url'       => $full_url,
             'thumb_url' => $thumb_url ?: $full_url,
             'size'      => $file_size,
-            'year'      => substr($att->post_date, 0, 4),
+            'year'      => substr($att->file_path, 0, 4),
         ];
     }
 

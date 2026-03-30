@@ -4998,7 +4998,9 @@ a.itu-certs__card-title:hover {
 	margin-bottom: 20px;
 }
 
-.wp-block-post-content blockquote {
+.wp-block-post-content blockquote,
+.entry-content blockquote,
+article blockquote {
 	border-left: 4px solid #1d2327;
 	margin: 24px 0;
 	padding: 20px 24px;
@@ -5010,16 +5012,21 @@ a.itu-certs__card-title:hover {
 	line-height: 1.7;
 }
 
-.wp-block-post-content blockquote p {
+.wp-block-post-content blockquote p,
+article blockquote p {
 	margin-bottom: 8px !important;
 }
 
-.wp-block-post-content blockquote p:last-child {
+.wp-block-post-content blockquote p:last-child,
+article blockquote p:last-child {
 	margin-bottom: 0 !important;
 }
 
 /* Callout boxes for key takeaways, tips, warnings, etc. */
-.wp-block-post-content .itu-callout {
+/* Callout boxes — scoped and global for compatibility */
+.wp-block-post-content .itu-callout,
+.entry-content .itu-callout,
+.itu-callout {
 	margin: 24px 0;
 	padding: 20px 24px;
 	border-radius: 6px;
@@ -5027,15 +5034,18 @@ a.itu-certs__card-title:hover {
 	font-style: normal;
 }
 
-.wp-block-post-content .itu-callout p {
+.wp-block-post-content .itu-callout p,
+.itu-callout p {
 	margin-bottom: 8px !important;
 }
 
-.wp-block-post-content .itu-callout p:last-child {
+.wp-block-post-content .itu-callout p:last-child,
+.itu-callout p:last-child {
 	margin-bottom: 0 !important;
 }
 
-.wp-block-post-content .itu-callout strong:first-child {
+.wp-block-post-content .itu-callout strong:first-child,
+.itu-callout strong:first-child {
 	display: block;
 	margin-bottom: 6px;
 	font-size: 0.9rem;
@@ -5043,26 +5053,29 @@ a.itu-certs__card-title:hover {
 	letter-spacing: 0.3px;
 }
 
-/* Callout variants */
-.wp-block-post-content .itu-callout--tip {
+.wp-block-post-content .itu-callout--tip,
+.itu-callout--tip {
 	background: #f0fdf4;
 	border-color: #16a34a;
 	color: #15803d;
 }
 
-.wp-block-post-content .itu-callout--info {
+.wp-block-post-content .itu-callout--info,
+.itu-callout--info {
 	background: #eff6ff;
 	border-color: #2563eb;
 	color: #1e40af;
 }
 
-.wp-block-post-content .itu-callout--warning {
+.wp-block-post-content .itu-callout--warning,
+.itu-callout--warning {
 	background: #fffbeb;
 	border-color: #d97706;
 	color: #92400e;
 }
 
-.wp-block-post-content .itu-callout--key {
+.wp-block-post-content .itu-callout--key,
+.itu-callout--key {
 	background: #faf5ff;
 	border-color: #9333ea;
 	color: #6b21a8;

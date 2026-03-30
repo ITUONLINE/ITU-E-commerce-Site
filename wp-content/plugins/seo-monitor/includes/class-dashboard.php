@@ -207,13 +207,6 @@ class SEOM_Dashboard {
             .seom-sortable.sorted-asc::after, .seom-q-sort.sorted-asc::after { content: ' ▲'; font-size: 9px; }
             .seom-sortable.sorted-desc::after, .seom-q-sort.sorted-desc::after { content: ' ▼'; font-size: 9px; }
 
-            /* SERP feature badges */
-            .seom-serp-badge {
-                display: inline-block; padding: 2px 8px; border-radius: 10px;
-                font-size: 10px; font-weight: 600; text-transform: uppercase;
-                letter-spacing: 0.3px; margin: 1px 2px; cursor: default;
-                white-space: nowrap;
-            }
         </style>
 
         <script>
@@ -430,7 +423,9 @@ class SEOM_Dashboard {
                                 runBatch(batchPage + 1, d.total_posts, pagesInGsc);
                             } else {
                                 btn.prop('disabled', false).text('Collect GSC Data Now');
-                                $status.text('Done! Tracked ' + d.total_posts + ' posts (' + pagesInGsc + ' pages found in GSC).');
+                                var unmatched = pagesInGsc - d.total_posts;
+                                var extra = unmatched > 0 ? ' (' + unmatched + ' GSC URLs are archives/tags/feeds not tracked)' : '';
+                                $status.text('Done! Tracked ' + d.total_posts + ' posts/products/pages. ' + pagesInGsc + ' total URLs in GSC.' + extra);
                                 loadOverview();
                             }
                         }
@@ -473,6 +468,7 @@ class SEOM_Dashboard {
             <strong>Type:</strong>
             <button type="button" class="button seom-type-btn active" data-type="product">Products</button>
             <button type="button" class="button seom-type-btn" data-type="post">Blog Posts</button>
+            <button type="button" class="button seom-type-btn" data-type="page">Pages</button>
             <span style="margin:0 8px; color:#ccc;">|</span>
             <strong>Filter:</strong>
             <button type="button" class="button seom-filter-btn active" data-filter="all">All</button>
@@ -482,6 +478,9 @@ class SEOM_Dashboard {
             <button type="button" class="button seom-filter-btn" data-filter="low_ctr">Low CTR</button>
             <button type="button" class="button seom-filter-btn" data-filter="page1">Page 1</button>
             <button type="button" class="button seom-filter-btn" data-filter="limited">Limited Visibility</button>
+            <span style="margin:0 4px; color:#e2e8f0;">|</span>
+            <button type="button" class="button seom-filter-btn" data-filter="top_performers" style="color:#059669;">Top Performers</button>
+            <button type="button" class="button seom-filter-btn" data-filter="stars" style="color:#d97706;">Stars</button>
         </div>
         <div id="seom-filter-desc" style="font-size:12px; color:#64748b; margin:-8px 0 16px; padding-left:2px;"></div>
 
@@ -524,7 +523,6 @@ class SEOM_Dashboard {
                     <th class="seom-sortable" data-sort="ctr" style="cursor:pointer;width:60px;">CTR</th>
                     <th class="seom-sortable" data-sort="avg_position" style="cursor:pointer;width:80px;">Position</th>
                     <th style="width:80px;">Status</th>
-                    <th style="width:120px;">SERP Features</th>
                     <th style="width:90px;">Last Refresh</th>
                     <th style="width:170px;">Actions</th>
                 </tr>
@@ -574,7 +572,9 @@ class SEOM_Dashboard {
                     var filterLabels = {
                         all: '', underperforming: 'Underperforming', ghost: 'Ghost',
                         page1: 'Page 1', page2: 'Page 2 (Near Wins)', low_ctr: 'Low CTR',
-                        limited: 'Limited Visibility'
+                        limited: 'Limited Visibility',
+                        top_performers: 'Top Performers',
+                        stars: 'Stars'
                     };
                     var label = filterLabels[currentFilter] || '';
                     var suffix = label ? ' (' + label + ')' : '';
@@ -591,7 +591,7 @@ class SEOM_Dashboard {
                     // Table
                     var tbody = $('#seom-indexed-body').empty();
                     if (!d.rows.length) {
-                        tbody.append('<tr><td colspan="9" style="color:#94a3b8;">No data matching this filter. Try a different filter or run data collection.</td></tr>');
+                        tbody.append('<tr><td colspan="8" style="color:#94a3b8;">No data matching this filter. Try a different filter or run data collection.</td></tr>');
                         $('#seom-indexed-table').show();
                         return;
                     }
@@ -622,32 +622,10 @@ class SEOM_Dashboard {
                         var viewUrl = r.url;
                         var lastRefresh = r.last_refresh ? r.last_refresh.substring(0, 10) : '<span style="color:#999;">Never</span>';
 
-                        // Parse SERP features
-                        var serpFeatures = '';
-                        if (r.search_appearance) {
-                            try {
-                                var sa = typeof r.search_appearance === 'string' ? JSON.parse(r.search_appearance) : r.search_appearance;
-                                var featureLabels = {
-                                    'TPF_FAQ': { label: 'FAQ', color: '#7c3aed' },
-                                    'TPF_HOWTO': { label: 'How-To', color: '#0891b2' },
-                                    'TPF_QA': { label: 'Q&A', color: '#6366f1' },
-                                    'RICHCARD': { label: 'Rich Card', color: '#2563eb' },
-                                    'REVIEW_SNIPPET': { label: 'Reviews', color: '#ea580c' },
-                                    'VIDEO': { label: 'Video', color: '#dc2626' },
-                                    'ORGANIC_SHOPPING': { label: 'Shopping', color: '#059669' },
-                                    'PAGE_EXPERIENCE': { label: 'Page Exp', color: '#65a30d' }
-                                };
-                                Object.keys(sa).forEach(function(key) {
-                                    var f = featureLabels[key] || { label: key.replace(/_/g, ' '), color: '#64748b' };
-                                    var d = sa[key];
-                                    serpFeatures += '<span class="seom-serp-badge" style="background:' + f.color + '15;color:' + f.color + ';border:1px solid ' + f.color + '30;" title="' + d.clicks + ' clicks, ' + d.impressions + ' impressions">' + f.label + '</span> ';
-                                });
-                            } catch(e) {}
-                        }
-                        if (!serpFeatures) serpFeatures = '<span style="color:#cbd5e1;font-size:11px;">None</span>';
-
                         var actions = '';
-                        if (r.in_queue) {
+                        if (currentType === 'page') {
+                            actions = '<span style="color:#94a3b8;font-size:11px;">Metrics only</span>';
+                        } else if (r.in_queue) {
                             actions = '<span style="color:#b45309;font-size:12px;">In Queue</span>';
                         } else {
                             actions = '<button class="button button-small seom-queue-btn" data-id="' + r.post_id + '" data-type="full" title="Full content refresh">Refresh</button> '
@@ -663,7 +641,6 @@ class SEOM_Dashboard {
                             '<td>' + parseFloat(r.ctr).toFixed(1) + '%</td>' +
                             '<td class="' + posClass + '">' + (pos > 0 ? pos.toFixed(1) : '-') + '</td>' +
                             '<td>' + status + '</td>' +
-                            '<td>' + serpFeatures + '</td>' +
                             '<td>' + lastRefresh + '</td>' +
                             '<td>' + actions + '</td>' +
                         '</tr>');
@@ -718,7 +695,9 @@ class SEOM_Dashboard {
                 page2: 'Ranking position 11–20 with 50+ impressions. These are close to breaking into page 1 — highest ROI for content refresh.',
                 low_ctr: 'Ranking on page 1 (position 1–10) with 100+ impressions but click-through rate below 1.5%. Title and meta description need improvement.',
                 page1: 'Ranking on page 1 (position 1–10) with impressions. These are performing well — monitor for changes.',
-                limited: 'Has some visibility but not enough to matter: fewer than 100 impressions, or ranking position 30+ (page 3 and beyond).'
+                limited: 'Has some visibility but not enough to matter: fewer than 100 impressions, or ranking position 30+ (page 3 and beyond).',
+                top_performers: 'Pages driving real traffic: 5+ clicks in the last 28 days. These are protected from automated refresh — if it\'s working, don\'t fix it.',
+                stars: 'Your highest-traffic pages: 15+ clicks and 200+ impressions. These are the pages carrying your site — monitor closely and protect at all costs.'
             };
 
             function updateFilterDesc() {
@@ -771,12 +750,18 @@ class SEOM_Dashboard {
         <h2>Performance Tracker</h2>
         <p>Track how recently refreshed pages are performing compared to before the refresh. Updates every time you collect GSC data.</p>
 
-        <div style="margin-bottom:16px; display:flex; gap:8px; align-items:center;">
+        <div style="margin-bottom:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <strong>Type:</strong>
+            <button type="button" class="button seom-tracker-type active" data-type="all">All</button>
+            <button type="button" class="button seom-tracker-type" data-type="product">Products</button>
+            <button type="button" class="button seom-tracker-type" data-type="post">Blog Posts</button>
+            <button type="button" class="button seom-tracker-type" data-type="page">Pages</button>
+            <span style="margin:0 4px; color:#e2e8f0;">|</span>
             <strong>Period:</strong>
-            <button type="button" class="button seom-tracker-days active" data-days="14">Last 14 Days</button>
-            <button type="button" class="button seom-tracker-days" data-days="30">Last 30 Days</button>
-            <button type="button" class="button seom-tracker-days" data-days="60">Last 60 Days</button>
-            <button type="button" class="button seom-tracker-days" data-days="90">Last 90 Days</button>
+            <button type="button" class="button seom-tracker-days active" data-days="14">14 Days</button>
+            <button type="button" class="button seom-tracker-days" data-days="30">30 Days</button>
+            <button type="button" class="button seom-tracker-days" data-days="60">60 Days</button>
+            <button type="button" class="button seom-tracker-days" data-days="90">90 Days</button>
         </div>
 
         <div id="seom-tracker-loading">Loading...</div>
@@ -798,6 +783,11 @@ class SEOM_Dashboard {
                 <div class="seom-card">
                     <h3>No Change Yet</h3>
                     <div class="seom-card-value" id="st-flat">-</div>
+                </div>
+                <div class="seom-card">
+                    <h3>Click Trend</h3>
+                    <div class="seom-card-value" id="st-trend">-</div>
+                    <div class="seom-card-sub" id="st-trend-detail"></div>
                 </div>
             </div>
 
@@ -824,9 +814,79 @@ class SEOM_Dashboard {
             <div id="seom-tracker-pagination" style="margin-top:12px;"></div>
         </div>
 
+        <!-- All Pages Performance Trends -->
+        <div style="margin-top:40px; border-top:2px solid #e2e8f0; padding-top:24px;">
+            <h2>All Pages — Performance Trends</h2>
+            <p style="color:#64748b;">Compares the latest GSC collection vs the previous collection for ALL pages — not just refreshed ones. Shows natural traffic changes.</p>
+
+            <div style="margin-bottom:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <strong>Type:</strong>
+                <button type="button" class="button seom-trends-type active" data-type="all">All</button>
+                <button type="button" class="button seom-trends-type" data-type="product">Products</button>
+                <button type="button" class="button seom-trends-type" data-type="post">Blog Posts</button>
+                <button type="button" class="button seom-trends-type" data-type="page">Pages</button>
+                <span style="margin:0 4px; color:#e2e8f0;">|</span>
+                <strong>Show:</strong>
+                <button type="button" class="button seom-trends-filter active" data-filter="all">All</button>
+                <button type="button" class="button seom-trends-filter" data-filter="improving">Improving</button>
+                <button type="button" class="button seom-trends-filter" data-filter="declining">Declining</button>
+                <button type="button" class="button seom-trends-filter" data-filter="new_traffic">New Traffic</button>
+                <button type="button" class="button seom-trends-filter" data-filter="lost_traffic">Lost Traffic</button>
+            </div>
+
+            <div id="seom-trends-loading" style="color:#64748b;">Loading trends...</div>
+
+            <div id="seom-trends-content" style="display:none;">
+                <div class="seom-cards">
+                    <div class="seom-card">
+                        <h3>Pages Tracked</h3>
+                        <div class="seom-card-value" id="spt-total">-</div>
+                    </div>
+                    <div class="seom-card">
+                        <h3>Gaining Clicks</h3>
+                        <div class="seom-card-value seom-change-positive" id="spt-improving">-</div>
+                    </div>
+                    <div class="seom-card">
+                        <h3>Losing Clicks</h3>
+                        <div class="seom-card-value seom-change-negative" id="spt-declining">-</div>
+                    </div>
+                    <div class="seom-card">
+                        <h3>No Change</h3>
+                        <div class="seom-card-value" id="spt-flat">-</div>
+                    </div>
+                    <div class="seom-card">
+                        <h3>Click Trend</h3>
+                        <div class="seom-card-value" id="spt-trend">-</div>
+                        <div class="seom-card-sub" id="spt-trend-detail"></div>
+                    </div>
+                </div>
+
+                <div id="spt-date-range" style="font-size:12px; color:#94a3b8; margin-bottom:8px;"></div>
+
+                <table class="seom-table" id="seom-trends-table">
+                    <thead>
+                        <tr>
+                            <th>Page</th>
+                            <th style="width:50px;">Type</th>
+                            <th style="width:80px;">Clicks Now</th>
+                            <th style="width:80px;">Clicks Prev</th>
+                            <th style="width:80px;">Change</th>
+                            <th style="width:80px;">Pos Now</th>
+                            <th style="width:80px;">Pos Prev</th>
+                            <th style="width:80px;">Pos Change</th>
+                            <th style="width:80px;">Trend</th>
+                        </tr>
+                    </thead>
+                    <tbody id="seom-trends-body"></tbody>
+                </table>
+                <div id="seom-trends-pagination" style="margin-top:12px;"></div>
+            </div>
+        </div>
+
         <script>
         jQuery(document).ready(function($) {
             var trackerDays = 14;
+            var trackerType = 'all';
             var trackerPage = 1;
 
             function getTrend(clickDiff, posDiff, daysSince) {
@@ -851,7 +911,7 @@ class SEOM_Dashboard {
 
                 $.post(ajaxurl, {
                     action: 'seom_get_tracker', nonce: seom_nonce,
-                    page: trackerPage, days: trackerDays
+                    page: trackerPage, days: trackerDays, post_type: trackerType
                 }, function(resp) {
                     $('#seom-tracker-loading').hide();
                     $('#seom-tracker-content').show();
@@ -863,6 +923,17 @@ class SEOM_Dashboard {
                     $('#st-total').text(d.summary.total);
                     $('#st-improving').text(d.summary.improving);
                     $('#st-declining').text(d.summary.declining);
+
+                    // Click trend
+                    var before = d.summary.total_clicks_before || 0;
+                    var now = d.summary.total_clicks_now || 0;
+                    var diff = now - before;
+                    var pct = before > 0 ? Math.round((diff / before) * 100) : 0;
+                    var trendText = (diff > 0 ? '+' : '') + diff;
+                    var trendClass = diff > 0 ? 'seom-change-positive' : (diff < 0 ? 'seom-change-negative' : '');
+                    var trendIcon = diff > 0 ? '&#9650; ' : (diff < 0 ? '&#9660; ' : '');
+                    $('#st-trend').html('<span class="' + trendClass + '">' + trendIcon + trendText + '</span>');
+                    $('#st-trend-detail').text(before + ' before → ' + now + ' now (' + (pct > 0 ? '+' : '') + pct + '%)');
                     $('#st-flat').text(d.summary.flat);
 
                     // Table
@@ -912,6 +983,13 @@ class SEOM_Dashboard {
             }
 
             // Period toggle
+            $('.seom-tracker-type').click(function() {
+                $('.seom-tracker-type').removeClass('active');
+                $(this).addClass('active');
+                trackerType = $(this).data('type');
+                loadTracker(1);
+            });
+
             $('.seom-tracker-days').click(function() {
                 $('.seom-tracker-days').removeClass('active');
                 $(this).addClass('active');
@@ -925,6 +1003,103 @@ class SEOM_Dashboard {
             });
 
             loadTracker(1);
+
+            // ═══ All Pages Trends ═══
+            var trendsType = 'all', trendsFilter = 'all', trendsPage = 1;
+
+            function loadTrends(pg) {
+                trendsPage = pg || 1;
+                $('#seom-trends-loading').show().text('Loading trends...');
+                $('#seom-trends-content').hide();
+                $('#seom-trends-pagination').empty();
+
+                $.post(ajaxurl, {
+                    action: 'seom_get_page_trends', nonce: seom_nonce,
+                    post_type: trendsType, filter: trendsFilter, page: trendsPage
+                }, function(resp) {
+                    $('#seom-trends-loading').hide();
+                    $('#seom-trends-content').show();
+
+                    if (!resp.success) return;
+                    var d = resp.data;
+                    var s = d.summary;
+
+                    $('#spt-total').text(s.total);
+                    $('#spt-improving').text(s.improving);
+                    $('#spt-declining').text(s.declining);
+                    $('#spt-flat').text(s.flat);
+
+                    // Click trend
+                    var diff = s.total_clicks_now - s.total_clicks_prev;
+                    var pct = s.total_clicks_prev > 0 ? Math.round((diff / s.total_clicks_prev) * 100) : 0;
+                    var trendClass = diff > 0 ? 'seom-change-positive' : (diff < 0 ? 'seom-change-negative' : '');
+                    var trendIcon = diff > 0 ? '&#9650; ' : (diff < 0 ? '&#9660; ' : '');
+                    $('#spt-trend').html('<span class="' + trendClass + '">' + trendIcon + (diff > 0 ? '+' : '') + diff + '</span>');
+                    $('#spt-trend-detail').text(s.total_clicks_prev + ' prev → ' + s.total_clicks_now + ' now (' + (pct > 0 ? '+' : '') + pct + '%)');
+                    $('#spt-date-range').text('Comparing: ' + (d.current_date || '') + ' vs ' + (d.prev_date || ''));
+
+                    var tbody = $('#seom-trends-body').empty();
+                    if (!d.rows.length) {
+                        tbody.html('<tr><td colspan="9" style="color:#94a3b8;">' + (d.message || 'No data.') + '</td></tr>');
+                        return;
+                    }
+
+                    d.rows.forEach(function(r) {
+                        var cd = parseInt(r.click_change) || 0;
+                        var pd = parseFloat(r.position_change) || 0;
+                        var clickClass = cd > 0 ? 'seom-change-positive' : (cd < 0 ? 'seom-change-negative' : '');
+                        var posClass = pd < -0.1 ? 'seom-change-positive' : (pd > 0.1 ? 'seom-change-negative' : '');
+                        var posStr = pd !== 0 ? (pd > 0 ? '+' : '') + pd.toFixed(1) : '0.0';
+
+                        var trend = '';
+                        if (cd > 0 && pd < -0.3) trend = '<span class="seom-change-positive" style="font-weight:700;">&#9650;&#9650;</span>';
+                        else if (cd > 0) trend = '<span class="seom-change-positive">&#9650;</span>';
+                        else if (cd < 0 && pd > 0.3) trend = '<span class="seom-change-negative" style="font-weight:700;">&#9660;&#9660;</span>';
+                        else if (cd < 0) trend = '<span class="seom-change-negative">&#9660;</span>';
+                        else trend = '<span style="color:#94a3b8;">—</span>';
+
+                        var typeLabel = {product:'Product',post:'Post',page:'Page'}[r.post_type] || r.post_type;
+                        var editUrl = '<?php echo admin_url("post.php?action=edit&post="); ?>' + r.post_id;
+
+                        tbody.append('<tr>' +
+                            '<td><a href="' + editUrl + '" target="_blank">' + r.post_title + '</a></td>' +
+                            '<td style="font-size:11px;color:#94a3b8;">' + typeLabel + '</td>' +
+                            '<td>' + parseInt(r.cur_clicks) + '</td>' +
+                            '<td>' + parseInt(r.prev_clicks) + '</td>' +
+                            '<td class="' + clickClass + '">' + (cd > 0 ? '+' : '') + cd + '</td>' +
+                            '<td>' + parseFloat(r.cur_position || 0).toFixed(1) + '</td>' +
+                            '<td>' + parseFloat(r.prev_position || 0).toFixed(1) + '</td>' +
+                            '<td class="' + posClass + '">' + posStr + '</td>' +
+                            '<td>' + trend + '</td>' +
+                        '</tr>');
+                    });
+
+                    if (d.pages > 1) {
+                        var pag = $('#seom-trends-pagination');
+                        for (var i = 1; i <= Math.min(d.pages, 20); i++) {
+                            pag.append('<button class="' + (i === d.page ? 'button button-primary' : 'button') + ' seom-trends-page" data-page="' + i + '">' + i + '</button> ');
+                        }
+                    }
+                });
+            }
+
+            $('.seom-trends-type').click(function() {
+                $('.seom-trends-type').removeClass('active');
+                $(this).addClass('active');
+                trendsType = $(this).data('type');
+                loadTrends(1);
+            });
+
+            $('.seom-trends-filter').click(function() {
+                $('.seom-trends-filter').removeClass('active');
+                $(this).addClass('active');
+                trendsFilter = $(this).data('filter');
+                loadTrends(1);
+            });
+
+            $(document).on('click', '.seom-trends-page', function() { loadTrends(parseInt($(this).data('page'))); });
+
+            loadTrends(1);
         });
         </script>
         <?php
@@ -935,11 +1110,26 @@ class SEOM_Dashboard {
     private static function render_queue($nonce) {
         ?>
         <h2>Refresh Queue</h2>
+
+        <div id="seom-queue-bulk" style="display:none; margin-bottom:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <select id="seom-bulk-action" style="padding:4px 8px; border-radius:6px; border:1px solid #e2e8f0;">
+                <option value="">Bulk Actions</option>
+                <option value="prioritize">Prioritize Selected</option>
+                <option value="skip">Skip Selected</option>
+                <option value="delete">Delete Selected</option>
+            </select>
+            <button type="button" class="button" id="seom-bulk-apply">Apply</button>
+            <span style="margin:0 4px; color:#e2e8f0;">|</span>
+            <button type="button" class="button" id="seom-clear-queue" style="color:#dc2626;">Clear Entire Queue</button>
+            <span id="seom-bulk-status" style="font-size:12px; margin-left:8px;"></span>
+        </div>
+
         <div id="seom-queue-loading">Loading queue...</div>
 
         <table class="seom-table" id="seom-queue-table" style="display:none;">
             <thead>
                 <tr>
+                    <th style="width:30px;"><input type="checkbox" id="seom-queue-check-all" /></th>
                     <th class="seom-q-sort" data-col="title" style="cursor:pointer;">Page</th>
                     <th>Type</th>
                     <th class="seom-q-sort" data-col="category" style="cursor:pointer;width:90px;">Category</th>
@@ -1033,14 +1223,16 @@ class SEOM_Dashboard {
                     if (!item.has_excerpt) contentStatus += '<span style="color:#dc2626;" title="No meta description">No Meta</span>';
                     if (item.has_description && item.has_excerpt) contentStatus = '<span style="color:#16a34a;">OK</span>';
 
+                    var prioritized = parseFloat(item.priority_score) >= 999 ? ' <span style="color:#d97706;font-size:10px;font-weight:600;">PRIORITY</span>' : '';
                     tbody.append('<tr data-id="' + item.id + '" data-post-id="' + item.post_id + '">' +
+                        '<td><input type="checkbox" class="seom-queue-cb" value="' + item.id + '" /></td>' +
                         '<td>' +
                             '<strong>' + item.post_title + '</strong>' +
                             '<div class="seom-queue-detail">' + item.post_type + ' &middot; <span class="seom-badge seom-badge-' + cat.toLowerCase() + '">' + (catLabels[cat] || cat) + '</span> ' + (catDescriptions[cat] || '') + '</div>' +
                         '</td>' +
                         '<td>' + item.refresh_type + '</td>' +
                         '<td><span class="seom-badge seom-badge-' + cat.toLowerCase() + '">' + (catLabels[cat] || cat) + '</span></td>' +
-                        '<td>' + parseFloat(item.priority_score).toFixed(1) + '</td>' +
+                        '<td>' + parseFloat(item.priority_score).toFixed(1) + prioritized + '</td>' +
                         '<td>' + clicks.toLocaleString() + '</td>' +
                         '<td>' + impressions.toLocaleString() + '</td>' +
                         '<td>' + ctr.toFixed(1) + '%</td>' +
@@ -1074,6 +1266,7 @@ class SEOM_Dashboard {
                     queueData = resp.data;
                     renderQueue();
                     $('#seom-queue-table').show();
+                    $('#seom-queue-bulk').css('display', 'flex');
                     $('#seom-queue-empty').hide();
                 });
             }
@@ -1150,6 +1343,50 @@ class SEOM_Dashboard {
                 var id = btn.data('id');
                 $.post(ajaxurl, { action: 'seom_skip_item', nonce: seom_nonce, queue_id: id }, function(resp) {
                     if (resp.success) btn.closest('tr').fadeOut();
+                });
+            });
+
+            // Select all checkbox
+            $(document).on('change', '#seom-queue-check-all', function() {
+                $('.seom-queue-cb').prop('checked', $(this).prop('checked'));
+            });
+
+            // Bulk apply
+            $('#seom-bulk-apply').click(function() {
+                var action = $('#seom-bulk-action').val();
+                if (!action) { alert('Select a bulk action.'); return; }
+
+                var ids = [];
+                $('.seom-queue-cb:checked').each(function() { ids.push(parseInt($(this).val())); });
+                if (!ids.length) { alert('Select at least one item.'); return; }
+
+                var labels = { prioritize: 'prioritize', skip: 'skip', 'delete': 'delete' };
+                if (!confirm(labels[action] + ' ' + ids.length + ' item(s)?')) return;
+
+                $.post(ajaxurl, {
+                    action: 'seom_queue_bulk', nonce: seom_nonce,
+                    bulk_action: action, 'ids[]': ids
+                }, function(resp) {
+                    if (resp.success) {
+                        $('#seom-bulk-status').html('<span style="color:#059669;">' + resp.data.affected + ' items updated.</span>');
+                        loadQueue();
+                        setTimeout(function() { $('#seom-bulk-status').text(''); }, 3000);
+                    } else {
+                        $('#seom-bulk-status').html('<span style="color:#dc2626;">' + (resp.data || 'Error') + '</span>');
+                    }
+                });
+            });
+
+            // Clear entire queue
+            $('#seom-clear-queue').click(function() {
+                if (!confirm('Remove ALL pending items from the queue? This cannot be undone.')) return;
+                $.post(ajaxurl, {
+                    action: 'seom_queue_bulk', nonce: seom_nonce, bulk_action: 'clear'
+                }, function(resp) {
+                    if (resp.success) {
+                        $('#seom-bulk-status').html('<span style="color:#059669;">Queue cleared. ' + resp.data.affected + ' items removed.</span>');
+                        loadQueue();
+                    }
                 });
             });
         });
@@ -1557,7 +1794,9 @@ class SEOM_Dashboard {
                         <label><input type="checkbox" name="process_post_types[]" value="post" <?php checked(in_array('post', $settings['process_post_types'])); ?> /> Blog Posts</label>
                         <?php if (!SEOM_Blog_Refresher::is_available()) : ?>
                             <span style="color:#b45309;"> (Blog Writer API key not configured in <a href="<?php echo admin_url('admin.php?page=ai-blog-writer'); ?>">Settings</a>)</span>
-                        <?php endif; ?>
+                        <?php endif; ?><br>
+                        <label><input type="checkbox" name="process_post_types[]" value="page" <?php checked(in_array('page', $settings['process_post_types'])); ?> /> Pages</label>
+                        <span style="color:#64748b; font-size:12px;"> (tracked for GSC metrics only — no automated refresh)</span>
                     </td>
                 </tr>
 
@@ -1638,6 +1877,65 @@ class SEOM_Dashboard {
             </p>
         </form>
 
+        <h2 style="margin-top:32px;">Scheduled Tasks (Cron)</h2>
+        <p style="color:#64748b; font-size:13px;">These tasks run automatically via WordPress cron. Times shown are when the next run is scheduled.</p>
+
+        <table class="seom-table" style="max-width:800px;" id="seom-cron-table">
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Schedule</th>
+                    <th>Next Run</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                $cron_jobs = [
+                    'seom_daily_collect'     => ['label' => 'Collect GSC Data', 'desc' => 'Fetches page metrics from Google Search Console'],
+                    'seom_daily_analyze'     => ['label' => 'Run Analysis', 'desc' => 'Scores pages and populates the refresh queue'],
+                    'seom_daily_process'     => ['label' => 'Process Queue', 'desc' => 'Starts processing queued page refreshes'],
+                    'seom_daily_keywords'    => ['label' => 'Collect Keywords', 'desc' => 'Fetches site-wide keyword data from GSC'],
+                    'seom_weekly_backfill'   => ['label' => 'Backfill History', 'desc' => 'Updates 30d/60d after-metrics for refreshed pages'],
+                    'seom_weekly_autocomplete' => ['label' => 'Autocomplete Expand', 'desc' => 'Fetches Google autocomplete suggestions for top keywords'],
+                ];
+
+                foreach ($cron_jobs as $hook => $info) {
+                    $next = wp_next_scheduled($hook);
+                    $schedule = wp_get_schedule($hook);
+                    $schedule_label = $schedule ?: 'Not scheduled';
+                    $next_label = $next ? date('Y-m-d H:i:s', $next) . ' (' . human_time_diff($next) . ($next > time() ? ' from now' : ' ago') . ')' : 'Not scheduled';
+                    $status = $next ? ($next > time() ? '<span style="color:#059669;">Scheduled</span>' : '<span style="color:#d97706;">Overdue</span>') : '<span style="color:#dc2626;">Inactive</span>';
+                    ?>
+                    <tr>
+                        <td>
+                            <strong><?php echo esc_html($info['label']); ?></strong>
+                            <br><small style="color:#94a3b8;"><?php echo esc_html($info['desc']); ?></small>
+                        </td>
+                        <td><?php echo esc_html(ucfirst($schedule_label)); ?></td>
+                        <td style="font-size:12px;"><?php echo $next_label; ?></td>
+                        <td><?php echo $status; ?></td>
+                        <td>
+                            <button type="button" class="button button-small seom-cron-run" data-hook="<?php echo esc_attr($hook); ?>">Run Now</button>
+                            <?php if ($next) : ?>
+                                <button type="button" class="button button-small seom-cron-clear" data-hook="<?php echo esc_attr($hook); ?>" style="color:#dc2626;">Disable</button>
+                            <?php else : ?>
+                                <button type="button" class="button button-small seom-cron-enable" data-hook="<?php echo esc_attr($hook); ?>">Enable</button>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php
+                }
+                ?>
+            </tbody>
+        </table>
+
+        <p style="margin-top:12px;">
+            <button type="button" class="button" id="seom-reschedule-all">Re-schedule All Tasks</button>
+            <span id="seom-cron-status" style="margin-left:12px; font-size:12px;"></span>
+        </p>
+
         <script>
         jQuery(document).ready(function($) {
             $('#seom-test-gsc').click(function() {
@@ -1678,6 +1976,56 @@ class SEOM_Dashboard {
                         ? '<span style="color:#16a34a;">Saved!</span>'
                         : '<span style="color:#dc2626;">Error</span>');
                     setTimeout(function() { $('#seom-save-status').text(''); }, 3000);
+                });
+            });
+
+            // Cron management
+            $(document).on('click', '.seom-cron-run', function() {
+                var btn = $(this).prop('disabled', true).text('Running...');
+                var hook = btn.data('hook');
+                $.post(ajaxurl, { action: 'seom_cron_action', nonce: seom_nonce, hook: hook, cron_action: 'run' }, function(resp) {
+                    btn.prop('disabled', false).text('Run Now');
+                    $('#seom-cron-status').html(resp.success
+                        ? '<span style="color:#059669;">' + hook + ' executed.</span>'
+                        : '<span style="color:#dc2626;">Error: ' + (resp.data || 'Unknown') + '</span>');
+                });
+            });
+
+            $(document).on('click', '.seom-cron-clear', function() {
+                var btn = $(this);
+                var hook = btn.data('hook');
+                if (!confirm('Disable ' + hook + '? It will not run until re-enabled.')) return;
+                $.post(ajaxurl, { action: 'seom_cron_action', nonce: seom_nonce, hook: hook, cron_action: 'disable' }, function(resp) {
+                    if (resp.success) {
+                        btn.text('Enable').removeClass('seom-cron-clear').addClass('seom-cron-enable').css('color', '');
+                        btn.closest('tr').find('td:eq(2)').text('Disabled');
+                        btn.closest('tr').find('td:eq(3)').html('<span style="color:#dc2626;">Inactive</span>');
+                        $('#seom-cron-status').html('<span style="color:#059669;">' + hook + ' disabled.</span>');
+                    }
+                });
+            });
+
+            $(document).on('click', '.seom-cron-enable', function() {
+                var btn = $(this);
+                var hook = btn.data('hook');
+                $.post(ajaxurl, { action: 'seom_cron_action', nonce: seom_nonce, hook: hook, cron_action: 'enable' }, function(resp) {
+                    if (resp.success) {
+                        btn.text('Disable').removeClass('seom-cron-enable').addClass('seom-cron-clear').css('color', '#dc2626');
+                        btn.closest('tr').find('td:eq(3)').html('<span style="color:#059669;">Scheduled</span>');
+                        $('#seom-cron-status').html('<span style="color:#059669;">' + hook + ' enabled.</span>');
+                        setTimeout(function() { location.reload(); }, 1000);
+                    }
+                });
+            });
+
+            $('#seom-reschedule-all').click(function() {
+                var btn = $(this).prop('disabled', true).text('Rescheduling...');
+                $.post(ajaxurl, { action: 'seom_cron_action', nonce: seom_nonce, cron_action: 'reschedule_all' }, function(resp) {
+                    btn.prop('disabled', false).text('Re-schedule All Tasks');
+                    if (resp.success) {
+                        $('#seom-cron-status').html('<span style="color:#059669;">All tasks rescheduled.</span>');
+                        setTimeout(function() { location.reload(); }, 1000);
+                    }
                 });
             });
         });

@@ -33,21 +33,8 @@ class SEOM_Collector {
             $metrics = $client->get_all_page_metrics(28);
             if (is_wp_error($metrics)) return $metrics;
 
-            // Fetch search appearance data (SERP features: FAQ rich results, etc.)
-            $serp_error = null;
-            $appearances = $client->get_all_search_appearances(28);
-            if (is_wp_error($appearances)) {
-                $serp_error = $appearances->get_error_message();
-                $appearances = [];
-            }
-
-            // Store in transients — use wp_options directly for large data
             set_transient('seom_gsc_metrics_cache', $metrics, 3600);
-            // Store appearances in a temp file to avoid bloating wp_options
-            $cache_file = wp_upload_dir()['basedir'] . '/seom_appearances_cache.json';
-            file_put_contents($cache_file, json_encode($appearances));
 
-            // Count total posts to process
             $post_types = $settings['process_post_types'];
             $type_placeholders = implode(',', array_fill(0, count($post_types), '%s'));
             $total_posts = (int) $wpdb->get_var($wpdb->prepare(
@@ -56,13 +43,10 @@ class SEOM_Collector {
             ));
 
             return [
-                'phase'              => 'gsc_fetched',
-                'pages_in_gsc'       => count($metrics),
-                'total_posts'        => $total_posts,
-                'total_batches'      => ceil($total_posts / $batch_size),
-                'serp_pages_found'   => count($appearances),
-                'serp_error'         => $serp_error,
-                'serp_cache_written' => file_exists($cache_file),
+                'phase'        => 'gsc_fetched',
+                'pages_in_gsc' => count($metrics),
+                'total_posts'  => $total_posts,
+                'total_batches'=> ceil($total_posts / $batch_size),
             ];
         }
 
@@ -72,8 +56,6 @@ class SEOM_Collector {
             return new WP_Error('no_cache', 'GSC metrics cache expired. Start collection again.');
         }
 
-        $cache_file = wp_upload_dir()['basedir'] . '/seom_appearances_cache.json';
-        $appearances = file_exists($cache_file) ? json_decode(file_get_contents($cache_file), true) : [];
         $client = new SEOM_GSC_Client($settings['gsc_credentials_json'], $settings['gsc_property_url']);
 
         $post_types = $settings['process_post_types'];
@@ -105,28 +87,22 @@ class SEOM_Collector {
                 $post->ID, $today
             ));
 
-            // Fetch top queries only for pages with significant impressions
-            // Higher threshold to keep batch processing fast (each is a separate API call)
+            // Only fetch per-page queries for high-value pages (each is a separate API call ~1-2s)
             $top_queries = null;
-            if ($impressions > 50) {
+            if ($clicks > 3) {
                 $page_queries = $client->get_page_queries($url, 28, 5);
                 if (!is_wp_error($page_queries) && !empty($page_queries)) {
                     $top_queries = json_encode($page_queries);
                 }
             }
 
-            // Match search appearance (SERP features) for this URL
-            $page_appearances = $appearances[$url] ?? $appearances[rtrim($url, '/')] ?? $appearances[$url . '/'] ?? null;
-            $search_appearance = $page_appearances ? json_encode($page_appearances) : null;
-
             $row = [
-                'clicks'            => $clicks,
-                'impressions'       => $impressions,
-                'ctr'               => $ctr,
-                'avg_position'      => $position,
-                'url'               => $url,
-                'top_queries'       => $top_queries,
-                'search_appearance' => $search_appearance,
+                'clicks'       => $clicks,
+                'impressions'  => $impressions,
+                'ctr'          => $ctr,
+                'avg_position' => $position,
+                'url'          => $url,
+                'top_queries'  => $top_queries,
             ];
 
             if ($existing) {
@@ -150,8 +126,6 @@ class SEOM_Collector {
         if (!$has_more) {
             update_option('seom_last_collect', current_time('mysql'));
             delete_transient('seom_gsc_metrics_cache');
-            $cache_file = wp_upload_dir()['basedir'] . '/seom_appearances_cache.json';
-            if (file_exists($cache_file)) @unlink($cache_file);
         }
 
         return [

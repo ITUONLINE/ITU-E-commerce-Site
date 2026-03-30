@@ -62,6 +62,9 @@ class SEOM_Analyzer {
             // Skip explicitly excluded post IDs
             if (in_array($post_id, $excluded_ids)) continue;
 
+            // Skip pages — tracked for metrics only, never auto-refreshed
+            if (get_post_type($post_id) === 'page') continue;
+
             // Skip excluded categories (works for posts and product_cat)
             if (!empty($excluded_categories)) {
                 $post_cats = wp_get_post_categories($post_id, ['fields' => 'slugs']);
@@ -73,6 +76,16 @@ class SEOM_Analyzer {
             // Note: Posts with shortcodes (e.g., practice tests) are no longer excluded.
             // The Blog Refresher extracts shortcodes before AI processing and
             // prepends them back to the content after generation.
+
+            // Protect top performers — don't refresh pages that are performing well
+            $clicks      = intval($m->clicks);
+            $impressions = intval($m->impressions);
+            $ctr         = floatval($m->ctr);
+            $position    = floatval($m->avg_position);
+
+            if ($clicks >= 5) {
+                continue; // Top performer — driving real traffic, don't risk breaking it
+            }
 
             // Check cooldown via last_page_refresh meta
             $last_refresh = get_post_meta($post_id, 'last_page_refresh', true);
@@ -97,7 +110,7 @@ class SEOM_Analyzer {
                 'post_type'      => get_post_type($post_id),
                 'category'       => $category,
                 'priority_score' => $score,
-                'refresh_type'   => $category === 'B' ? 'meta_only' : 'full',
+                'refresh_type'   => in_array($category, ['B', 'E']) ? 'meta_only' : 'full',
             ];
         }
 
@@ -144,8 +157,9 @@ class SEOM_Analyzer {
             return 'A';
         }
 
-        // Category B: CTR Fix (ranks well, good impressions, low CTR)
-        if ($position > 0 && $position <= 10
+        // Category B: CTR Fix (ranks decently, good impressions, low CTR)
+        // Position <= 15 to catch top of page 2 as well (they still show in some SERPs)
+        if ($position > 0 && $position <= 15
             && $impressions >= $settings['ctr_fix_min_impressions']
             && $ctr < $settings['ctr_fix_max_ctr']) {
             return 'B';
