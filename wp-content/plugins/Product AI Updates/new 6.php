@@ -572,7 +572,7 @@ case 'description':
 default:
     aicg_log('entering description case');
     $desc_rules = array(
-        'You are a senior course content writer at ITU Online, an IT training company. You write the way a knowledgeable instructor would describe their course to a prospective student. Your tone is direct, confident, and practical. You never sound like a marketing bot or AI.',
+        'You are a senior course content writer at ' . get_bloginfo('name') . ', an IT training company. You write the way a knowledgeable instructor would describe their course to a prospective student. Your tone is direct, confident, and practical. You never sound like a marketing bot or AI.',
         '',
         'Write a product description for the course described in the user prompt. Write completely fresh copy. Do NOT reuse or paraphrase existing content.',
         '',
@@ -858,7 +858,7 @@ function aicg_generate_faq_json() {
     }
 
     $instruction = <<<TEXT
-You are an SEO assistant. Convert the following HTML FAQ into a valid JSON-LD FAQPage schema block inside <script type="application/ld+json"> tags. Only return the JSON-LD script tag. Use \\n\\n and \\n formatting as needed. Input HTML:
+You are an SEO assistant. Convert the following HTML FAQ into a valid JSON-LD FAQPage schema. Return ONLY the raw JSON object — do NOT wrap it in <script> tags. Use \\n\\n and \\n formatting as needed. Input HTML:
 
 $faq_html
 TEXT;
@@ -887,9 +887,11 @@ TEXT;
     $data = json_decode(wp_remote_retrieve_body($response), true);
     $faq_json = trim($data['choices'][0]['message']['content'] ?? '');
 
-    // Strip markdown code fences (```json ... ```)
+    // Strip markdown code fences and script tags if included
     $faq_json = preg_replace('/^```[a-zA-Z]*\s*/m', '', $faq_json);
     $faq_json = preg_replace('/\s*```\s*$/m', '', $faq_json);
+    $faq_json = preg_replace('/<script[^>]*>\s*/i', '', $faq_json);
+    $faq_json = preg_replace('/\s*<\/script>/i', '', $faq_json);
     $faq_json = trim($faq_json);
 
     if (empty($faq_json)) {

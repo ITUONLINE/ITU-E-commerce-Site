@@ -50,7 +50,10 @@ class SEOM_Processor {
         // Then process full refreshes with the daily limit
         $today_key = 'seom_daily_count_' . date('Y-m-d');
         $count = (int) get_option($today_key, 0);
-        if ($count >= $settings['daily_limit']) return;
+        if ($count >= $settings['daily_limit']) {
+            self::send_daily_summary($settings);
+            return;
+        }
 
         $item = $wpdb->get_row("
             SELECT * FROM {$wpdb->prefix}seom_refresh_queue
@@ -59,7 +62,11 @@ class SEOM_Processor {
             LIMIT 1
         ");
 
-        if (!$item) return;
+        if (!$item) {
+            // Queue exhausted — send summary if we processed anything today
+            if ($count > 0) self::send_daily_summary($settings);
+            return;
+        }
 
         self::execute_refresh($item);
         update_option($today_key, $count + 1);
@@ -67,6 +74,9 @@ class SEOM_Processor {
         // Schedule next full refresh in 10 minutes
         if ($count + 1 < $settings['daily_limit']) {
             wp_schedule_single_event(time() + 600, 'seom_process_next');
+        } else {
+            // Daily limit just reached — send summary
+            self::send_daily_summary($settings);
         }
     }
 
@@ -266,7 +276,7 @@ class SEOM_Processor {
             $edit_url  = admin_url('post.php?action=edit&post=' . $post_id);
             $post_type = get_post_type($post_id);
             $type_label = $post_type === 'product' ? 'Product' : 'Blog Post';
-            $cat_labels = ['A' => 'Ghost Page', 'B' => 'CTR Fix', 'C' => 'Near Win', 'D' => 'Declining', 'E' => 'Visible/Ignored', 'M' => 'Manual'];
+            $cat_labels = ['A' => 'Ghost Page', 'B' => 'CTR Fix', 'C' => 'Near Win', 'D' => 'Declining', 'E' => 'Visible/Ignored', 'F' => 'Buried Potential', 'M' => 'Manual'];
             $cat_label  = $cat_labels[$item->category] ?? $item->category;
 
             $subject = $error
@@ -338,5 +348,86 @@ class SEOM_Processor {
             'type'     => $item->refresh_type,
             'error'    => $error,
         ];
+    }
+
+    /**
+     * Send a daily summary email of all refreshes processed today.
+     * Only sends once per day (uses a transient to prevent duplicates from chained cron).
+     */
+    private static function send_daily_summary($settings) {
+        if (empty($settings['notify_email'])) return;
+
+        $sent_key = 'seom_summary_sent_' . date('Y-m-d');
+        if (get_transient($sent_key)) return; // Already sent today
+        set_transient($sent_key, true, 86400);
+
+        global $wpdb;
+        $today = date('Y-m-d');
+        $cat_labels = ['A' => 'Ghost', 'B' => 'CTR Fix', 'C' => 'Near Win', 'D' => 'Declining', 'E' => 'Visible/Ignored', 'F' => 'Buried', 'M' => 'Manual'];
+
+        $results = $wpdb->get_results($wpdb->prepare("
+            SELECT q.post_id, q.post_type, q.category, q.refresh_type, q.status, q.error_message,
+                   p.post_title
+            FROM {$wpdb->prefix}seom_refresh_queue q
+            JOIN {$wpdb->posts} p ON q.post_id = p.ID
+            WHERE DATE(q.completed_at) = %s
+            ORDER BY q.completed_at ASC
+        ", $today));
+
+        if (empty($results)) return;
+
+        $completed = 0;
+        $failed = 0;
+        $rows = '';
+        foreach ($results as $r) {
+            $is_ok = ($r->status === 'completed');
+            if ($is_ok) $completed++; else $failed++;
+            $status_color = $is_ok ? '#059669' : '#dc2626';
+            $status_label = $is_ok ? 'Completed' : 'Failed';
+            $cat = $cat_labels[$r->category] ?? $r->category;
+            $edit = admin_url('post.php?action=edit&post=' . $r->post_id);
+            $error_text = $r->error_message ? '<br><span style="font-size:11px;color:#dc2626;">' . esc_html($r->error_message) . '</span>' : '';
+
+            $rows .= '<tr>'
+                . '<td style="padding:8px 12px;"><a href="' . esc_url($edit) . '">' . esc_html($r->post_title) . '</a>'
+                . '<br><span style="font-size:11px;color:#9ca3af;">' . esc_html($r->post_type) . '</span></td>'
+                . '<td style="padding:8px 12px;">' . esc_html($r->refresh_type) . '</td>'
+                . '<td style="padding:8px 12px;">' . esc_html($cat) . '</td>'
+                . '<td style="padding:8px 12px;color:' . $status_color . ';font-weight:600;">' . $status_label . $error_text . '</td>'
+                . '</tr>';
+        }
+
+        $site_name = get_bloginfo('name');
+        $subject = "[SEO Monitor] Daily Summary: {$completed} refreshed, {$failed} failed";
+
+        $body = '
+        <div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:700px;margin:0 auto;">
+            <div style="background:#1d2327;padding:20px 24px;border-radius:8px 8px 0 0;">
+                <h1 style="margin:0;color:#fff;font-size:18px;">SEO Monitor — Daily Refresh Summary</h1>
+            </div>
+            <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:24px;">
+                <div style="display:flex;gap:24px;margin-bottom:20px;">
+                    <div><span style="font-size:32px;font-weight:700;color:#059669;">' . $completed . '</span><br><span style="color:#6b7280;font-size:13px;">Completed</span></div>
+                    <div><span style="font-size:32px;font-weight:700;color:#dc2626;">' . $failed . '</span><br><span style="color:#6b7280;font-size:13px;">Failed</span></div>
+                    <div><span style="font-size:32px;font-weight:700;color:#374151;">' . count($results) . '</span><br><span style="color:#6b7280;font-size:13px;">Total</span></div>
+                </div>
+                <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;">
+                    <thead><tr style="background:#f9fafb;">
+                        <th style="padding:8px 12px;text-align:left;">Page</th>
+                        <th style="padding:8px 12px;text-align:left;">Type</th>
+                        <th style="padding:8px 12px;text-align:left;">Category</th>
+                        <th style="padding:8px 12px;text-align:left;">Status</th>
+                    </tr></thead>
+                    <tbody>' . $rows . '</tbody>
+                </table>
+                <p style="margin-top:20px;"><a href="' . esc_url(admin_url('admin.php?page=seo-monitor&tab=tracker')) . '" style="color:#2563eb;">View Performance Tracker &rarr;</a></p>
+                <p style="margin-top:12px;color:#9ca3af;font-size:12px;">Sent by SEO Monitor on ' . esc_html($site_name) . ' &middot; ' . esc_html(current_time('M j, Y g:i A')) . '</p>
+            </div>
+        </div>';
+
+        $set_html = function () { return 'text/html'; };
+        add_filter('wp_mail_content_type', $set_html);
+        wp_mail($settings['notify_email'], $subject, $body);
+        remove_filter('wp_mail_content_type', $set_html);
     }
 }

@@ -57,7 +57,10 @@ function ptm_send_question_ajax(){
  */
 function ptm_init_test_callback(){
     check_ajax_referer('ptm_nonce','nonce');
-    if (!session_id()) session_start();
+    if (!session_id()) {
+        if (headers_sent()) { ob_start(); session_start(); ob_end_clean(); }
+        else { session_start(); }
+    }
 
     $test_id = intval($_POST['test_id']);
     global $wpdb;
@@ -86,7 +89,10 @@ function ptm_init_test_callback(){
  */
 function ptm_submit_answer_callback(){
     check_ajax_referer('ptm_nonce','nonce');
-    if (!session_id()) session_start();
+    if (!session_id()) {
+        if (headers_sent()) { ob_start(); session_start(); ob_end_clean(); }
+        else { session_start(); }
+    }
 
     $ptm      =& $_SESSION['ptm'];
     $selected  = intval($_POST['selected']);
@@ -126,7 +132,6 @@ function ptm_submit_answer_callback(){
 
     // Record answer
     $ptm['answers'][$qid] = $selected;
-    session_write_close(); // Release lock so other requests aren't blocked
 
     // **If last question, send final JSON (with feedback)**
     if ($is_last) {
@@ -141,6 +146,7 @@ function ptm_submit_answer_callback(){
             );
         }
 
+        session_write_close();
         wp_send_json([
             'complete' => true,
             'feedback' => [
@@ -156,6 +162,7 @@ function ptm_submit_answer_callback(){
 
     // **Otherwise, advance and send next question JSON (with feedback)**
     $ptm['current_index']++;
+    session_write_close(); // Release lock AFTER all session writes
     $next_qid = $ptm['question_ids'][$ptm['current_index']];
 
     $quest = $wpdb->get_row(
@@ -198,7 +205,10 @@ function ptm_submit_answer_callback(){
  */
 function ptm_retry_test_callback(){
     check_ajax_referer('ptm_nonce','nonce');
-    if (!session_id()) session_start();
+    if (!session_id()) {
+        if (headers_sent()) { ob_start(); session_start(); ob_end_clean(); }
+        else { session_start(); }
+    }
     $ptm =& $_SESSION['ptm'];
 
     $_SESSION['ptm']['question_ids']  = array_keys($ptm['missed']);

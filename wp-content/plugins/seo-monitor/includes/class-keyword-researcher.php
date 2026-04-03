@@ -39,13 +39,18 @@ class SEOM_Keyword_Researcher {
             mapped_post_id bigint(20) unsigned DEFAULT NULL,
             cannibalization_ids text DEFAULT NULL,
             is_content_gap tinyint(1) DEFAULT 0,
+            status varchar(10) NOT NULL DEFAULT 'active',
+            first_seen date DEFAULT NULL,
+            last_seen date DEFAULT NULL,
             date_collected date NOT NULL,
             PRIMARY KEY (id),
-            KEY keyword_date (keyword(191), date_collected),
+            UNIQUE KEY keyword_source (keyword(191), source),
             KEY opportunity_score (opportunity_score),
             KEY mapped_post_id (mapped_post_id),
             KEY is_content_gap (is_content_gap),
-            KEY trend_direction (trend_direction)
+            KEY trend_direction (trend_direction),
+            KEY status (status),
+            KEY last_seen (last_seen)
         ) $charset;");
 
         dbDelta("CREATE TABLE {$wpdb->prefix}seom_keyword_suggestions (
@@ -61,31 +66,70 @@ class SEOM_Keyword_Researcher {
 
     /**
      * Collect site-wide keywords from GSC and store in the keywords table.
-     * Called via cron or manual trigger.
+     * Batched: Phase 0 = fetch GSC + cache, Phase 1+ = process keywords in batches.
      */
-    public static function collect() {
-        // Ensure tables exist (in case plugin was updated without reactivation)
+    public static function collect($batch_page = 0) {
         self::ensure_tables();
-
-        $settings = seom_get_settings();
-        if (empty($settings['gsc_credentials_json']) || empty($settings['gsc_property_url'])) {
-            return new WP_Error('not_configured', 'GSC not configured.');
-        }
-
-        $client = new SEOM_GSC_Client($settings['gsc_credentials_json'], $settings['gsc_property_url']);
-
-        // Get current and previous period queries for trend detection
-        $trends = $client->get_query_trends(28);
-        if (is_wp_error($trends)) return $trends;
 
         global $wpdb;
         $table = $wpdb->prefix . 'seom_keywords';
         $today = date('Y-m-d');
+        $batch_size = 200;
 
-        // Clear today's data if re-running
-        $wpdb->delete($table, ['date_collected' => $today]);
+        // Migrate schema if needed
+        $col = $wpdb->get_var("SHOW COLUMNS FROM {$table} LIKE 'status'");
+        if (!$col) {
+            $wpdb->query("ALTER TABLE {$table} ADD COLUMN status varchar(10) NOT NULL DEFAULT 'active' AFTER is_content_gap");
+            $wpdb->query("ALTER TABLE {$table} ADD COLUMN first_seen date DEFAULT NULL AFTER status");
+            $wpdb->query("ALTER TABLE {$table} ADD COLUMN last_seen date DEFAULT NULL AFTER first_seen");
+            $idx = $wpdb->get_var("SHOW INDEX FROM {$table} WHERE Key_name = 'keyword_source'");
+            if (!$idx) {
+                $wpdb->query("DELETE k1 FROM {$table} k1 INNER JOIN {$table} k2 WHERE k1.id < k2.id AND k1.keyword = k2.keyword AND k1.source = k2.source");
+                $wpdb->query("ALTER TABLE {$table} ADD UNIQUE KEY keyword_source (keyword(191), source)");
+            }
+            $wpdb->query("UPDATE {$table} SET first_seen = date_collected, last_seen = date_collected WHERE first_seen IS NULL");
+        }
 
-        // Get all existing focus keywords and post titles for gap detection
+        // Phase 0: Fetch GSC data and cache it
+        if ($batch_page === 0) {
+            $settings = seom_get_settings();
+            if (empty($settings['gsc_credentials_json']) || empty($settings['gsc_property_url'])) {
+                return new WP_Error('not_configured', 'GSC not configured.');
+            }
+
+            $client = new SEOM_GSC_Client($settings['gsc_credentials_json'], $settings['gsc_property_url']);
+            $trends = $client->get_query_trends(28);
+            if (is_wp_error($trends)) return $trends;
+
+            // Filter low-volume and serialize for cache
+            $filtered = [];
+            foreach ($trends as $query => $data) {
+                if ($data['current']['impressions'] < 5 && $data['previous']['impressions'] < 5) continue;
+                $filtered[$query] = $data;
+            }
+
+            set_transient('seom_kw_trends_cache', $filtered, 3600);
+
+            return [
+                'phase'          => 'gsc_fetched',
+                'total_queries'  => count($filtered),
+                'total_batches'  => ceil(count($filtered) / $batch_size),
+            ];
+        }
+
+        // Phase 1+: Process a batch of keywords
+        $trends = get_transient('seom_kw_trends_cache');
+        if (!$trends || !is_array($trends)) {
+            return new WP_Error('no_cache', 'Keyword cache expired. Start collection again.');
+        }
+
+        // Slice the batch
+        $all_queries = array_keys($trends);
+        $offset = ($batch_page - 1) * $batch_size;
+        $batch_queries = array_slice($all_queries, $offset, $batch_size);
+        $is_last_batch = ($offset + count($batch_queries)) >= count($all_queries);
+
+        // Get all existing focus keywords and post titles for gap detection (cached per request)
         $focus_keywords = $wpdb->get_results("
             SELECT post_id, meta_value as keyword FROM {$wpdb->postmeta}
             WHERE meta_key = 'rank_math_focus_keyword' AND meta_value != ''
@@ -124,25 +168,47 @@ class SEOM_Keyword_Researcher {
         }
 
         $inserted = 0;
-        foreach ($trends as $query => $data) {
+        foreach ($batch_queries as $query) {
+            $data = $trends[$query];
             $cur = $data['current'];
             $prev = $data['previous'];
-
-            // Skip very low-volume queries
-            if ($cur['impressions'] < 5 && $prev['impressions'] < 5) continue;
 
             // Check if any post targets this keyword
             $q_lower = strtolower($query);
             $mapped_post = $kw_to_post[$q_lower] ?? null;
 
-            // If not mapped by focus keyword, try matching against titles
+            // If not mapped by exact focus keyword, try fuzzy matching
             if (!$mapped_post) {
-                foreach ($title_map as $title => $pid) {
-                    if (strpos($title, $q_lower) !== false || strpos($q_lower, $title) !== false) {
+                // 1. Check if focus keyword words overlap significantly with query
+                $q_words = array_filter(explode(' ', $q_lower), function($w) { return strlen($w) > 2; });
+                foreach ($kw_to_post as $kw => $pid) {
+                    $kw_words = array_filter(explode(' ', $kw), function($w) { return strlen($w) > 2; });
+                    if (empty($kw_words)) continue;
+                    $overlap = count(array_intersect($q_words, $kw_words));
+                    // If 60%+ of the keyword's significant words match, it's the same topic
+                    if ($overlap >= max(2, ceil(count($kw_words) * 0.6))) {
                         $mapped_post = $pid;
                         break;
                     }
                 }
+            }
+
+            // 2. If still not mapped, try word-overlap matching against post titles
+            if (!$mapped_post) {
+                $q_words = array_filter(explode(' ', $q_lower), function($w) { return strlen($w) > 2; });
+                $best_overlap = 0;
+                $best_pid = null;
+                foreach ($title_map as $title => $pid) {
+                    $t_words = array_filter(explode(' ', $title), function($w) { return strlen($w) > 2; });
+                    if (empty($t_words)) continue;
+                    $overlap = count(array_intersect($q_words, $t_words));
+                    // Need at least 2 significant words in common, and 50%+ of query words match
+                    if ($overlap >= 2 && $overlap > $best_overlap && $overlap >= ceil(count($q_words) * 0.5)) {
+                        $best_overlap = $overlap;
+                        $best_pid = $pid;
+                    }
+                }
+                if ($best_pid) $mapped_post = $best_pid;
             }
 
             $is_gap = (!$mapped_post && $cur['impressions'] >= 20) ? 1 : 0;
@@ -154,32 +220,90 @@ class SEOM_Keyword_Researcher {
             // Opportunity score
             $opp = self::compute_opportunity($cur, $data['trend_pct'], $is_gap);
 
-            $wpdb->insert($table, [
-                'keyword'              => mb_substr($query, 0, 255),
-                'source'               => 'gsc',
-                'impressions'          => $cur['impressions'],
-                'clicks'               => $cur['clicks'],
-                'avg_position'         => $cur['position'],
-                'ctr'                  => $cur['ctr'],
-                'impressions_prev'     => $prev['impressions'],
-                'trend_direction'      => $data['direction'],
-                'trend_pct'            => $data['trend_pct'],
-                'opportunity_score'    => $opp,
-                'mapped_post_id'       => $mapped_post,
-                'cannibalization_ids'   => $cannibalization_ids,
-                'is_content_gap'       => $is_gap,
-                'date_collected'       => $today,
-            ]);
+            $keyword_safe = mb_substr($query, 0, 255);
+            // keyword tracked via last_seen date for lost detection
+
+            // Check if keyword already exists
+            $existing = $wpdb->get_row($wpdb->prepare(
+                "SELECT id, first_seen FROM {$table} WHERE keyword = %s AND source = 'gsc'",
+                $keyword_safe
+            ));
+
+            if ($existing) {
+                // Update existing record — preserve first_seen, update everything else
+                $wpdb->update($table, [
+                    'impressions'          => $cur['impressions'],
+                    'clicks'               => $cur['clicks'],
+                    'avg_position'         => $cur['position'],
+                    'ctr'                  => $cur['ctr'],
+                    'impressions_prev'     => $prev['impressions'],
+                    'trend_direction'      => $data['direction'],
+                    'trend_pct'            => $data['trend_pct'],
+                    'opportunity_score'    => $opp,
+                    'mapped_post_id'       => $mapped_post,
+                    'cannibalization_ids'  => $cannibalization_ids,
+                    'is_content_gap'       => $is_gap,
+                    'status'               => 'active',
+                    'last_seen'            => $today,
+                    'date_collected'       => $today,
+                ], ['id' => $existing->id]);
+            } else {
+                // Insert new keyword
+                $wpdb->insert($table, [
+                    'keyword'              => $keyword_safe,
+                    'source'               => 'gsc',
+                    'impressions'          => $cur['impressions'],
+                    'clicks'               => $cur['clicks'],
+                    'avg_position'         => $cur['position'],
+                    'ctr'                  => $cur['ctr'],
+                    'impressions_prev'     => $prev['impressions'],
+                    'trend_direction'      => $data['direction'],
+                    'trend_pct'            => $data['trend_pct'],
+                    'opportunity_score'    => $opp,
+                    'mapped_post_id'       => $mapped_post,
+                    'cannibalization_ids'  => $cannibalization_ids,
+                    'is_content_gap'       => $is_gap,
+                    'status'               => 'active',
+                    'first_seen'           => $today,
+                    'last_seen'            => $today,
+                    'date_collected'       => $today,
+                ]);
+            }
             $inserted++;
         }
 
-        update_option('seom_last_keyword_collect', current_time('mysql'));
+        // Only on the last batch: mark lost keywords and finalize
+        if ($is_last_batch) {
+            $wpdb->query($wpdb->prepare(
+                "UPDATE {$table}
+                 SET status = 'lost'
+                 WHERE source = 'gsc'
+                 AND status = 'active'
+                 AND last_seen < %s",
+                $today
+            ));
+
+            update_option('seom_last_keyword_collect', current_time('mysql'));
+            delete_transient('seom_kw_trends_cache');
+
+            $lost_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status = 'lost'");
+
+            return [
+                'phase'              => 'complete',
+                'keywords_collected' => $inserted,
+                'total_queries'      => count($all_queries),
+                'content_gaps'       => (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE is_content_gap = 1 AND status = 'active' AND last_seen = %s", $today)),
+                'rising'             => (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE trend_direction = 'rising' AND status = 'active' AND last_seen = %s", $today)),
+                'lost'               => $lost_count,
+            ];
+        }
 
         return [
-            'keywords_collected' => $inserted,
-            'total_queries'      => count($trends),
-            'content_gaps'       => $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE is_content_gap = 1 AND date_collected = '{$today}'"),
-            'rising'             => $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE trend_direction = 'rising' AND date_collected = '{$today}'"),
+            'phase'     => 'processing',
+            'batch'     => $batch_page,
+            'processed' => count($batch_queries),
+            'total'     => count($all_queries),
+            'has_more'  => true,
         ];
     }
 
@@ -202,9 +326,9 @@ class SEOM_Keyword_Researcher {
         elseif ($position >= 1 && $position <= 3) $pos_score = 5;      // Already top — low opp
         elseif ($position > 30) $pos_score = 10;
 
-        // CTR gap weight (0-20) — how much CTR could improve
-        $expected_ctr = max(1, 30 - ($position * 2));
-        $ctr_gap = max(0, min(20, ($expected_ctr - $ctr) * 2));
+        // CTR gap weight (0-20) — how much CTR could improve vs position benchmark
+        $expected_ctr = SEOM_Analyzer::expected_ctr($position);
+        $ctr_gap = ($expected_ctr > 0) ? max(0, min(20, (($expected_ctr - $ctr) / $expected_ctr) * 20)) : 0;
 
         // Trend weight (0-15)
         $trend = 0;

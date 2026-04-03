@@ -108,8 +108,9 @@ function aipm_call_openai($instruction, $user_prompt, $model = '', $temperature 
 // ─── AI Prompts (mirrored from existing plugin) ─────────────────────────────
 
 function aipm_get_description_instruction() {
+    $site_name = get_bloginfo('name');
     $rules = [
-        'You are a senior course content writer at ITU Online, an IT training company. You write the way a knowledgeable instructor would describe their course to a prospective student. Your tone is direct, confident, and practical. You never sound like a marketing bot or AI.',
+        "You are a senior course content writer at {$site_name}, an IT training company. You write the way a knowledgeable instructor would describe their course to a prospective student. Your tone is direct, confident, and practical. You never sound like a marketing bot or AI.",
         '',
         'Write a product description for the course described in the user prompt. Write completely fresh copy. Do NOT reuse or paraphrase existing content.',
         '',
@@ -282,14 +283,16 @@ function aipm_step_faq_json($post_id, $faq_html = '') {
     }
     if (empty($faq_html)) return new WP_Error('no_faq', 'No FAQ HTML to convert.');
 
-    $instruction = "You are an SEO assistant. Convert the following HTML FAQ into a valid JSON-LD FAQPage schema block inside <script type=\"application/ld+json\"> tags. Only return the JSON-LD script tag. Use \\n\\n and \\n formatting as needed. Input HTML:\n\n" . $faq_html;
+    $instruction = "You are an SEO assistant. Convert the following HTML FAQ into a valid JSON-LD FAQPage schema. Return ONLY the raw JSON object — do NOT wrap it in <script> tags. Use \\n\\n and \\n formatting as needed. Input HTML:\n\n" . $faq_html;
 
     $result = aipm_call_openai($instruction, null, function_exists('itu_ai_model') ? itu_ai_model('product_faq_json') : 'gpt-4o-mini', 0.3);
     if (is_wp_error($result)) return $result;
 
-    // Strip markdown code fences
+    // Strip markdown code fences and script tags if included
     $result = preg_replace('/^```[a-zA-Z]*\s*/m', '', $result);
     $result = preg_replace('/\s*```\s*$/m', '', $result);
+    $result = preg_replace('/<script[^>]*>\s*/i', '', $result);
+    $result = preg_replace('/\s*<\/script>/i', '', $result);
     $result = trim($result);
 
     if (function_exists('update_field')) {
@@ -339,22 +342,23 @@ function aipm_step_seo_title($post_id) {
     $snippet = mb_substr($content, 0, 800);
     $keyword = get_post_meta($post_id, 'rank_math_focus_keyword', true) ?: '';
 
+    $site_name = get_bloginfo('name');
     $instruction = "You are an SEO expert who specializes in writing click-worthy search result titles for IT training courses. Given the course title, focus keyword, and description below, write an optimized SEO title.\n\n"
         . "RULES:\n"
         . "- Maximum 60 characters (Google truncates after this)\n"
         . "- Include the focus keyword near the beginning\n"
-        . "- End with ' - ITU Online' (this counts toward the 60 characters)\n"
+        . "- End with ' - {$site_name}' (this counts toward the 60 characters)\n"
         . "- Make it compelling — highlight a benefit, outcome, or what makes this course valuable\n"
         . "- Do NOT use clickbait or misleading titles\n"
         . "- Do NOT invent certification names or exam codes not in the content\n"
         . "- Return ONLY the title, nothing else — no quotes, no explanation\n\n"
         . "GOOD EXAMPLES:\n"
-        . "- CompTIA A+ Core 1 (220-1101) Training Course - ITU Online\n"
-        . "- Master IT Asset Management: Complete ITAM Course - ITU Online\n"
-        . "- AWS Solutions Architect Exam Prep & Training - ITU Online\n\n"
+        . "- CompTIA A+ Core 1 (220-1101) Training Course - {$site_name}\n"
+        . "- Master IT Asset Management: Complete ITAM Course - {$site_name}\n"
+        . "- AWS Solutions Architect Exam Prep & Training - {$site_name}\n\n"
         . "BAD EXAMPLES:\n"
-        . "- IT Asset Management Course - ITU Online (too generic)\n"
-        . "- Learn Everything About ITAM and Become an Expert Today - ITU Online (too long, salesy)";
+        . "- IT Asset Management Course - {$site_name} (too generic)\n"
+        . "- Learn Everything About ITAM and Become an Expert Today - {$site_name} (too long, salesy)";
 
     $prompt = "Current Title: {$title}\nFocus Keyword: {$keyword}\n\nDescription:\n{$snippet}";
 

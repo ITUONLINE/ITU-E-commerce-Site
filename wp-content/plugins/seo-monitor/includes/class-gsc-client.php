@@ -18,7 +18,13 @@ class SEOM_GSC_Client {
 
     public function __construct($credentials_json = '', $property_url = '') {
         $this->credentials_json = $credentials_json;
-        $this->property_url = rtrim($property_url, '/') . '/';
+
+        // Domain properties use "sc-domain:" prefix — don't add trailing slash
+        if (strpos($property_url, 'sc-domain:') === 0) {
+            $this->property_url = $property_url;
+        } else {
+            $this->property_url = rtrim($property_url, '/') . '/';
+        }
     }
 
     /**
@@ -175,7 +181,11 @@ class SEOM_GSC_Client {
             $level = $site['permissionLevel'] ?? 'unknown';
             $available[] = $site_url . ' (' . $level . ')';
 
-            if (rtrim($site_url, '/') === rtrim($this->property_url, '/') || $site_url === $this->property_url) {
+            // Normalize for comparison: domain properties match exactly,
+            // URL-prefix properties match with trailing slash normalization
+            $config_norm = rtrim($this->property_url, '/');
+            $site_norm   = rtrim($site_url, '/');
+            if ($site_norm === $config_norm || $site_url === $this->property_url) {
                 $matched = $site;
             }
         }
@@ -228,7 +238,7 @@ class SEOM_GSC_Client {
      * @return array|WP_Error Array of [url => [clicks, impressions, ctr, position]]
      */
     public function get_all_page_metrics($days = 28) {
-        $end_date   = date('Y-m-d', strtotime('-3 days')); // GSC has 3-day lag
+        $end_date   = date('Y-m-d', strtotime('-1 day')); // GSC returns whatever data is available
         $start_date = date('Y-m-d', strtotime("-{$days} days"));
 
         $all_rows = [];
@@ -266,7 +276,7 @@ class SEOM_GSC_Client {
      * @return array|WP_Error
      */
     public function get_all_page_queries($days = 28, $max_queries_per_page = 5) {
-        $end_date   = date('Y-m-d', strtotime('-3 days'));
+        $end_date   = date('Y-m-d', strtotime('-1 day'));
         $start_date = date('Y-m-d', strtotime("-{$days} days"));
 
         $all_rows = [];
@@ -314,7 +324,7 @@ class SEOM_GSC_Client {
      * @return array|WP_Error
      */
     public function get_page_queries($page_url, $days = 28, $limit = 10) {
-        $end_date   = date('Y-m-d', strtotime('-3 days'));
+        $end_date   = date('Y-m-d', strtotime('-1 day'));
         $start_date = date('Y-m-d', strtotime("-{$days} days"));
 
         $body = [
@@ -357,7 +367,7 @@ class SEOM_GSC_Client {
      * @return array|WP_Error  Array of [query => [clicks, impressions, ctr, position]]
      */
     public function get_all_queries_sitewide($days = 28) {
-        $end_date   = date('Y-m-d', strtotime('-3 days'));
+        $end_date   = date('Y-m-d', strtotime('-1 day'));
         $start_date = date('Y-m-d', strtotime("-{$days} days"));
 
         $all = [];

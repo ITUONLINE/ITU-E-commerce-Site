@@ -69,9 +69,20 @@ class SEOM_Collector {
             ...array_merge($post_types, [$batch_size, $offset])
         ));
 
+        // Load stored URLs in bulk — avoid calling get_permalink() for every post every day
+        $post_ids_in_batch = wp_list_pluck($posts, 'ID');
+        $id_placeholders = implode(',', array_fill(0, count($post_ids_in_batch), '%d'));
+        $stored_urls = $wpdb->get_results($wpdb->prepare(
+            "SELECT post_id, url FROM {$wpdb->prefix}seom_page_metrics
+             WHERE post_id IN ({$id_placeholders}) AND url IS NOT NULL AND url != ''
+             GROUP BY post_id, url",
+            ...$post_ids_in_batch
+        ), OBJECT_K);
+
         $saved = 0;
         foreach ($posts as $post) {
-            $url = get_permalink($post->ID);
+            // Use stored URL if available, only call get_permalink for new posts
+            $url = isset($stored_urls[$post->ID]) ? $stored_urls[$post->ID]->url : get_permalink($post->ID);
             if (!$url) continue;
 
             $data = $metrics[$url] ?? $metrics[rtrim($url, '/')] ?? $metrics[$url . '/'] ?? null;

@@ -94,6 +94,9 @@ class SEOM_Blog_Refresher {
      * Check if blog refresh is available (API key configured).
      */
     public static function is_available() {
+        if (function_exists('itu_ai_key')) {
+            return !empty(itu_ai_key('blog_writer'));
+        }
         return !empty(get_option('ai_post_api_key'));
     }
 
@@ -163,14 +166,12 @@ class SEOM_Blog_Refresher {
         // This forces the AI to plan 6-8 sections before writing, producing longer content
         $existing_snippet = mb_substr($existing, 0, 3000);
 
-        $outline_instruction = "You are a content strategist. Given the blog title and existing content below, create a detailed outline for a comprehensive rewrite.\n\n"
-            . "The outline must have:\n"
-            . "- A compelling title in title case\n"
-            . "- At least 6-8 main sections (not counting Introduction and Conclusion)\n"
-            . "- 4-6 detailed bullet points per section covering specific concepts, examples, tools, or steps\n"
-            . "- The outline should expand on the original content, adding depth, new angles, and practical details\n"
-            . "- Do NOT invent certification names or exam codes not in the original content\n\n"
-            . "Return plain text: section headings with bulleted key points. No numbers or Roman numerals.";
+        $outline_instruction = "Using the given blog title and existing content below, create a compelling blog title in title case, then generate a very detailed outline for a long-form blog post that will be 2,000-2,500 words when fully written.\n\n"
+            . "The outline must have at least 6-8 main sections (not counting Introduction and Conclusion). Each section must have 4-6 detailed bullet points covering specific concepts, examples, tools, or steps. The more detailed the outline, the longer and better the final blog post will be.\n\n"
+            . "The outline should expand on the original content, adding depth, new angles, and practical details.\n"
+            . "Do NOT invent certification names or exam codes not in the original content.\n\n"
+            . "Return the outline in plain text using section headings and bulleted key points. Do not use numbers or Roman numerals.\n\n"
+            . "Format:\nBLOG TITLE\n\nMain Heading\n- Key point 1\n- Key point 2\n- Additional subtopics\n\nNext Main Heading\n- Key point 1\n- Key point 2";
 
         $outline = self::call_openai($outline_instruction, "Title: {$title}\n\nExisting Content:\n{$existing_snippet}");
         if (is_wp_error($outline)) {
@@ -178,47 +179,107 @@ class SEOM_Blog_Refresher {
             $outline = $existing_snippet;
         }
 
-        $instruction = "You are a professional IT blog writer for ITU Online Training. Your tone is direct, knowledgeable, and practical. You never sound like a marketing bot or AI. You write for busy IT professionals who scan pages — not people who read every word.\n\n"
-            . "Write a comprehensive blog post from the outline below. This is a rewrite of existing content — improve it significantly with more depth, examples, and actionable advice.\n\n"
+        $site_name = get_bloginfo('name');
+        $instruction = "You are a professional IT blog writer for {$site_name}. Your tone is direct, knowledgeable, and practical. You never sound like a marketing bot or AI. You write for busy IT professionals who scan pages — not people who read every word.\n\n"
+            . "Rewrite the existing content below to optimize for SEO, freshness, and scannability while preserving the core information. Improve it significantly with more depth, examples, and actionable advice.\n\n"
             . "BANNED PHRASES — Do NOT use any of these openings or clichés:\n"
-            . "- In today's rapidly evolving... / In an ever-changing landscape... / In the fast-paced world of...\n"
-            . "- As technology continues to... / In today's digital age... / With the growing importance of...\n"
-            . "- As organizations increasingly... / In the modern IT landscape...\n"
-            . "Instead, open with something specific: a concrete problem, a real scenario, or a direct statement.\n\n"
-            . "IMPORTANT: Do NOT invent or fabricate any certification names, exam codes, or credential titles.\n"
+            . "- In today's rapidly evolving...\n"
+            . "- In an ever-changing landscape...\n"
+            . "- In the fast-paced world of...\n"
+            . "- As technology continues to...\n"
+            . "- In today's digital age...\n"
+            . "- With the growing importance of...\n"
+            . "- As organizations increasingly...\n"
+            . "- In the modern IT landscape...\n"
+            . "- Any variation of these patterns\n"
+            . "Instead, open with something specific: a concrete problem, a real scenario, or a direct statement about what the reader will learn.\n\n"
+            . "IMPORTANT: Do NOT invent or fabricate any certification names, exam codes, or credential titles. Only mention certifications and exam codes that are explicitly referenced in the outline or existing content.\n"
             . "IMPORTANT: Do NOT include any shortcodes (text in square brackets like [example]) in your output. They will be added separately.\n\n"
-            . "DEPTH — Each major section (h2) must be 150-300 words. Go deep on the why and how, not just the what. Include specific examples, tool names, real scenarios, or step-by-step explanations.\n\n"
-            . "SCANNABILITY — Use a MIX of these formats throughout (not just paragraphs and bullets):\n"
-            . "- <p> tags — keep paragraphs SHORT (2-4 sentences max)\n"
-            . "- <ul><li> for unordered lists / <ol><li> for ordered steps or ranked items\n"
-            . "- <strong> to bold key terms and important phrases on first mention\n"
-            . "- <blockquote> for notable quotes, industry insights, or compelling statements\n"
-            . "- Callout boxes — ONLY use these exact classes (do NOT combine or modify):\n"
-            . "  <div class=\"itu-callout itu-callout--tip\"><p><strong>Pro Tip</strong></p><p>Content.</p></div>\n"
-            . "  <div class=\"itu-callout itu-callout--info\"><p><strong>Note</strong></p><p>Content.</p></div>\n"
-            . "  <div class=\"itu-callout itu-callout--warning\"><p><strong>Warning</strong></p><p>Content.</p></div>\n"
-            . "  <div class=\"itu-callout itu-callout--key\"><p><strong>Key Takeaway</strong></p><p>Content.</p></div>\n"
-            . "- Use 1-3 callouts/blockquotes per post total\n"
-            . "- <table> ONLY for simple 2-column comparisons — never 3+ columns (breaks on mobile). For multi-item comparisons use bullet lists with <strong>bold labels</strong> instead\n"
-            . "- <h3> subheadings within long sections\n"
-            . "- Every section must mix at least 2 different format types\n\n"
+            . "WORD COUNT — CRITICAL: The post MUST be at least 2,000 words. Each main section must be 200-350 words. Do NOT summarize or abbreviate — write every section in full detail with specific examples and actionable advice.\n\n"
+            . "DEPTH REQUIREMENTS — This is critical:\n"
+            . "- Each major section (h2) must contain 150-300 words minimum\n"
+            . "- Do not write thin, surface-level summaries. Go deep. Explain the \"why\" and \"how,\" not just the \"what\"\n"
+            . "- Include specific examples, real-world scenarios, tool names, command examples, or step-by-step explanations where relevant\n"
+            . "- When comparing options, actually compare them — don't just list them\n"
+            . "- When explaining a concept, explain it fully enough that someone unfamiliar could understand it\n"
+            . "- Do not say \"we will include...\" — actually write the content in full detail\n\n"
+            . "SCANNABILITY AND FORMAT VARIETY — Readers scan, they don't read. You MUST use a variety of these formatting elements throughout the post (not just paragraphs and bullets):\n\n"
+            . "1. <p> tags for paragraphs — keep paragraphs SHORT (2-4 sentences max). Long paragraphs kill readability\n"
+            . "2. <ul><li> for unordered bullet lists — use for features, options, or items without priority\n"
+            . "3. <ol><li> for numbered/ordered lists — use for steps, processes, or ranked items\n"
+            . "4. <strong> for key terms and important phrases inline — bold the first mention of key concepts so scanners catch them\n"
+            . "5. <blockquote> for notable quotes, industry insights, or a compelling statement — styled as a highlighted pull-quote\n"
+            . "6. Callout boxes for tips, key takeaways, warnings, or important notes — use 1-3 per post total (mix of blockquotes and callouts). Use this exact HTML format for callouts:\n"
+            . "   ONLY use these exact callout classes (do NOT combine or modify them):\n"
+            . "   <div class=\"itu-callout itu-callout--tip\"><p><strong>Pro Tip</strong></p><p>Content.</p></div>\n"
+            . "   <div class=\"itu-callout itu-callout--info\"><p><strong>Note</strong></p><p>Content.</p></div>\n"
+            . "   <div class=\"itu-callout itu-callout--warning\"><p><strong>Warning</strong></p><p>Content.</p></div>\n"
+            . "   <div class=\"itu-callout itu-callout--key\"><p><strong>Key Takeaway</strong></p><p>Content.</p></div>\n"
+            . "7. <table> ONLY for simple 2-column comparisons (e.g., Feature vs Benefit, Option A vs Option B). Never use tables with 3+ columns — they break on mobile. For multi-item comparisons, use bullet lists with <strong>bold labels</strong> instead\n"
+            . "8. <h3> subheadings within sections to break up long sections — use when a section covers multiple sub-topics\n\n"
             . "OUTPUT FORMAT — CRITICAL:\n"
             . "- Return ONLY valid HTML. Do NOT use Markdown syntax anywhere\n"
             . "- Do NOT use # or ## or ### for headings — use <h2> and <h3> HTML tags\n"
             . "- Do NOT use **bold** markdown — use <strong> HTML tags\n"
-            . "- Do NOT use - or * for lists — use <ul><li> or <ol><li> HTML tags\n\n"
+            . "- Do NOT use - or * for lists — use <ul><li> or <ol><li> HTML tags\n"
+            . "- Do NOT use ``` for code blocks — use <code> or <pre> HTML tags\n\n"
             . "STRUCTURE:\n"
-            . "WORD COUNT — CRITICAL: The post MUST be at least 2,000 words. This is a hard minimum.\n"
-            . "- Each of the 6-8 main sections must be 200-350 words\n"
-            . "- Introduction: at least 150 words. Conclusion: at least 150 words\n"
-            . "- 8 sections × 250 words + intro + conclusion = 2,300 words. Hit that target.\n"
-            . "- Do NOT summarize or abbreviate. Write every section in full detail with examples and actionable advice.\n\n"
-            . "- Use <h2> for main sections, <h3> for subsections\n"
+            . "- Use <h2> tags for all major sections\n"
+            . "- Use <h3> for subpoints within sections\n"
             . "- Do NOT include an <h1> tag\n"
-            . "- Cover EVERY section in the outline thoroughly — do not skip any\n"
-            . "- Include LSI keywords and named entity 'ITU Online Training' naturally\n"
-            . "- Write like a real person. Mix short punchy sentences with longer ones\n"
-            . "- Return only the HTML content, no preamble";
+            . "- Do not use numbering or Roman numerals in headings\n"
+            . "- The Introduction should hook the reader with a specific problem or scenario, then preview the key takeaways\n"
+            . "- The Conclusion must summarize key points and include a clear call to action\n"
+            . "- Every section must mix at least 2 different format types (e.g., paragraph + list, paragraph + table, paragraph + blockquote)\n"
+            . "- Cover EVERY section in the outline thoroughly — do not skip any\n\n"
+            . "SEO AND GEO OPTIMIZATION:\n"
+            . "- Use clear, factual language for accurate citation by generative AI\n"
+            . "- Include relevant keywords and LSI keywords naturally throughout\n"
+            . "- Phrase concepts to mirror common user questions (e.g., \"What is...\", \"How does...\", \"Why is...\")\n"
+            . "- Use named entity \"{$site_name}\" where appropriate for attribution\n"
+            . "- Write like a real person. Vary sentence length — mix short punchy sentences with longer explanatory ones\n\n"
+            . "AUTHORITATIVE REFERENCES AND DATA — REQUIRED (critical for credibility):\n"
+            . "Every blog post MUST include at least 3-5 distinct authoritative references from DIFFERENT sources. Do NOT rely on a single source.\n\n"
+            . "REQUIRED reference types (include ALL that apply to the topic):\n"
+            . "1. GOVERNING BODIES & CERT AUTHORITIES — MUST cite official source for relevant cert/vendor:\n"
+            . "   CompTIA, Cisco, Microsoft (learn.microsoft.com), AWS, ISC2, ISACA, PMI, EC-Council,\n"
+            . "   Axelos/PeopleCert, Google Cloud, Linux Foundation, Red Hat, VMware/Broadcom, Juniper, Palo Alto Networks\n"
+            . "2. COMPLIANCE & REGULATORY FRAMEWORKS:\n"
+            . "   NIST (CSF, SP 800), ISO 27001/27002/20000, PCI DSS (pcisecuritystandards.org),\n"
+            . "   HIPAA/HHS (hhs.gov), GDPR/EDPB, SOC 2/AICPA, FedRAMP, CMMC/DoD, CISA,\n"
+            . "   SEC, FERPA, CCPA, COBIT, HITRUST\n"
+            . "3. GOVERNMENT & WORKFORCE:\n"
+            . "   BLS (bls.gov/ooh/), DoD Cyber Workforce (public.cyber.mil), DHS, NSA, FTC, GAO,\n"
+            . "   Dept of Labor (dol.gov), NSF (nsf.gov)\n"
+            . "4. PROFESSIONAL ASSOCIATIONS & HR ORGANIZATIONS:\n"
+            . "   SHRM (shrm.org), ISSA, IAPP, ACM, IEEE, ITSMF, HDI, Cloud Security Alliance,\n"
+            . "   InfraGard, AICPA, World Economic Forum, NICE/NIST Workforce Framework,\n"
+            . "   (ISC)² Workforce Study, CompTIA workforce reports\n"
+            . "5. INDUSTRY RESEARCH & ANALYST FIRMS:\n"
+            . "   Gartner, Forrester, IDC, McKinsey, Deloitte, PwC, KPMG, SANS Institute,\n"
+            . "   Cybersecurity Ventures, Verizon DBIR, IBM Cost of a Data Breach, Ponemon Institute,\n"
+            . "   CrowdStrike Threat Report, Mandiant/Google Threat Intel\n"
+            . "6. TECHNICAL STANDARDS: Official vendor docs, IETF RFCs, OWASP, CIS Benchmarks,\n"
+            . "   MITRE ATT&CK, W3C, FIRST (first.org)\n"
+            . "7. SALARY — Use MULTIPLE sources: BLS, Glassdoor, PayScale, Robert Half, Indeed,\n"
+            . "   LinkedIn, Dice, Global Knowledge Salary Report, SHRM compensation data\n\n"
+            . "CITATION RULES:\n"
+            . "- Format as HTML links: <a href=\"URL\" target=\"_blank\" rel=\"noopener\">Source Name</a>\n"
+            . "- Spread references throughout — each H2 section should have at least one\n"
+            . "- VARY sources — do not cite same org more than twice per article\n"
+            . "- For certs, always reference official cert page for exam details (domains, questions, passing score, cost)\n"
+            . "- NEVER reference, link to, or mention competing IT training providers, online course platforms, bootcamps, or training companies. This includes: Coursera, Udemy, Pluralsight, CBT Nuggets, Cybrary, LinkedIn Learning, A Cloud Guru, INE, Infosec Institute, Training Camp, Global Knowledge, Skillsoft, Simplilearn, KnowledgeHut, edX, Codecademy, DataCamp, or ANY other entity that sells IT training. For learning resources, cite official vendor docs (Microsoft Learn, AWS Skill Builder, Cisco Learning Network) instead.\n"
+            . "- Do NOT fabricate URLs — use main domain or well-known subpages you are confident exist\n"
+            . "- Include concrete data: salary ranges, growth %, pass rates, market size, exam details\n"
+            . "- Think like a human researcher: cross-reference claims from multiple sources\n\n"
+            . "AI SEARCH OPTIMIZATION — Structure content so AI search engines (Google AI Overview, Perplexity, ChatGPT) can cite it:\n"
+            . "- Lead sections with clear, factual thesis statements that directly answer common questions\n"
+            . "- Use definition-style sentences for key concepts (e.g., \"SIEM is a security solution that...\" not \"Let's talk about SIEM\")\n"
+            . "- Include comparison tables and structured lists that AI can extract as direct answers\n"
+            . "- Write FAQ-style subheadings that match natural language queries (e.g., \"How Long Does It Take to Get CompTIA A+ Certified?\")\n"
+            . "- Provide specific, quotable sentences with concrete numbers — AI search engines prefer citing exact claims over vague statements\n"
+            . "- Use <strong> on key facts and definitions to help parsers identify core claims\n\n"
+            . "Return only the HTML content, no preamble";
 
         // Inject data-driven target keywords from GSC
         $kw_data = SEOM_Keyword_Researcher::get_target_keywords($post_id);
@@ -323,14 +384,16 @@ class SEOM_Blog_Refresher {
         }
         if (empty($faq_html)) return new WP_Error('no_faq', 'No FAQ HTML to convert.');
 
-        $instruction = "Convert the following HTML FAQ into a valid JSON-LD FAQPage schema block inside <script type=\"application/ld+json\"> tags. Only return the JSON-LD script tag. Pretty-print the JSON. Input HTML:\n\n" . $faq_html;
+        $instruction = "Convert the following HTML FAQ into a valid JSON-LD FAQPage schema. Return ONLY the raw JSON object — do NOT wrap it in <script> tags. Pretty-print the JSON. Input HTML:\n\n" . $faq_html;
 
         $result = self::call_openai($instruction, null, 'gpt-4.1-nano', 0.3);
         if (is_wp_error($result)) return $result;
 
-        // Strip markdown code fences
+        // Strip markdown code fences and script tags if included
         $result = preg_replace('/^```[a-zA-Z]*\s*/m', '', $result);
         $result = preg_replace('/\s*```\s*$/m', '', $result);
+        $result = preg_replace('/<script[^>]*>\s*/i', '', $result);
+        $result = preg_replace('/\s*<\/script>/i', '', $result);
         $result = trim($result);
 
         if (function_exists('update_field')) {
@@ -382,25 +445,26 @@ class SEOM_Blog_Refresher {
         $content = wp_strip_all_tags(get_post_field('post_content', $post_id));
         $snippet = mb_substr($content, 0, 800);
         $keyword = get_post_meta($post_id, 'rank_math_focus_keyword', true) ?: '';
+        $site_name = get_bloginfo('name');
 
         $instruction = "You are an SEO expert who specializes in writing click-worthy search result titles. Given the blog post title, focus keyword, and content below, write an optimized SEO title.\n\n"
             . "RULES:\n"
             . "- Maximum 60 characters (Google truncates after this)\n"
             . "- Include the focus keyword near the beginning\n"
-            . "- End with ' - ITU Online' (this counts toward the 60 characters)\n"
+            . "- End with ' - {$site_name}' (this counts toward the 60 characters)\n"
             . "- Make it compelling — use power words, numbers, or a clear benefit\n"
             . "- Do NOT use clickbait or misleading titles\n"
             . "- Do NOT invent certification names or exam codes\n"
             . "- Return ONLY the title, nothing else — no quotes, no explanation\n\n"
             . "GOOD EXAMPLES:\n"
-            . "- 7 Essential ITAM Skills Every IT Manager Needs - ITU Online\n"
-            . "- What Is Zero Trust Security? A Practical Guide - ITU Online\n"
-            . "- CompTIA Security+ SY0-701: Complete Study Plan - ITU Online\n"
-            . "- How to Build a Cloud Migration Strategy in 2025 - ITU Online\n\n"
+            . "- 7 Essential ITAM Skills Every IT Manager Needs - {$site_name}\n"
+            . "- What Is Zero Trust Security? A Practical Guide - {$site_name}\n"
+            . "- CompTIA Security+ SY0-701: Complete Study Plan - {$site_name}\n"
+            . "- How to Build a Cloud Migration Strategy in 2025 - {$site_name}\n\n"
             . "BAD EXAMPLES (don't do these):\n"
-            . "- Understanding the Importance of IT Asset Management in Modern Organizations - ITU Online (too long, boring)\n"
-            . "- IT Asset Management - ITU Online (too generic, no hook)\n"
-            . "- You Won't Believe These ITAM Secrets! - ITU Online (clickbait)";
+            . "- Understanding the Importance of IT Asset Management in Modern Organizations - {$site_name} (too long, boring)\n"
+            . "- IT Asset Management - {$site_name} (too generic, no hook)\n"
+            . "- You Won't Believe These ITAM Secrets! - {$site_name} (clickbait)";
 
         $prompt = "Current Title: {$title}\nFocus Keyword: {$keyword}\n\nContent:\n{$snippet}";
 

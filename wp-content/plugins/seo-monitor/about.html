@@ -1,0 +1,640 @@
+<div class="wrap" id="seo-exec-summary">
+<style>
+#seo-exec-summary {
+    max-width: 960px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1e293b;
+    line-height: 1.7;
+}
+#seo-exec-summary * { box-sizing: border-box; }
+#seo-exec-summary .es-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+    color: #fff;
+    padding: 40px 48px;
+    border-radius: 12px;
+    margin-bottom: 32px;
+}
+#seo-exec-summary .es-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    color: #fff;
+}
+#seo-exec-summary .es-header .es-subtitle {
+    font-size: 15px;
+    color: #94a3b8;
+    margin: 0;
+}
+#seo-exec-summary .es-header .es-meta {
+    display: flex;
+    gap: 24px;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #cbd5e1;
+}
+#seo-exec-summary .es-header .es-meta span { display: flex; align-items: center; gap: 6px; }
+
+#seo-exec-summary .es-toc {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 24px 32px;
+    margin-bottom: 32px;
+}
+#seo-exec-summary .es-toc h3 { margin: 0 0 12px; font-size: 15px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
+#seo-exec-summary .es-toc ul { margin: 0; padding: 0; list-style: none; columns: 2; column-gap: 32px; }
+#seo-exec-summary .es-toc li { padding: 4px 0; }
+#seo-exec-summary .es-toc a { color: #2563eb; text-decoration: none; font-size: 14px; font-weight: 500; }
+#seo-exec-summary .es-toc a:hover { text-decoration: underline; }
+
+#seo-exec-summary .es-section {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 32px 40px;
+    margin-bottom: 24px;
+}
+#seo-exec-summary .es-section h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    color: #0f172a;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e2e8f0;
+}
+#seo-exec-summary .es-section h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 28px 0 12px;
+    color: #1e40af;
+}
+#seo-exec-summary .es-section h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 20px 0 8px;
+    color: #334155;
+}
+#seo-exec-summary .es-section p { margin: 0 0 14px; font-size: 14.5px; }
+#seo-exec-summary .es-section ul, #seo-exec-summary .es-section ol { margin: 0 0 16px; padding-left: 24px; font-size: 14.5px; }
+#seo-exec-summary .es-section li { margin-bottom: 6px; }
+#seo-exec-summary .es-section strong { color: #0f172a; }
+
+#seo-exec-summary table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 20px;
+    font-size: 13.5px;
+}
+#seo-exec-summary thead th {
+    background: #f1f5f9;
+    text-align: left;
+    padding: 10px 14px;
+    font-weight: 600;
+    color: #334155;
+    border-bottom: 2px solid #cbd5e1;
+}
+#seo-exec-summary tbody td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+}
+#seo-exec-summary tbody tr:hover { background: #f8fafc; }
+
+#seo-exec-summary .es-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 4px;
+}
+#seo-exec-summary .es-badge-blue { background: #dbeafe; color: #1e40af; }
+#seo-exec-summary .es-badge-green { background: #dcfce7; color: #166534; }
+#seo-exec-summary .es-badge-amber { background: #fef3c7; color: #92400e; }
+#seo-exec-summary .es-badge-red { background: #fee2e2; color: #991b1b; }
+#seo-exec-summary .es-badge-purple { background: #f3e8ff; color: #6b21a8; }
+#seo-exec-summary .es-badge-gray { background: #f1f5f9; color: #475569; }
+
+#seo-exec-summary .es-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+}
+#seo-exec-summary .es-stat {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px 20px;
+    text-align: center;
+}
+#seo-exec-summary .es-stat .es-stat-val {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1e40af;
+    display: block;
+}
+#seo-exec-summary .es-stat .es-stat-label {
+    font-size: 12px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+    display: block;
+}
+
+#seo-exec-summary .es-flow {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 24px;
+    margin: 20px 0;
+    font-family: "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre;
+    overflow-x: auto;
+    color: #334155;
+}
+
+#seo-exec-summary .es-kw-lifecycle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+#seo-exec-summary .es-kw-step {
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+}
+#seo-exec-summary .es-kw-arrow {
+    font-size: 20px;
+    color: #94a3b8;
+    padding: 0 4px;
+}
+
+#seo-exec-summary .es-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 16px 0;
+}
+@media (max-width: 768px) {
+    #seo-exec-summary .es-two-col { grid-template-columns: 1fr; }
+    #seo-exec-summary .es-toc ul { columns: 1; }
+}
+
+#seo-exec-summary .es-callout {
+    border-left: 4px solid #2563eb;
+    background: #eff6ff;
+    padding: 14px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 16px 0;
+    font-size: 14px;
+}
+#seo-exec-summary .es-callout-green { border-left-color: #059669; background: #ecfdf5; }
+</style>
+
+<!-- HEADER -->
+<div class="es-header">
+    <h1>SEO & Content Automation Platform</h1>
+    <p class="es-subtitle">Executive Summary &mdash; Architecture, Features, and Capabilities</p>
+    <div class="es-meta">
+        <span><strong>Platform:</strong> WordPress / WooCommerce</span>
+        <span><strong>Sites:</strong> ITU Online Training &middot; Vision Training Systems</span>
+        <span><strong>Last Updated:</strong> April 2, 2026</span>
+    </div>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="es-toc">
+    <h3>Contents</h3>
+    <ul>
+        <li><a href="#overview">Platform Overview</a></li>
+        <li><a href="#seo-monitor">SEO Monitor Plugin</a></li>
+        <li><a href="#blog-queue">Blog Queue Plugin</a></li>
+        <li><a href="#content-quality">Content Quality Standards</a></li>
+        <li><a href="#keyword-intelligence">Keyword Intelligence</a></li>
+        <li><a href="#architecture">Integration Architecture</a></li>
+        <li><a href="#database">Database Schema</a></li>
+        <li><a href="#resilience">Technical Resilience</a></li>
+        <li><a href="#metrics">Platform Metrics</a></li>
+    </ul>
+</div>
+
+<!-- OVERVIEW -->
+<div class="es-section" id="overview">
+    <h2>Platform Overview</h2>
+    <p>This platform is an integrated SEO and content automation ecosystem built on two core WordPress plugins &mdash; <strong>SEO Monitor</strong> and <strong>Blog Queue</strong> &mdash; that work together as a closed-loop content intelligence and production system.</p>
+    <p>The platform connects to Google Search Console for real-time performance data, imports competitive intelligence from SEMrush, and uses AI to both identify content opportunities and produce publication-ready blog posts with full SEO optimization.</p>
+    <div class="es-callout">
+        <strong>Site-Agnostic Design:</strong> All AI prompts, branding references, and configurations dynamically pull the site name via <code>get_bloginfo('name')</code>, making the entire platform portable across multiple properties without code changes.
+    </div>
+</div>
+
+<!-- SEO MONITOR -->
+<div class="es-section" id="seo-monitor">
+    <h2>Plugin: SEO Monitor</h2>
+    <p>SEO Monitor is the <strong>intelligence and optimization engine</strong>. It continuously monitors every indexed page through Google Search Console, scores pages against a multi-factor algorithm, and automatically refreshes underperforming content using AI.</p>
+
+    <h3>Data Collection &amp; Intelligence</h3>
+    <ul>
+        <li><strong>Google Search Console Integration</strong> &mdash; OAuth2 service account authentication. Daily snapshots of clicks, impressions, CTR, and position for every published page. Top 5 search queries stored per page for AI context injection.</li>
+        <li><strong>Keyword Intelligence</strong> &mdash; Growing keyword database with 28-day trends (rising/stable/declining), fuzzy keyword-to-post mapping, cannibalization detection, and opportunity scoring (0-100).</li>
+        <li><strong>Competitive Gap Analysis</strong> &mdash; SEMrush CSV imports with AI auto-tagging, programmatic deduplication, batch consolidation, and 90-day keyword cooldown tracking.</li>
+        <li><strong>Google Autocomplete Expansion</strong> &mdash; Weekly enrichment of top keywords with long-tail variations via Autocomplete API.</li>
+    </ul>
+
+    <h3>Page Scoring Algorithm</h3>
+    <p>Every monitored page is scored across four weighted dimensions:</p>
+    <table>
+        <thead><tr><th>Factor</th><th>Weight</th><th>What It Measures</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Opportunity</strong></td><td>35%</td><td>Position, search volume, room for improvement</td></tr>
+            <tr><td><strong>Momentum</strong></td><td>25%</td><td>Click trend direction (rising vs. declining)</td></tr>
+            <tr><td><strong>Quick Win</strong></td><td>25%</td><td>Category-based probability of improvement</td></tr>
+            <tr><td><strong>Staleness</strong></td><td>15%</td><td>Time since last content refresh</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Performance Categories</h3>
+    <table>
+        <thead><tr><th>Category</th><th>Description</th><th>Trigger</th></tr></thead>
+        <tbody>
+            <tr><td><span class="es-badge es-badge-gray">A</span> Ghost Pages</td><td>Zero or near-zero impressions</td><td>Content not being discovered at all</td></tr>
+            <tr><td><span class="es-badge es-badge-blue">B</span> CTR Fix</td><td>Good position, high impressions, poor CTR</td><td>Needs better title or meta description</td></tr>
+            <tr><td><span class="es-badge es-badge-green">C</span> Near Wins</td><td>Page 2 positions (11-20) with volume</td><td>Close to page 1 breakthrough</td></tr>
+            <tr><td><span class="es-badge es-badge-red">D</span> Declining</td><td>30%+ click drop vs. prior period</td><td>Content losing relevance or freshness</td></tr>
+            <tr><td><span class="es-badge es-badge-amber">E</span> Visible but Ignored</td><td>500+ impressions, fewer than 10 clicks</td><td>High exposure with no engagement</td></tr>
+            <tr><td><span class="es-badge es-badge-purple">F</span> Buried Potential</td><td>Position 20+ with meaningful impressions</td><td>Significant untapped opportunity</td></tr>
+        </tbody>
+    </table>
+    <p>The queue uses <strong>round-robin balancing</strong> across categories so each day's refresh mix covers different problem types.</p>
+
+    <h3>Content Refresh Engine</h3>
+    <p>Three refresh tiers with smart escalation:</p>
+    <div class="es-two-col">
+        <div>
+            <h4>Refresh Types</h4>
+            <ul>
+                <li><strong>Full Refresh</strong> &mdash; Complete content rewrite with new outline, FAQ, schema, and meta</li>
+                <li><strong>SEO Refresh</strong> &mdash; FAQ, schema, meta, keyword, and title only</li>
+                <li><strong>Meta Refresh</strong> &mdash; Title and meta description only (CTR fixes)</li>
+            </ul>
+        </div>
+        <div>
+            <h4>AI Pipeline Steps</h4>
+            <ol>
+                <li>Generate structured outline (6-8 sections)</li>
+                <li>Write 2,000-2,500 word HTML content</li>
+                <li>Meta description (140-155 chars)</li>
+                <li>FAQ generation (5 entries, accordion format)</li>
+                <li>JSON-LD FAQPage schema</li>
+                <li>Focus keyword &amp; SEO title (Rank Math)</li>
+            </ol>
+        </div>
+    </div>
+    <div class="es-callout-green es-callout">
+        <strong>Smart Escalation:</strong> If a meta-only refresh doesn't improve performance on the next analysis cycle, the system automatically escalates to a full content refresh.
+    </div>
+
+    <h3>Automation Schedule</h3>
+    <table>
+        <thead><tr><th>Time</th><th>Task</th></tr></thead>
+        <tbody>
+            <tr><td><strong>1:00 AM</strong></td><td>Collect GSC page metrics (clicks, impressions, CTR, position)</td></tr>
+            <tr><td><strong>1:30 AM</strong></td><td>Collect keyword intelligence &amp; 28-day trends</td></tr>
+            <tr><td><strong>2:00 AM</strong></td><td>Analyze pages, score, and populate refresh queue</td></tr>
+            <tr><td><strong>6:00 AM</strong></td><td>Begin processing queue (10-min intervals between items)</td></tr>
+            <tr><td><strong>Wed 3:00 AM</strong></td><td>Backfill 30-day and 60-day post-refresh performance metrics</td></tr>
+            <tr><td><strong>Sun 4:00 AM</strong></td><td>Expand top keywords via Google Autocomplete</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Dashboard Tabs</h3>
+    <table>
+        <thead><tr><th>Tab</th><th>Purpose</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Overview</strong></td><td>KPIs, queue status, processing stats, today's refresh count</td></tr>
+            <tr><td><strong>Indexed</strong></td><td>All tracked pages with current GSC metrics</td></tr>
+            <tr><td><strong>Performance Tracker</strong></td><td>Before/after charts with trend filters (30d &amp; 60d comparison)</td></tr>
+            <tr><td><strong>Queue</strong></td><td>Pending refreshes with priority scores, categories, bulk actions</td></tr>
+            <tr><td><strong>History</strong></td><td>Completed refreshes with before/after metric comparisons</td></tr>
+            <tr><td><strong>Keywords</strong></td><td>GSC keyword intelligence, opportunity scores, content gaps, lost keywords</td></tr>
+            <tr><td><strong>Keyword Gaps</strong></td><td>Imported competitive keywords with AI tagging, filters, usage tracking</td></tr>
+            <tr><td><strong>Settings</strong></td><td>GSC credentials, thresholds, processing limits, notification email</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- BLOG QUEUE -->
+<div class="es-section" id="blog-queue">
+    <h2>Plugin: Blog Queue</h2>
+    <p>Blog Queue is the <strong>content production engine</strong>. It manages a pipeline of blog topics from ideation through AI-powered creation to publication, with full keyword targeting and SEO optimization at every step.</p>
+
+    <h3>AI Topic Generation</h3>
+    <p>The topic generator analyzes multiple data sources to suggest unique, non-overlapping blog ideas:</p>
+    <ul>
+        <li><strong>GSC Content Gaps</strong> &mdash; Keywords with impressions but no dedicated post</li>
+        <li><strong>Trending Keywords</strong> &mdash; Rising search queries from Google Search Console</li>
+        <li><strong>Competitive Gap Keywords</strong> &mdash; Imported from SEMrush, filtered by category and volume</li>
+        <li><strong>LSI Keywords</strong> &mdash; Semantically related variants for topic differentiation</li>
+        <li><strong>Existing Content Audit</strong> &mdash; Cross-references all post titles and queued topics to prevent duplication</li>
+    </ul>
+    <p><strong>Filtering options:</strong> Gap category, volume tier (High Volume 1000+, Low Difficulty KD&le;30, Quick Wins), focus area, and quantity (5-50). The category dropdown dynamically updates available counts based on the selected volume filter.</p>
+
+    <h3>Content Creation Pipeline</h3>
+    <p>Blog creation is a 4-step AJAX process, each step executing independently to avoid server timeouts:</p>
+    <table>
+        <thead><tr><th>Step</th><th>Action</th><th>Output</th></tr></thead>
+        <tbody>
+            <tr><td><span class="es-badge es-badge-blue">1</span></td><td>Generate Outline</td><td>6-8 section structure with detailed bullet points</td></tr>
+            <tr><td><span class="es-badge es-badge-blue">2</span></td><td>Write Content</td><td>2,000-2,500 word HTML article with citations, formatting, keyword injection</td></tr>
+            <tr><td><span class="es-badge es-badge-blue">3</span></td><td>SEO Metadata</td><td>Meta description, focus keyword, SEO title (Rank Math)</td></tr>
+            <tr><td><span class="es-badge es-badge-blue">4</span></td><td>FAQ &amp; Schema</td><td>5 FAQs in accordion format + JSON-LD FAQPage schema (ACF fields)</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Queue Processing &amp; Distribution</h3>
+    <ul>
+        <li><strong>Round-Robin Distribution</strong> &mdash; Items are distributed across gap categories in rotation. With 10 categories, the first 10 blogs created will each be from a different category &mdash; preventing clusters of same-topic posts from publishing simultaneously.</li>
+        <li><strong>Daily Limits</strong> &mdash; Configurable cap (default 5, max 50) prevents runaway processing.</li>
+        <li><strong>Manual Processing</strong> &mdash; "Process Queue Now" selects up to 25 items from the full queue using round-robin distribution across all categories.</li>
+    </ul>
+
+    <h3>All Blogs Management</h3>
+    <p>A dedicated tab provides oversight of the entire blog library:</p>
+    <div class="es-two-col">
+        <div>
+            <h4>Filters</h4>
+            <ul>
+                <li>Missing FAQ</li>
+                <li>Missing JSON-LD schema</li>
+                <li>Missing featured image</li>
+                <li>Missing meta description</li>
+                <li>Missing focus keyword</li>
+                <li>Short content (&lt;1,000 words)</li>
+                <li>SEO Monitor refresh status</li>
+            </ul>
+        </div>
+        <div>
+            <h4>Bulk Actions</h4>
+            <ul>
+                <li>Full Refresh (complete rewrite)</li>
+                <li>SEO Refresh (FAQ, schema, meta only)</li>
+                <li>Meta Refresh (title &amp; description only)</li>
+            </ul>
+            <h4>Per-Post Metrics</h4>
+            <ul>
+                <li>Word count (color-coded by length)</li>
+                <li>FAQ / Schema / Meta / Keyword presence</li>
+                <li>View, Edit, and Refresh actions</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>Email Notifications</h3>
+    <ul>
+        <li><strong>Per-Blog Alert</strong> &mdash; Sent immediately when each blog is created or fails (HTML formatted with View/Edit links)</li>
+        <li><strong>Daily Summary</strong> &mdash; Aggregate report of all blogs created/failed during the day's processing run</li>
+    </ul>
+</div>
+
+<!-- CONTENT QUALITY -->
+<div class="es-section" id="content-quality">
+    <h2>Content Quality Standards</h2>
+    <p>All AI-generated content across both plugins (new blogs, refreshes, product descriptions) follows strict quality requirements enforced through detailed prompt engineering.</p>
+
+    <h3>Writing Requirements</h3>
+    <ul>
+        <li><strong>Length:</strong> 2,000-2,500 words minimum; each H2 section 200-350 words</li>
+        <li><strong>Formatting:</strong> Paragraphs, bullet lists, numbered lists, callout boxes (tip/info/warning/key takeaway), comparison tables, blockquotes &mdash; minimum 2 format types per section</li>
+        <li><strong>Depth:</strong> No surface-level summaries. Specific examples, tool names, commands, step-by-step details, real-world scenarios, and comparisons</li>
+        <li><strong>Tone:</strong> Human-sounding. Varied sentence length. No generic openers ("In today's rapidly evolving...") or marketing clich&eacute;s</li>
+    </ul>
+
+    <h3>Authoritative Citations (3-5 per article, minimum)</h3>
+    <p>Every article must reference multiple source categories. Sources must be varied &mdash; no organization cited more than twice per article.</p>
+    <table>
+        <thead><tr><th>Source Category</th><th>Examples</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Governing Bodies &amp; Cert Authorities</strong></td><td>CompTIA, Cisco, Microsoft, AWS, ISC2, ISACA, PMI, EC-Council, Google Cloud, Linux Foundation, Red Hat, Palo Alto Networks, Juniper, VMware</td></tr>
+            <tr><td><strong>Compliance &amp; Regulatory</strong></td><td>NIST (CSF, SP 800), ISO 27001/27002, PCI DSS, HIPAA/HHS, GDPR/EDPB, SOC 2/AICPA, FedRAMP, CMMC, SEC, CCPA, COBIT, HITRUST</td></tr>
+            <tr><td><strong>Government &amp; Workforce</strong></td><td>Bureau of Labor Statistics, DoD Cyber Workforce, DHS, NSA, FTC, GAO, Dept of Labor, National Science Foundation</td></tr>
+            <tr><td><strong>Professional Associations &amp; HR</strong></td><td>SHRM, ISSA, IAPP, ACM, IEEE, Cloud Security Alliance, InfraGard, NICE/NIST Framework, (ISC)&sup2; Workforce Study, World Economic Forum</td></tr>
+            <tr><td><strong>Industry Research &amp; Analysts</strong></td><td>Gartner, Forrester, IDC, McKinsey, Deloitte, PwC, KPMG, SANS Institute, Cybersecurity Ventures, Verizon DBIR, IBM, Ponemon Institute, CrowdStrike</td></tr>
+            <tr><td><strong>Technical Standards</strong></td><td>OWASP, CIS Benchmarks, MITRE ATT&amp;CK, IETF RFCs, W3C, FIRST</td></tr>
+            <tr><td><strong>Salary &amp; Job Market</strong></td><td>BLS, Glassdoor, PayScale, Robert Half, Indeed, LinkedIn, Dice, Global Knowledge Salary Report, SHRM compensation data</td></tr>
+        </tbody>
+    </table>
+
+    <div class="es-callout" style="border-left-color: #dc2626; background: #fef2f2;">
+        <strong>Competitor Exclusion:</strong> An explicit blacklist prevents any reference to competing IT training providers: Coursera, Udemy, Pluralsight, CBT Nuggets, Cybrary, LinkedIn Learning, A Cloud Guru, INE, Infosec Institute, Training Camp, Global Knowledge, Skillsoft, Simplilearn, KnowledgeHut, edX, Codecademy, DataCamp, or any other entity that sells IT training. Official vendor resources (Microsoft Learn, AWS Skill Builder, Cisco Learning Network) are used instead.
+    </div>
+
+    <h3>AI Search Optimization</h3>
+    <p>Content is structured for citation by AI search engines (Google AI Overview, Perplexity, ChatGPT):</p>
+    <ul>
+        <li>Definition-style sentences for key concepts</li>
+        <li>Comparison tables and structured lists extractable as direct answers</li>
+        <li>FAQ-style headings matching natural language queries</li>
+        <li>Specific, quotable sentences with concrete numbers</li>
+    </ul>
+</div>
+
+<!-- KEYWORD INTELLIGENCE -->
+<div class="es-section" id="keyword-intelligence">
+    <h2>Keyword Intelligence &amp; Lifecycle</h2>
+
+    <h3>Keyword Sources</h3>
+    <div class="es-two-col">
+        <div>
+            <h4>Discovery Sources</h4>
+            <ul>
+                <li><strong>GSC Keywords</strong> &mdash; Actual search queries with impressions, clicks, position</li>
+                <li><strong>SEMrush Import</strong> &mdash; Competitive gap keywords with volume and difficulty</li>
+                <li><strong>Google Autocomplete</strong> &mdash; Long-tail expansion of top performers</li>
+                <li><strong>LSI Keywords</strong> &mdash; AI-discovered semantic variants stored per seed keyword</li>
+                <li><strong>Content Gaps</strong> &mdash; Queries with impressions but no dedicated page</li>
+            </ul>
+        </div>
+        <div>
+            <h4>Intelligence Features</h4>
+            <ul>
+                <li><strong>Trend Detection</strong> &mdash; 28-day rising/stable/declining analysis</li>
+                <li><strong>Opportunity Scoring</strong> &mdash; 0-100 composite score (volume, position, CTR gap, trend)</li>
+                <li><strong>Cannibalization Detection</strong> &mdash; Multiple pages ranking for same query</li>
+                <li><strong>Lost Keyword Tracking</strong> &mdash; Keywords that disappear from GSC flagged, not deleted</li>
+                <li><strong>Growing Intelligence</strong> &mdash; Upsert pattern preserves historical data</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>Keyword Lifecycle</h3>
+    <div class="es-kw-lifecycle">
+        <div class="es-kw-step" style="background:#dcfce7;color:#166534;">Available</div>
+        <span class="es-kw-arrow">&rarr;</span>
+        <div class="es-kw-step" style="background:#fef3c7;color:#92400e;">Reserved (Queued)</div>
+        <span class="es-kw-arrow">&rarr;</span>
+        <div class="es-kw-step" style="background:#dbeafe;color:#1e40af;">Used (Published)</div>
+        <span class="es-kw-arrow">&rarr;</span>
+        <div class="es-kw-step" style="background:#fee2e2;color:#991b1b;">Cooldown (90 days)</div>
+        <span class="es-kw-arrow">&rarr;</span>
+        <div class="es-kw-step" style="background:#dcfce7;color:#166534;">Available</div>
+    </div>
+    <ul>
+        <li><strong>Reservation</strong> &mdash; Keywords locked when topics are added to the queue, preventing conflicts</li>
+        <li><strong>Usage Tracking</strong> &mdash; Stamped with post ID and date when the blog is published</li>
+        <li><strong>Cooldown</strong> &mdash; 90-day configurable period prevents the same keyword from being targeted in multiple posts</li>
+        <li><strong>Release</strong> &mdash; Keywords freed if a queue item is deleted before processing</li>
+    </ul>
+</div>
+
+<!-- ARCHITECTURE -->
+<div class="es-section" id="architecture">
+    <h2>Integration Architecture</h2>
+<div class="es-flow">                    Google Search Console
+                 (clicks, impressions, CTR, position)
+                              |
+                              v
+    +----------------------------------------------------+
+    |                    SEO Monitor                      |
+    |  Collector  --->  Analyzer  --->  Processor         |
+    |  (GSC API)       (Score)        (Refresh)           |
+    |                                                     |
+    |  Keyword Researcher    Keyword Gap Importer          |
+    |  (trends, mapping)     (SEMrush CSV)                |
+    +----------+---------------------+-------------------+
+               |                     |
+               v                     v
+    +----------------------------------------------------+
+    |                    Blog Queue                       |
+    |  Topic Generator --> Queue Manager --> Content      |
+    |  (AI + keywords)    (round-robin)    Pipeline       |
+    |                                        |            |
+    |  Gap Keywords + GSC Gaps + LSI --------+            |
+    +----------------------------------------------------+
+               |
+               v
+    +----------------------------------------------------+
+    |             WordPress / WooCommerce                 |
+    |  Rank Math (SEO Meta)  |  ACF (FAQ/JSON-LD)        |
+    |  Posts / Products      |  Categories / Tags        |
+    +----------------------------------------------------+</div>
+</div>
+
+<!-- DATABASE -->
+<div class="es-section" id="database">
+    <h2>Database Schema</h2>
+
+    <h3>SEO Monitor Tables (8)</h3>
+    <table>
+        <thead><tr><th>Table</th><th>Purpose</th><th>Key Fields</th></tr></thead>
+        <tbody>
+            <tr><td><code>seom_page_metrics</code></td><td>Daily GSC snapshots per page</td><td>clicks, impressions, ctr, position, top_queries</td></tr>
+            <tr><td><code>seom_refresh_queue</code></td><td>Pending content refreshes</td><td>post_id, category (A-F), priority_score, refresh_type</td></tr>
+            <tr><td><code>seom_refresh_history</code></td><td>Audit trail of all refreshes</td><td>before/after metrics at 30d and 60d</td></tr>
+            <tr><td><code>seom_keywords</code></td><td>GSC keyword intelligence</td><td>trend_direction, opportunity_score, is_content_gap</td></tr>
+            <tr><td><code>seom_keyword_gaps</code></td><td>Imported competitive keywords</td><td>search_volume, keyword_difficulty, tag, last_used_at</td></tr>
+            <tr><td><code>seom_keyword_usage</code></td><td>Keyword cooldown tracking</td><td>status (reserved/used), used_at, post_id, queue_id</td></tr>
+            <tr><td><code>seom_lsi_keywords</code></td><td>LSI keyword relationships</td><td>seed_keyword &rarr; lsi_keyword pairs</td></tr>
+            <tr><td><code>seom_keyword_suggestions</code></td><td>Autocomplete expansion results</td><td>seed_keyword &rarr; suggestion</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Blog Queue Tables (2)</h3>
+    <table>
+        <thead><tr><th>Table</th><th>Purpose</th><th>Key Fields</th></tr></thead>
+        <tbody>
+            <tr><td><code>bq_queue</code></td><td>Pending blog topics</td><td>title, gap_category, target_keywords, status</td></tr>
+            <tr><td><code>bq_history</code></td><td>Creation audit log</td><td>title, post_id, status, error_message</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- RESILIENCE -->
+<div class="es-section" id="resilience">
+    <h2>Technical Resilience</h2>
+
+    <h3>Timeout Prevention</h3>
+    <p>All long-running operations are broken into batched AJAX chains to prevent nginx 504 gateway timeouts:</p>
+    <table>
+        <thead><tr><th>Operation</th><th>Strategy</th></tr></thead>
+        <tbody>
+            <tr><td>Blog creation</td><td>4-step pipeline (outline, content, meta, FAQ/schema)</td></tr>
+            <tr><td>SEO Monitor queue</td><td>Step-based processing with 10-min cron intervals</td></tr>
+            <tr><td>GSC data collection</td><td>2-phase batch processing (50 posts per batch)</td></tr>
+            <tr><td>SEMrush import</td><td>Multi-phase (parse &rarr; upsert batches)</td></tr>
+            <tr><td>Tag consolidation</td><td>3-phase (dedup &rarr; AI batch &rarr; apply batch)</td></tr>
+            <tr><td>Keyword collection</td><td>Batched at 200 keywords per AJAX call</td></tr>
+            <tr><td>AI auto-tagging</td><td>40 keywords per AI call with running progress counter</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Data Integrity</h3>
+    <ul>
+        <li>Growing keyword intelligence (upsert pattern &mdash; never delete-rebuild)</li>
+        <li>Lost keyword detection (flagged as "lost," not deleted from database)</li>
+        <li>Keyword cooldown prevents over-optimization and cannibalization</li>
+        <li>Round-robin queue distribution prevents topic clustering</li>
+        <li>Top performer protection (pages with &gt;5 clicks are never auto-refreshed)</li>
+    </ul>
+
+    <h3>Security</h3>
+    <ul>
+        <li>Nonce verification on all AJAX endpoints</li>
+        <li>Capability checks (<code>manage_options</code> / <code>manage_woocommerce</code>)</li>
+        <li>Prepared SQL statements throughout (no injection risk)</li>
+        <li>Input sanitization on all user-provided data</li>
+    </ul>
+</div>
+
+<!-- METRICS -->
+<div class="es-section" id="metrics">
+    <h2>Platform Metrics</h2>
+    <div class="es-stats">
+        <div class="es-stat">
+            <span class="es-stat-val">38+</span>
+            <span class="es-stat-label">AJAX Endpoints</span>
+        </div>
+        <div class="es-stat">
+            <span class="es-stat-val">10</span>
+            <span class="es-stat-label">Database Tables</span>
+        </div>
+        <div class="es-stat">
+            <span class="es-stat-val">6</span>
+            <span class="es-stat-label">Cron Jobs</span>
+        </div>
+        <div class="es-stat">
+            <span class="es-stat-val">4</span>
+            <span class="es-stat-label">AI Steps / New Blog</span>
+        </div>
+        <div class="es-stat">
+            <span class="es-stat-val">7</span>
+            <span class="es-stat-label">AI Steps / Refresh</span>
+        </div>
+        <div class="es-stat">
+            <span class="es-stat-val">6</span>
+            <span class="es-stat-label">Page Categories (A-F)</span>
+        </div>
+        <div class="es-stat">
+            <span class="es-stat-val">7</span>
+            <span class="es-stat-label">Citation Source Types</span>
+        </div>
+        <div class="es-stat">
+            <span class="es-stat-val">5</span>
+            <span class="es-stat-label">Keyword Sources</span>
+        </div>
+    </div>
+
+    <div class="es-callout-green es-callout" style="margin-top: 24px; text-align: center;">
+        This platform transforms SEO management from a manual, reactive process into an <strong>automated, data-driven system</strong> &mdash; identifying what content needs attention through GSC intelligence, prioritizing work with a composite scoring algorithm, executing improvements through AI with strict quality controls, and tracking results to create a continuous improvement loop that scales across hundreds of pages.
+    </div>
+</div>
+
+</div><!-- #seo-exec-summary -->

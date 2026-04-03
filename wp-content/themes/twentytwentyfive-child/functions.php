@@ -1093,6 +1093,35 @@ function itu_get_random_promo_html() {
  * Global plans bar — reusable CTA bar managed from admin.
  * Usage: [itu_plans_bar]
  */
+// ─── Post Dates (Published + Last Updated) ─────────────────────────────────
+
+add_shortcode('itu_post_dates', function () {
+    $post = get_post();
+    if (!$post) return '';
+
+    $published = get_the_date('F j, Y', $post);
+    $modified  = get_the_modified_date('F j, Y', $post);
+    $show_modified = ($modified !== $published);
+
+    $html = '<div class="itu-post-dates">';
+    $html .= '<div class="itu-post-dates__col">';
+    $html .= '<span class="itu-post-dates__label">Published</span>';
+    $html .= '<span class="itu-post-dates__date">' . esc_html($published) . '</span>';
+    $html .= '</div>';
+
+    if ($show_modified) {
+        $html .= '<div class="itu-post-dates__col">';
+        $html .= '<span class="itu-post-dates__label">Last Updated</span>';
+        $html .= '<span class="itu-post-dates__date">' . esc_html($modified) . '</span>';
+        $html .= '</div>';
+    }
+
+    $html .= '</div>';
+    return $html;
+});
+
+// ─── Plans Bar ──────────────────────────────────────────────────────────────
+
 define('ITU_PLANS_BAR_OPTION', 'itu_plans_bar_settings');
 
 add_shortcode('itu_plans_bar', function () {
@@ -2577,6 +2606,18 @@ function inject_faq_jsonld_script() {
 }
 add_action('wp_head', 'inject_faq_jsonld_script');
 
+// Prevent RankMath from auto-generating duplicate FAQ schema — we handle it via ACF
+add_filter('rank_math/json_ld', function ($data, $jsonld) {
+    if (is_singular() && !empty($data)) {
+        foreach ($data as $key => $schema) {
+            if (isset($schema['@type']) && $schema['@type'] === 'FAQPage') {
+                unset($data[$key]);
+            }
+        }
+    }
+    return $data;
+}, 99, 2);
+
 /**
  * Render product FAQ section from ACF field.
  * Parses the JSON-LD schema to extract Q&A pairs and renders them
@@ -3217,6 +3258,95 @@ function tag_cloud($args = array()) {
 
 add_filter('rank_math/sitemap/enable_caching', '__return_false');
 
+// ─── IT Glossary — Unified Shortcode ────────────────────────────────────────
+
+add_shortcode('it_glossary', function ($atts) {
+    $atts = shortcode_atts(['letter' => 'A'], $atts);
+
+    // Determine current state from URL params
+    $letter    = isset($_GET['letter']) && !empty($_GET['letter']) ? strtoupper(sanitize_text_field($_GET['letter'])) : strtoupper($atts['letter']);
+    $search    = isset($_POST['search_term']) ? sanitize_text_field($_POST['search_term']) : (isset($_GET['search']) ? sanitize_text_field($_GET['search']) : '');
+    $page      = isset($_GET['pagenum']) ? max(1, intval($_GET['pagenum'])) : 1;
+    $is_search = !empty($search);
+
+    // If search was submitted, override letter context
+    if ($is_search) {
+        $letter = '';
+    }
+
+    // ── Search Bar ──
+    $base_url = strtok($_SERVER['REQUEST_URI'], '?');
+    $output = '<div class="glossary-wrapper">';
+    $output .= '<form class="glossary-search" method="POST" action="' . esc_url($base_url) . '" style="display:flex;gap:8px;margin-bottom:16px;">';
+    $output .= '<input type="text" name="search_term" value="' . esc_attr($search) . '" placeholder="Search glossary terms..." style="flex:1;padding:10px 14px;border:1px solid #d1d5db;border-radius:7px;font-size:1rem;" />';
+    $output .= '<button type="submit" class="glossary-search__btn" style="padding:10px 20px;background:#1d2327;color:#fff;border:none;border-radius:7px;font-size:1rem;cursor:pointer;">Search</button>';
+    $output .= '</form>';
+
+    // ── A-Z Navigation ──
+    $output .= '<nav class="glossary-az" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:24px;">';
+    foreach (range('A', 'Z') as $char) {
+        $is_active = (!$is_search && $letter === $char);
+        $active_style = $is_active ? 'background:#1d2327;color:#fff;' : 'background:#f3f4f6;color:#374151;';
+        $output .= '<a href="' . esc_url($base_url . '?letter=' . $char) . '" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:6px;font-weight:600;font-size:0.9rem;text-decoration:none;' . $active_style . '">' . $char . '</a>';
+    }
+    $output .= '</nav>';
+
+    // ── Fetch Terms ──
+    if ($is_search) {
+        $results = search_terms($search, $page);
+    } else {
+        $results = get_terms_by_letter($letter, $page);
+    }
+    $terms      = $results['terms'];
+    $pagination = $results['pagination'];
+
+    // ── Results header ──
+    if ($is_search) {
+        $output .= '<p style="color:#64748b;margin-bottom:16px;font-size:0.9rem;">' . count($terms) . ' result(s) for "<strong>' . esc_html($search) . '</strong>" (page ' . $pagination['current_page'] . ' of ' . $pagination['total_pages'] . ')</p>';
+    } else {
+        $output .= '<p style="color:#64748b;margin-bottom:16px;font-size:0.9rem;">Showing terms starting with <strong>' . esc_html($letter) . '</strong> (' . $pagination['total'] . ' terms)</p>';
+    }
+
+    // ── Terms List ──
+    $output .= '<div class="terms-listing">';
+    if (!empty($terms)) {
+        foreach ($terms as $term) {
+            if ($is_search) {
+                $display_term = highlight_terms($term->term, $search);
+                $display_def  = highlight_terms($term->definition, $search);
+            } else {
+                $display_term = $term->term;
+                $display_def  = $term->definition;
+            }
+            $output .= render_glossary_term($display_term, $display_def, $term->primary_area);
+        }
+    } else {
+        $output .= '<p style="color:#64748b;font-size:1.1rem;padding:20px 0;">No terms found. Try a different letter or search term.</p>';
+    }
+    $output .= '</div>';
+
+    // ── Pagination ──
+    $pag_letter = $is_search ? $search : $letter;
+    $output .= paginate_terms($pag_letter, $pagination['current_page'], $pagination['total_pages']);
+
+    $output .= '</div>';
+
+    // ── FAQ Schema ──
+    $output .= build_faq_schema($terms);
+
+    return $output;
+});
+
+function render_glossary_term($term_name, $definition, $primary_area) {
+    return '<details class="glossary-accordion">'
+        . '<summary class="glossary-accordion__term"><span>' . $term_name . '</span></summary>'
+        . '<div class="glossary-accordion__body">'
+        . '<p class="glossary-accordion__definition">' . $definition . '</p>'
+        . '<p class="glossary-accordion__area">Commonly used in <strong>' . esc_html($primary_area) . '</strong></p>'
+        . '</div>'
+        . '</details>';
+}
+
 function shortcode_terms_by_letter($atts) {
     $attributes = shortcode_atts(array('letter' => 'A', 'page' => 1), $atts);
     $letter = isset($_GET['letter']) && !empty($_GET['letter']) ? $_GET['letter'] : $attributes['letter'];
@@ -3226,11 +3356,7 @@ function shortcode_terms_by_letter($atts) {
     $pagination = $results['pagination'];
     $output = '<div class="terms-listing">';
     foreach ($terms as $term) {
-        $output .= '<div class="term-item">';
-        $output .= '<h2 class="glossary-term">' . $term->term . '</h2>';
-        $output .= '<p class="glossary-definition">' . $term->definition . '</p>';
-        $output .= '<p class="glossary-area">You will find this term commonly used in <strong>' . esc_html($term->primary_area) . '</strong></p>';
-        $output .= '</div>';
+        $output .= render_glossary_term($term->term, $term->definition, $term->primary_area);
     }
     $output .= paginate_terms($letter, $pagination['current_page'], $pagination['total_pages']);
     $output .= '</div>';
@@ -3252,11 +3378,7 @@ function shortcode_terms_by_search($atts) {
         foreach ($terms as $term) {
             $highlighted_term = highlight_terms($term->term, $letter);
             $highlighted_definition = highlight_terms($term->definition, $letter);
-            $output .= '<div class="term-item">';
-            $output .= '<h2 class="glossary-term">' . $highlighted_term . '</h2>';
-            $output .= '<p class="glossary-definition">' . $highlighted_definition . '</p>';
-            $output .= '<p class="glossary-area">You will find this term commonly used in <strong>' . esc_html($term->primary_area) . '</strong></p>';
-            $output .= '</div>';
+            $output .= render_glossary_term($highlighted_term, $highlighted_definition, $term->primary_area);
         }
         $output .= paginate_terms($letter, $pagination['current_page'], $pagination['total_pages']);
     } else {
@@ -3286,22 +3408,52 @@ function search_terms($search, $page = 1) {
     $table_name = 'ec_it_glossary';
     $items_per_page = 50;
     $offset = ($page - 1) * $items_per_page;
-    $search = isset($_POST['search_term']) && !empty($_POST['search_term']) ? $_POST['search_term'] : $search;
-    $page = isset($_GET['pagenum']) && !empty($_GET['pagenum']) ? intval($_GET['pagenum']) : $page;
-    $modified_query = remove_stop_words_from_query($search);
-    $total_query = $wpdb->prepare("SELECT count(*) FROM {$table_name} WHERE `term` LIKE %s OR `definition` LIKE %s", '%' . $wpdb->esc_like($modified_query) . '%', '%' . $wpdb->esc_like($modified_query) . '%');
-    $total = $wpdb->get_var($total_query);
-    $total_pages = ceil($total / $items_per_page);
-    $search_words = explode(' ', $modified_query);
-    $sql = "SELECT * FROM {$table_name} WHERE";
-    $search_conditions = array();
-    foreach ($search_words as $word) {
-        $word = esc_sql($word);
-        $search_conditions[] = $wpdb->prepare("(term LIKE '%%%s%%' OR definition LIKE '%%%s%%')", $word, $word);
-    }
-    $sql .= implode(' AND ', $search_conditions) . " ORDER BY `term` ASC LIMIT " . $offset . "," . $items_per_page;
-    $results = $wpdb->get_results($sql);
-    return array('terms' => $results, 'pagination' => array('total' => $total, 'per_page' => $items_per_page, 'current_page' => $page, 'total_pages' => $total_pages, 'has_prev' => $page > 1, 'has_next' => $page < $total_pages));
+
+    $safe = $wpdb->esc_like(trim($search));
+
+    // Word-boundary matching using MySQL REGEXP
+    // [[:<:]] and [[:>:]] are MySQL word boundary markers
+    // This ensures "OSI" matches "OSI" or "OSI Model" but NOT "Positioning" or "Repository"
+    $word_regex = '[[:<:]]' . preg_quote($search, '/') . '[[:>:]]';
+
+    // Count total: term or definition contains the search as a whole word
+    $total = (int) $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM {$table_name}
+         WHERE `term` REGEXP %s OR `definition` REGEXP %s",
+        $word_regex, $word_regex
+    ));
+    $total_pages = max(1, ceil($total / $items_per_page));
+
+    // Relevance-ranked search:
+    // 4 = exact term match
+    // 3 = term starts with search word
+    // 2 = term contains search word
+    // 1 = only definition contains search word
+    $results = $wpdb->get_results($wpdb->prepare("
+        SELECT *,
+            CASE
+                WHEN LOWER(`term`) = LOWER(%s) THEN 4
+                WHEN `term` REGEXP %s AND LOWER(`term`) LIKE LOWER(%s) THEN 3
+                WHEN `term` REGEXP %s THEN 2
+                ELSE 1
+            END AS relevance
+        FROM {$table_name}
+        WHERE `term` REGEXP %s OR `definition` REGEXP %s
+        ORDER BY relevance DESC, `term` ASC
+        LIMIT %d OFFSET %d
+    ", $search, $word_regex, $safe . '%', $word_regex, $word_regex, $word_regex, $items_per_page, $offset));
+
+    return [
+        'terms'      => $results,
+        'pagination' => [
+            'total'        => $total,
+            'per_page'     => $items_per_page,
+            'current_page' => $page,
+            'total_pages'  => $total_pages,
+            'has_prev'     => $page > 1,
+            'has_next'     => $page < $total_pages,
+        ],
+    ];
 }
 
 function build_faq_schema($results) {
@@ -3335,39 +3487,44 @@ function build_faq_schema($results) {
 }
 
 function paginate_terms($letter, $current_page, $total_pages) {
-    if ($total_pages > 1) {
-        $output = '<nav class="elementor-pagination">';
-        if ($current_page > 1) {
-            $output .= '<a class="page-numbers prev" href="?letter=' . $letter . '&pagenum=' . ($current_page - 1) . '">&laquo; Previous</a>&nbsp;';
-        }
-        if ($total_pages > 18) {
-            $start_range = 1;
-            $end_range = 9;
-            $middle_range_start = $total_pages - 8;
-            $middle_range_end = $total_pages;
-            for ($page = 1; $page <= $total_pages; $page++) {
-                if ($page <= $end_range || $page > $middle_range_start) {
-                    $class = $page == $current_page ? ' class="page-numbers current"' : 'class="page-numbers"';
-                    $output .= '<a href="?letter=' . $letter . '&pagenum=' . $page . '"' . $class . '>' . $page . '</a>&nbsp;';
-                }
-                if ($page == $end_range) {
-                    $output .= '<span class="page-numbers dots">...</span>&nbsp;';
-                }
-            }
-        } else {
-            for ($page = 1; $page <= $total_pages; $page++) {
-                $class = $page == $current_page ? ' class="page-numbers current"' : 'class="page-numbers"';
-                $output .= '<a href="?letter=' . $letter . '&pagenum=' . $page . '"' . $class . '>' . $page . '</a>&nbsp;';
-            }
-        }
-        if ($current_page < $total_pages) {
-            $output .= '<a class="page-numbers next" href="?letter=' . $letter . '&pagenum=' . ($current_page + 1) . '">Next &raquo;</a>&nbsp;';
-        }
-        $output .= '</nav>';
-     //   $output .= '<link rel="canonical" href="' . getCurrentURL() . '">';
-        return $output;
+    if ($total_pages <= 1) return '';
+
+    $output = '<nav class="glossary-pagination">';
+
+    // Previous
+    if ($current_page > 1) {
+        $output .= '<a class="glossary-pagination__link" href="?letter=' . urlencode($letter) . '&pagenum=' . ($current_page - 1) . '">&laquo; Prev</a>';
     }
-    return;
+
+    // Page numbers — show max 7 around current page
+    $start = max(1, $current_page - 3);
+    $end   = min($total_pages, $current_page + 3);
+
+    if ($start > 1) {
+        $output .= '<a class="glossary-pagination__link" href="?letter=' . urlencode($letter) . '&pagenum=1">1</a>';
+        if ($start > 2) $output .= '<span class="glossary-pagination__dots">&hellip;</span>';
+    }
+
+    for ($p = $start; $p <= $end; $p++) {
+        if ($p == $current_page) {
+            $output .= '<span class="glossary-pagination__link glossary-pagination__link--active">' . $p . '</span>';
+        } else {
+            $output .= '<a class="glossary-pagination__link" href="?letter=' . urlencode($letter) . '&pagenum=' . $p . '">' . $p . '</a>';
+        }
+    }
+
+    if ($end < $total_pages) {
+        if ($end < $total_pages - 1) $output .= '<span class="glossary-pagination__dots">&hellip;</span>';
+        $output .= '<a class="glossary-pagination__link" href="?letter=' . urlencode($letter) . '&pagenum=' . $total_pages . '">' . $total_pages . '</a>';
+    }
+
+    // Next
+    if ($current_page < $total_pages) {
+        $output .= '<a class="glossary-pagination__link" href="?letter=' . urlencode($letter) . '&pagenum=' . ($current_page + 1) . '">Next &raquo;</a>';
+    }
+
+    $output .= '</nav>';
+    return $output;
 }
 
 function getCurrentUrl() {
@@ -4804,3 +4961,135 @@ function itu_date_sync_admin_page() {
     </div>
     <?php
 }
+
+// ─── Admin Bar: AI Refresh Button ───────────────────────────────────────────
+
+add_action('admin_bar_menu', function ($wp_admin_bar) {
+    if (!is_singular() || !current_user_can('manage_options')) return;
+
+    $post_id = get_queried_object_id();
+    $post_type = get_post_type($post_id);
+    if (!in_array($post_type, ['post', 'product'])) return;
+
+    $label = $post_type === 'product' ? 'AI Refresh Product' : 'AI Refresh Blog';
+
+    $wp_admin_bar->add_node([
+        'id'    => 'itu-ai-refresh',
+        'title' => '<span class="ab-icon dashicons dashicons-update" style="margin-top:2px;"></span> ' . $label,
+        'href'  => '#',
+        'meta'  => [
+            'class' => 'itu-ai-refresh-node',
+            'title' => 'Run a full AI refresh on this page',
+        ],
+    ]);
+
+    // Add sub-items for refresh types
+    $wp_admin_bar->add_node([
+        'id'     => 'itu-ai-refresh-full',
+        'parent' => 'itu-ai-refresh',
+        'title'  => 'Full Refresh (Rewrite All)',
+        'href'   => '#',
+        'meta'   => ['class' => 'itu-ai-refresh-trigger', 'data-type' => 'full'],
+    ]);
+
+    if ($post_type === 'post') {
+        $wp_admin_bar->add_node([
+            'id'     => 'itu-ai-refresh-seo',
+            'parent' => 'itu-ai-refresh',
+            'title'  => 'SEO Refresh (FAQ, Schema, Meta)',
+            'href'   => '#',
+            'meta'   => ['class' => 'itu-ai-refresh-trigger', 'data-type' => 'seo'],
+        ]);
+    }
+
+    $wp_admin_bar->add_node([
+        'id'     => 'itu-ai-refresh-meta',
+        'parent' => 'itu-ai-refresh',
+        'title'  => 'CTR Fix (Meta, Keyword, Title)',
+        'href'   => '#',
+        'meta'   => ['class' => 'itu-ai-refresh-trigger', 'data-type' => 'meta'],
+    ]);
+}, 999);
+
+add_action('wp_footer', function () {
+    if (!is_singular() || !current_user_can('manage_options')) return;
+
+    $post_id = get_queried_object_id();
+    $post_type = get_post_type($post_id);
+    if (!in_array($post_type, ['post', 'product'])) return;
+
+    $nonce = $post_type === 'product'
+        ? wp_create_nonce('seom_nonce')
+        : wp_create_nonce('bq_nonce');
+    ?>
+    <script>
+    (function() {
+        var postId = <?php echo $post_id; ?>;
+        var postType = '<?php echo $post_type; ?>';
+        var nonce = '<?php echo $nonce; ?>';
+        var running = false;
+
+        document.addEventListener('click', function(e) {
+            var link = e.target.closest('.itu-ai-refresh-trigger a, #wp-admin-bar-itu-ai-refresh-full a, #wp-admin-bar-itu-ai-refresh-seo a, #wp-admin-bar-itu-ai-refresh-meta a');
+            if (!link) return;
+            e.preventDefault();
+
+            if (running) { alert('Refresh already running...'); return; }
+
+            var menuId = link.closest('li').id;
+            var type = 'full';
+            if (menuId.indexOf('seo') !== -1) type = 'seo';
+            else if (menuId.indexOf('meta') !== -1) type = 'meta';
+
+            var labels = {full: 'Full Refresh', seo: 'SEO Refresh', meta: 'CTR Fix'};
+            if (!confirm('Run ' + labels[type] + ' on this page? This may take 1-2 minutes.')) return;
+
+            running = true;
+            var parentLink = document.querySelector('#wp-admin-bar-itu-ai-refresh > a');
+            var origText = parentLink.innerHTML;
+            parentLink.innerHTML = '<span class="ab-icon dashicons dashicons-update" style="margin-top:2px;animation:rotation 1s linear infinite;"></span> Processing...';
+
+            var action, data;
+            if (postType === 'product') {
+                action = 'seom_process_one';
+                data = 'action=' + action + '&nonce=' + nonce + '&post_id=' + postId;
+            } else {
+                action = 'bq_refresh_blog';
+                data = 'action=' + action + '&nonce=' + nonce + '&post_id=' + postId + '&type=' + type;
+            }
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '<?php echo admin_url('admin-ajax.php'); ?>', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.timeout = 600000;
+            xhr.onload = function() {
+                running = false;
+                try {
+                    var resp = JSON.parse(xhr.responseText);
+                    if (resp.success) {
+                        parentLink.innerHTML = '<span class="ab-icon dashicons dashicons-yes-alt" style="margin-top:2px;color:#16a34a;"></span> Done!';
+                        setTimeout(function() { location.reload(); }, 1500);
+                    } else {
+                        parentLink.innerHTML = origText;
+                        alert('Failed: ' + (resp.data || 'Unknown error'));
+                    }
+                } catch(e) {
+                    parentLink.innerHTML = origText;
+                    alert('Server error');
+                }
+            };
+            xhr.onerror = xhr.ontimeout = function() {
+                running = false;
+                parentLink.innerHTML = origText;
+                alert('Request failed or timed out.');
+            };
+            xhr.send(data);
+        });
+    })();
+    </script>
+    <style>
+    @keyframes rotation { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+    <?php
+}, 999);
+

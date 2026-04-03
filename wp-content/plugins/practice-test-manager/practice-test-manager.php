@@ -11,7 +11,9 @@ if (!defined('ABSPATH')) exit;
 // Start PHP session only on frontend (not admin/AJAX) to avoid blocking concurrent requests
 add_action('init', function(){
     if (is_admin() && defined('DOING_AJAX') && DOING_AJAX) return;
-    if (!session_id()) session_start();
+    if (!session_id() && !headers_sent()) {
+        session_start();
+    }
 });
 
 

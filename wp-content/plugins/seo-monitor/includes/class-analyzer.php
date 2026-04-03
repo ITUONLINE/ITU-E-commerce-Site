@@ -10,6 +10,48 @@ if (!defined('ABSPATH')) exit;
 class SEOM_Analyzer {
 
     /**
+     * Expected CTR by position based on industry benchmarks.
+     * Returns the expected CTR percentage for a given Google position.
+     * Used for top-performer protection, CTR fix detection, and opportunity scoring.
+     */
+    public static function expected_ctr($position) {
+        if ($position <= 0) return 0;
+        if ($position <= 1) return 30;   // Position 1: ~28-35%
+        if ($position <= 2) return 17;   // Position 2: ~15-20%
+        if ($position <= 3) return 11;   // Position 3: ~10-12%
+        if ($position <= 5) return 7;    // Position 4-5: ~6-9%
+        if ($position <= 10) return 3;   // Position 6-10: ~2-5%
+        if ($position <= 20) return 1;   // Page 2: ~1%
+        return 0.5;                      // Page 3+: under 1%
+    }
+
+    /**
+     * Check if a page is truly a top performer.
+     * A page is "top performing" only if its CTR meets or exceeds
+     * a reasonable fraction of the expected CTR for its position.
+     * We use 60% of expected as the threshold — pages above this
+     * are performing well enough to protect from auto-refresh.
+     */
+    public static function is_top_performer($clicks, $impressions, $ctr, $position) {
+        // Must have meaningful traffic — at least some clicks
+        if ($clicks < 3) return false;
+
+        // Must have enough impressions to be statistically meaningful
+        if ($impressions < 20) return false;
+
+        $expected = self::expected_ctr($position);
+        if ($expected <= 0) return false;
+
+        // CTR must be at least 60% of expected for the position
+        // e.g., Position 1 expects 30% — threshold is 18%
+        // e.g., Position 5 expects 7% — threshold is 4.2%
+        // e.g., Position 8 expects 3% — threshold is 1.8%
+        $threshold = $expected * 0.6;
+
+        return $ctr >= $threshold;
+    }
+
+    /**
      * Run the daily analysis: score all monitored pages and queue the top candidates.
      */
     public static function run() {
@@ -73,18 +115,23 @@ class SEOM_Analyzer {
                 if (array_intersect($post_cats, $excluded_categories)) continue;
             }
 
+            // Skip posts published less than 90 days ago — new content needs time
+            // to be indexed and ranked before we can evaluate its performance.
+            $post_date = get_post_field('post_date', $post_id);
+            if ($post_date && strtotime($post_date) > strtotime('-90 days')) continue;
+
             // Note: Posts with shortcodes (e.g., practice tests) are no longer excluded.
             // The Blog Refresher extracts shortcodes before AI processing and
             // prepends them back to the content after generation.
 
-            // Protect top performers — don't refresh pages that are performing well
+            // Protect top performers — pages whose CTR meets position benchmarks
             $clicks      = intval($m->clicks);
             $impressions = intval($m->impressions);
             $ctr         = floatval($m->ctr);
             $position    = floatval($m->avg_position);
 
-            if ($clicks >= 5) {
-                continue; // Top performer — driving real traffic, don't risk breaking it
+            if (self::is_top_performer($clicks, $impressions, $ctr, $position)) {
+                continue; // CTR is healthy for this position — don't risk breaking it
             }
 
             // Check cooldown via last_page_refresh meta
@@ -105,22 +152,34 @@ class SEOM_Analyzer {
             // Score it
             $score = self::score($m, $prev_metrics[$post_id] ?? null, $category, $last_refresh, $settings);
 
+            // Determine refresh type — default meta_only for B/E, full for everything else
+            $refresh_type = in_array($category, ['B', 'E']) ? 'meta_only' : 'full';
+
+            // Meta escalation: if this post had a previous meta_only refresh and is back
+            // in the queue, the meta fix didn't move the needle — escalate to full refresh
+            if ($refresh_type === 'meta_only') {
+                $had_meta = $wpdb->get_var($wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$wpdb->prefix}seom_refresh_history
+                     WHERE post_id = %d AND refresh_type = 'meta_only'",
+                    $post_id
+                ));
+                if ($had_meta > 0) {
+                    $refresh_type = 'full';
+                }
+            }
+
             $candidates[] = [
                 'post_id'        => $post_id,
                 'post_type'      => get_post_type($post_id),
                 'category'       => $category,
                 'priority_score' => $score,
-                'refresh_type'   => in_array($category, ['B', 'E']) ? 'meta_only' : 'full',
+                'refresh_type'   => $refresh_type,
             ];
         }
 
-        // Sort by priority score descending
-        usort($candidates, function ($a, $b) {
-            return $b['priority_score'] <=> $a['priority_score'];
-        });
-
-        // Queue the top N (daily limit)
-        $to_queue = array_slice($candidates, 0, $settings['daily_limit']);
+        // Sort candidates within each category by priority score descending
+        // then distribute across categories for a balanced daily mix
+        $to_queue = self::balanced_queue($candidates, $settings['daily_limit']);
         $now = current_time('mysql');
 
         foreach ($to_queue as $c) {
@@ -144,7 +203,7 @@ class SEOM_Analyzer {
     }
 
     /**
-     * Categorize a page into A/B/C/D/E or null (not underperforming).
+     * Categorize a page into A/B/C/D/E/F or null (not underperforming).
      */
     private static function categorize($metrics, $prev, $settings) {
         $clicks      = intval($metrics->clicks);
@@ -157,12 +216,15 @@ class SEOM_Analyzer {
             return 'A';
         }
 
-        // Category B: CTR Fix (ranks decently, good impressions, low CTR)
-        // Position <= 15 to catch top of page 2 as well (they still show in some SERPs)
+        // Category B: CTR Fix (ranks decently, good impressions, CTR below position benchmark)
+        // A position-1 page should have ~30% CTR; position 5 should have ~7%.
+        // Flag if CTR is below 50% of expected for the position.
         if ($position > 0 && $position <= 15
-            && $impressions >= $settings['ctr_fix_min_impressions']
-            && $ctr < $settings['ctr_fix_max_ctr']) {
-            return 'B';
+            && $impressions >= $settings['ctr_fix_min_impressions']) {
+            $expected = self::expected_ctr($position);
+            if ($expected > 0 && $ctr < ($expected * 0.5)) {
+                return 'B';
+            }
         }
 
         // Category C: Near Wins (page 2, decent impressions)
@@ -170,6 +232,12 @@ class SEOM_Analyzer {
             && $position <= $settings['near_win_max_pos']
             && $impressions >= $settings['near_win_min_impressions']) {
             return 'C';
+        }
+
+        // Category F: Buried Potential (page 3+, Google knows the page but ranks it poorly)
+        // These have impressions so Google considers them relevant — content refresh can unlock them
+        if ($position > 20 && $impressions >= $settings['buried_min_impressions']) {
+            return 'F';
         }
 
         // Category D: Declining (clicks dropped significantly)
@@ -220,6 +288,15 @@ class SEOM_Analyzer {
         if ($position >= 11 && $position <= 15) return 75;
         if ($position >= 16 && $position <= 20 && $impressions > 50) return 65;
         if ($position >= 16 && $position <= 20) return 55;
+
+        // Category F: Buried Potential — Google shows it but ranks poorly
+        // Higher impressions = more relevance signal = bigger opportunity
+        if ($category === 'F') {
+            if ($impressions >= 200) return 75;
+            if ($impressions >= 100) return 65;
+            return 55;
+        }
+
         if ($category === 'A') return 40;  // Ghost — unknown potential
         if ($category === 'E') return 60;
 
@@ -248,6 +325,7 @@ class SEOM_Analyzer {
             case 'B': return 100; // Meta-only fix
             case 'C': return $position <= 15 ? 90 : 70;
             case 'D': return 80;
+            case 'F': return 50;  // Buried — needs full refresh, more effort but high upside
             case 'E': return 60;
             case 'A': return 40;
             default:  return 30;
@@ -263,5 +341,49 @@ class SEOM_Analyzer {
         if ($months >= 6)  return 60;
         if ($months >= 3)  return 30;
         return 0; // Recently refreshed
+    }
+
+    /**
+     * Build a balanced queue by round-robin picking from each category.
+     *
+     * Instead of just taking the top N by score (which lets one category dominate),
+     * this groups candidates by category, sorts each group by score, then picks
+     * the top item from each category in rotation until the daily limit is filled.
+     */
+    private static function balanced_queue($candidates, $limit) {
+        if (empty($candidates)) return [];
+
+        // Group by category, sorted by score within each group
+        $groups = [];
+        foreach ($candidates as $c) {
+            $groups[$c['category']][] = $c;
+        }
+        foreach ($groups as $cat => &$items) {
+            usort($items, function ($a, $b) {
+                return $b['priority_score'] <=> $a['priority_score'];
+            });
+        }
+        unset($items);
+
+        // Round-robin pick: cycle through categories taking the top remaining item
+        $queue = [];
+        $category_order = array_keys($groups);
+        $pointers = array_fill_keys($category_order, 0);
+
+        while (count($queue) < $limit) {
+            $picked = false;
+            foreach ($category_order as $cat) {
+                if (count($queue) >= $limit) break;
+                if ($pointers[$cat] < count($groups[$cat])) {
+                    $queue[] = $groups[$cat][$pointers[$cat]];
+                    $pointers[$cat]++;
+                    $picked = true;
+                }
+            }
+            // All categories exhausted
+            if (!$picked) break;
+        }
+
+        return $queue;
     }
 }

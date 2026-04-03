@@ -6,7 +6,7 @@ function ptm_render_test($atts){
     if($test_id<=0){
         return '<p style="color:red;">Error: No test ID specified.</p>';
     }
-    return '<div id="ptm-test" data-test-id="'.esc_attr($test_id).'">'
+    return '<div id="ptm-test" data-test-id="'.esc_attr($test_id).'" style="margin-bottom:40px;">'
         . '<div class="ptm-loading">'
         . '<div class="ptm-loading__spinner"></div>'
         . '<p class="ptm-loading__text">Your test is loading</p>'
