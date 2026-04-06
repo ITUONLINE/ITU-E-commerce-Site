@@ -207,7 +207,7 @@
     <div class="es-meta">
         <span><strong>Platform:</strong> WordPress / WooCommerce</span>
         <span><strong>Sites:</strong> ITU Online Training &middot; Vision Training Systems</span>
-        <span><strong>Last Updated:</strong> April 2, 2026</span>
+        <span><strong>Last Updated:</strong> April 4, 2026</span>
     </div>
 </div>
 
@@ -216,10 +216,12 @@
     <h3>Contents</h3>
     <ul>
         <li><a href="#overview">Platform Overview</a></li>
-        <li><a href="#seo-monitor">SEO Monitor Plugin</a></li>
+        <li><a href="#seo-monitor">SEO AI AutoPilot Plugin</a></li>
         <li><a href="#blog-queue">Blog Queue Plugin</a></li>
         <li><a href="#content-quality">Content Quality Standards</a></li>
         <li><a href="#keyword-intelligence">Keyword Intelligence</a></li>
+        <li><a href="#goals">Goal-Driven SEO Management</a></li>
+        <li><a href="#reconciliation">GSC Data Reconciliation</a></li>
         <li><a href="#architecture">Integration Architecture</a></li>
         <li><a href="#database">Database Schema</a></li>
         <li><a href="#resilience">Technical Resilience</a></li>
@@ -230,7 +232,7 @@
 <!-- OVERVIEW -->
 <div class="es-section" id="overview">
     <h2>Platform Overview</h2>
-    <p>This platform is an integrated SEO and content automation ecosystem built on two core WordPress plugins &mdash; <strong>SEO Monitor</strong> and <strong>Blog Queue</strong> &mdash; that work together as a closed-loop content intelligence and production system.</p>
+    <p>This platform is an integrated SEO and content automation ecosystem built on two core WordPress plugins &mdash; <strong>SEO AI AutoPilot</strong> and <strong>Blog Queue</strong> &mdash; that work together as a closed-loop content intelligence and production system.</p>
     <p>The platform connects to Google Search Console for real-time performance data, imports competitive intelligence from SEMrush, and uses AI to both identify content opportunities and produce publication-ready blog posts with full SEO optimization.</p>
     <div class="es-callout">
         <strong>Site-Agnostic Design:</strong> All AI prompts, branding references, and configurations dynamically pull the site name via <code>get_bloginfo('name')</code>, making the entire platform portable across multiple properties without code changes.
@@ -239,15 +241,18 @@
 
 <!-- SEO MONITOR -->
 <div class="es-section" id="seo-monitor">
-    <h2>Plugin: SEO Monitor</h2>
-    <p>SEO Monitor is the <strong>intelligence and optimization engine</strong>. It continuously monitors every indexed page through Google Search Console, scores pages against a multi-factor algorithm, and automatically refreshes underperforming content using AI.</p>
+    <h2>Plugin: SEO AI AutoPilot</h2>
+    <p>SEO AI AutoPilot is the <strong>intelligence and optimization engine</strong>. It continuously monitors every indexed page through Google Search Console, scores pages against a multi-factor algorithm, and automatically refreshes underperforming content using AI.</p>
 
     <h3>Data Collection &amp; Intelligence</h3>
     <ul>
         <li><strong>Google Search Console Integration</strong> &mdash; OAuth2 service account authentication. Daily snapshots of clicks, impressions, CTR, and position for every published page. Top 5 search queries stored per page for AI context injection.</li>
+        <li><strong>True Site-Wide GSC Totals</strong> &mdash; Aggregate site-wide metrics fetched directly from GSC (no page dimension), capturing the full picture including non-WordPress URLs. Stored daily with 90-day retention for historical baseline comparisons.</li>
+        <li><strong>Normalized URL Matching</strong> &mdash; URLs are normalized (scheme stripped, query parameters removed, trailing slashes standardized) before matching GSC data to WordPress posts, significantly reducing data loss from URL format differences.</li>
         <li><strong>Keyword Intelligence</strong> &mdash; Growing keyword database with 28-day trends (rising/stable/declining), fuzzy keyword-to-post mapping, cannibalization detection, and opportunity scoring (0-100).</li>
         <li><strong>Competitive Gap Analysis</strong> &mdash; SEMrush CSV imports with AI auto-tagging, programmatic deduplication, batch consolidation, and 90-day keyword cooldown tracking.</li>
         <li><strong>Google Autocomplete Expansion</strong> &mdash; Weekly enrichment of top keywords with long-tail variations via Autocomplete API.</li>
+        <li><strong>CTR Precision</strong> &mdash; CTR values stored at 4-decimal precision (decimal 7,4) throughout the entire pipeline &mdash; collection, storage, goal tracking, and display &mdash; enabling accurate comparison of fractional CTR changes.</li>
     </ul>
 
     <h3>Page Scoring Algorithm</h3>
@@ -274,10 +279,74 @@
             <tr><td><span class="es-badge es-badge-purple">F</span> Buried Potential</td><td>Position 20+ with meaningful impressions</td><td>Significant untapped opportunity</td></tr>
         </tbody>
     </table>
-    <p>The queue uses <strong>round-robin balancing</strong> across categories so each day's refresh mix covers different problem types.</p>
+    <p>The queue uses <strong>round-robin balancing</strong> across categories, with <strong>goal-weighted allocation</strong> when SEO goals are active &mdash; categories serving behind-schedule goals receive more queue slots.</p>
+    <div class="es-callout">
+        <strong>Top Performer Protection:</strong> Pages whose CTR meets or exceeds 60% of the expected benchmark for their position are automatically protected from auto-refresh. Benchmarks are calibrated by position (Position 1: ~30%, Position 5: ~7%, Position 10: ~3%).
+    </div>
+
+    <h3>Competitive Research (AI Web Search)</h3>
+    <p>Before generating content, the system performs live web searches to analyze what top-ranking competitors cover for the target queries. This produces strategically informed content that addresses real competitive gaps.</p>
+
+    <div class="es-two-col">
+        <div>
+            <h4>Supported Providers</h4>
+            <ul>
+                <li><strong>Perplexity Sonar</strong> &mdash; Purpose-built search AI (~$0.006/search). Best quality/cost ratio.</li>
+                <li><strong>OpenAI Web Search</strong> &mdash; gpt-4.1-mini with Responses API web_search tool (~$0.03/search).</li>
+            </ul>
+            <h4>Research Delivers</h4>
+            <ul>
+                <li>Content gaps in top 5 ranking pages</li>
+                <li>Content depth comparison (word count, sections)</li>
+                <li>Unique angles competitors miss</li>
+                <li>People Also Ask questions</li>
+                <li>Strategic recommendation for outranking</li>
+            </ul>
+        </div>
+        <div>
+            <h4>Research Controls</h4>
+            <ul>
+                <li><strong>Per-category thresholds</strong> &mdash; Configure which categories (A-F) trigger auto-research</li>
+                <li><strong>Manual queue items</strong> &mdash; Always get research when enabled</li>
+                <li><strong>Minimum impressions/position</strong> &mdash; Skip low-value pages</li>
+                <li><strong>Manual collection</strong> &mdash; "Research" button on every page in Indexed Pages</li>
+                <li><strong>Research viewer</strong> &mdash; View/refresh competitive analysis in a modal</li>
+            </ul>
+            <h4>Storage</h4>
+            <ul>
+                <li>Stored per-post with timestamp, persists across refreshes</li>
+                <li>Also saved in refresh history for audit trail</li>
+                <li>Existing research auto-injected into any future refresh</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>SEO Performance Context Injection</h3>
+    <p>Every AI step receives the page's actual GSC performance data, enabling category-specific optimization:</p>
+    <table>
+        <thead><tr><th>Category</th><th>AI Optimization Strategy</th></tr></thead>
+        <tbody>
+            <tr><td><span class="es-badge es-badge-gray">A</span> Ghost</td><td>Establish topical authority, strong keyword targeting, definition-style openings</td></tr>
+            <tr><td><span class="es-badge es-badge-blue">B</span> CTR Fix</td><td>Compelling opening, differentiate from competitors, deliver on a strong promise</td></tr>
+            <tr><td><span class="es-badge es-badge-green">C</span> Near Win</td><td>Deepen authority, strengthen E-E-A-T, comprehensive coverage beyond page-1 competitors</td></tr>
+            <tr><td><span class="es-badge es-badge-red">D</span> Declining</td><td>Update outdated info, add current-year data, new sections on recent developments</td></tr>
+            <tr><td><span class="es-badge es-badge-amber">E</span> Visible/Ignored</td><td>Rewrite to match search intent, answer core question in first 100 words</td></tr>
+            <tr><td><span class="es-badge es-badge-purple">F</span> Buried</td><td>Major content upgrade, substantially better than page-1 competitors</td></tr>
+        </tbody>
+    </table>
+    <p>The AI also receives: current position, clicks, impressions, CTR, top 5 search queries with per-query metrics, competitive research brief, and course-specific trademark requirements.</p>
+
+    <h3>Trademark &amp; Copyright Compliance</h3>
+    <p>All AI-generated content enforces trademark and copyright rules automatically:</p>
+    <ul>
+        <li>&reg; and &trade; symbols required on first mention of vendor and certification names</li>
+        <li>EC-Council&reg; receives special handling &mdash; official C|EH&trade; notation enforced</li>
+        <li>Course-specific trademark reminders dynamically injected based on the course title</li>
+        <li>Trademark disclaimer paragraph appended to all content mentioning vendor certifications</li>
+    </ul>
 
     <h3>Content Refresh Engine</h3>
-    <p>Three refresh tiers with smart escalation:</p>
+    <p>Three refresh tiers with smart escalation, plus optional competitive research:</p>
     <div class="es-two-col">
         <div>
             <h4>Refresh Types</h4>
@@ -290,27 +359,30 @@
         <div>
             <h4>AI Pipeline Steps</h4>
             <ol>
-                <li>Generate structured outline (6-8 sections)</li>
-                <li>Write 2,000-2,500 word HTML content</li>
-                <li>Meta description (140-155 chars)</li>
-                <li>FAQ generation (5 entries, accordion format)</li>
+                <li>Competitive research (optional &mdash; web search of top-ranking pages)</li>
+                <li>Generate structured outline informed by GSC data and research</li>
+                <li>Write 2,000-2,500 word HTML content with competitive gap coverage</li>
+                <li>Meta description (140-155 chars, CTR-aware for categories B/E)</li>
+                <li>FAQ generation based on real GSC search queries</li>
                 <li>JSON-LD FAQPage schema</li>
-                <li>Focus keyword &amp; SEO title (Rank Math)</li>
+                <li>Focus keyword &amp; SEO title informed by actual search queries</li>
             </ol>
         </div>
     </div>
     <div class="es-callout-green es-callout">
-        <strong>Smart Escalation:</strong> If a meta-only refresh doesn't improve performance on the next analysis cycle, the system automatically escalates to a full content refresh.
+        <strong>Smart Escalation:</strong> If a meta-only refresh doesn't improve performance on the next analysis cycle, the system automatically escalates to a full content refresh. Meta-only refreshes use a shorter 30-day cooldown; full refreshes use the configured cooldown period (default 90 days).
     </div>
 
     <h3>Automation Schedule</h3>
     <table>
         <thead><tr><th>Time</th><th>Task</th></tr></thead>
         <tbody>
-            <tr><td><strong>1:00 AM</strong></td><td>Collect GSC page metrics (clicks, impressions, CTR, position)</td></tr>
+            <tr><td><strong>1:00 AM</strong></td><td>Collect GSC page metrics + site-wide totals + untracked URL capture</td></tr>
             <tr><td><strong>1:30 AM</strong></td><td>Collect keyword intelligence &amp; 28-day trends</td></tr>
-            <tr><td><strong>2:00 AM</strong></td><td>Analyze pages, score, and populate refresh queue</td></tr>
+            <tr><td><strong>2:00 AM</strong></td><td>Analyze pages, score, and populate refresh queue (goal-weighted)</td></tr>
             <tr><td><strong>6:00 AM</strong></td><td>Begin processing queue (10-min intervals between items)</td></tr>
+            <tr><td><strong>Daily</strong></td><td>Goal progress email with on-track/behind status</td></tr>
+            <tr><td><strong>1st of Month</strong></td><td>Auto-close expired goals, AI-generate new monthly goals</td></tr>
             <tr><td><strong>Wed 3:00 AM</strong></td><td>Backfill 30-day and 60-day post-refresh performance metrics</td></tr>
             <tr><td><strong>Sun 4:00 AM</strong></td><td>Expand top keywords via Google Autocomplete</td></tr>
         </tbody>
@@ -320,14 +392,93 @@
     <table>
         <thead><tr><th>Tab</th><th>Purpose</th></tr></thead>
         <tbody>
-            <tr><td><strong>Overview</strong></td><td>KPIs, queue status, processing stats, today's refresh count</td></tr>
-            <tr><td><strong>Indexed</strong></td><td>All tracked pages with current GSC metrics</td></tr>
+            <tr><td><strong>Overview</strong></td><td>KPIs, queue status, goal mini-cards, processing stats, today's refresh count</td></tr>
+            <tr><td><strong>Indexed Pages</strong></td><td>All tracked pages with GSC metrics, date range filtering (7d/28d/3mo/12mo), GSC data reconciliation bar, untracked URLs browser</td></tr>
             <tr><td><strong>Performance Tracker</strong></td><td>Before/after charts with trend filters (30d &amp; 60d comparison)</td></tr>
             <tr><td><strong>Queue</strong></td><td>Pending refreshes with priority scores, categories, bulk actions</td></tr>
             <tr><td><strong>History</strong></td><td>Completed refreshes with before/after metric comparisons</td></tr>
             <tr><td><strong>Keywords</strong></td><td>GSC keyword intelligence, opportunity scores, content gaps, lost keywords</td></tr>
             <tr><td><strong>Keyword Gaps</strong></td><td>Imported competitive keywords with AI tagging, filters, usage tracking</td></tr>
-            <tr><td><strong>Settings</strong></td><td>GSC credentials, thresholds, processing limits, notification email</td></tr>
+            <tr><td><strong>Goals</strong></td><td>Active/completed/missed goals with progress bars, AI feasibility, capacity analysis, monthly auto-creation</td></tr>
+            <tr><td><strong>Settings</strong></td><td>GSC credentials, thresholds, cooldown periods, processing limits, notification email</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- GOALS -->
+<div class="es-section" id="goals">
+    <h2>Goal-Driven SEO Management</h2>
+    <p>The Goals system provides structured, measurable targets for SEO improvement with AI-assisted planning, automated progress tracking, and goal-weighted queue allocation.</p>
+
+    <h3>Available Goal Metrics</h3>
+    <table>
+        <thead><tr><th>Metric</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Ghost Pages</strong></td><td>Pages with zero/near-zero impressions</td></tr>
+            <tr><td><strong>Total Clicks / Impressions (28d)</strong></td><td>Site-wide GSC totals (uses true GSC aggregates)</td></tr>
+            <tr><td><strong>Average Position / CTR</strong></td><td>Site-wide search position and click-through rate</td></tr>
+            <tr><td><strong>Pages on Page 1 / Page 2</strong></td><td>Count of pages by ranking position bracket</td></tr>
+            <tr><td><strong>Total Published Content</strong></td><td>Total published pages/posts/products &mdash; baseline set as of the start date</td></tr>
+            <tr><td><strong>Stale Pages</strong></td><td>Pages not refreshed in 90+ days</td></tr>
+            <tr><td><strong>Refreshed This Month</strong></td><td>Monthly refresh throughput tracking</td></tr>
+        </tbody>
+    </table>
+
+    <h3>Goal Features</h3>
+    <div class="es-two-col">
+        <div>
+            <h4>Planning &amp; Creation</h4>
+            <ul>
+                <li><strong>Historical Baselines</strong> &mdash; Set a start date; system looks up metrics as of that date using stored GSC history</li>
+                <li><strong>AI Feasibility Check</strong> &mdash; Before creation, AI evaluates if the target is achievable, stretch, unlikely, or unrealistic. Metric-specific context (e.g., content creation vs. page refresh)</li>
+                <li><strong>Priority System</strong> &mdash; 5 levels (Critical &rarr; Backlog) that weight queue allocation and urgency</li>
+                <li><strong>Monthly Auto-Creation</strong> &mdash; On the 1st, AI analyzes metrics and last month's performance to suggest new goals</li>
+            </ul>
+        </div>
+        <div>
+            <h4>Tracking &amp; Execution</h4>
+            <ul>
+                <li><strong>Goal-Weighted Queue</strong> &mdash; Active goals influence queue slot allocation; behind-schedule goals get urgency multipliers</li>
+                <li><strong>Capacity Analysis</strong> &mdash; Calculates required daily refreshes per goal based on category success rates</li>
+                <li><strong>Adaptive Limits</strong> &mdash; Fixed, Adaptive (auto-increase), or Burst (temporary 50% increase) modes</li>
+                <li><strong>Daily Email</strong> &mdash; Progress report with baseline &rarr; current &rarr; target, on-track/behind status</li>
+                <li><strong>Direction Indicators</strong> &mdash; Visual progress bars, moving-right/wrong-direction alerts, percentage completion</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- RECONCILIATION -->
+<div class="es-section" id="reconciliation">
+    <h2>GSC Data Reconciliation</h2>
+    <p>Full auditability of all GSC metrics, ensuring the numbers in the dashboard match what Google Search Console reports.</p>
+
+    <h3>How It Works</h3>
+    <ul>
+        <li><strong>True Site Totals</strong> &mdash; During each collection, a separate GSC API call with no page dimension fetches the exact site-wide totals (clicks, impressions, CTR, position). These are the same numbers shown in the GSC web interface.</li>
+        <li><strong>Tracked Pages</strong> &mdash; Per-page GSC data matched to WordPress posts via normalized URL comparison. This is the per-page detail available in the Indexed Pages table.</li>
+        <li><strong>Untracked URLs</strong> &mdash; GSC URLs that don't match any WordPress post (categories, tags, pagination, author pages, etc.) are stored with automatic type classification and browsable in a dedicated UI.</li>
+    </ul>
+
+    <h3>Reconciliation Bar</h3>
+    <p>Displayed on the Indexed Pages tab, the reconciliation bar shows:</p>
+    <ul>
+        <li><span class="es-badge es-badge-blue">Tracked</span> Impressions/clicks from matched WordPress posts</li>
+        <li><span class="es-badge es-badge-amber">Untracked</span> Impressions/clicks from non-WordPress URLs</li>
+        <li><span class="es-badge es-badge-green">GSC Total</span> True site-wide totals directly from Google</li>
+    </ul>
+    <p>A visual proportional bar shows the percentage breakdown, making it immediately clear how much of the site's search traffic is accounted for.</p>
+
+    <h3>Untracked URL Types</h3>
+    <table>
+        <thead><tr><th>Type</th><th>Pattern</th><th>Example</th></tr></thead>
+        <tbody>
+            <tr><td><span class="es-badge es-badge-blue">category</span></td><td><code>/category/</code></td><td>/category/networking/</td></tr>
+            <tr><td><span class="es-badge es-badge-green">product_cat</span></td><td><code>/product-category/</code></td><td>/product-category/comptia/</td></tr>
+            <tr><td><span class="es-badge es-badge-amber">pagination</span></td><td><code>/page/N</code></td><td>/blog/page/3/</td></tr>
+            <tr><td><span class="es-badge es-badge-purple">tag</span></td><td><code>/tag/</code></td><td>/tag/cybersecurity/</td></tr>
+            <tr><td><span class="es-badge es-badge-gray">author</span></td><td><code>/author/</code></td><td>/author/admin/</td></tr>
+            <tr><td><span class="es-badge es-badge-gray">other</span></td><td>No pattern match</td><td>Custom URLs, redirects, etc.</td></tr>
         </tbody>
     </table>
 </div>
@@ -379,7 +530,7 @@
                 <li>Missing meta description</li>
                 <li>Missing focus keyword</li>
                 <li>Short content (&lt;1,000 words)</li>
-                <li>SEO Monitor refresh status</li>
+                <li>SEO AI AutoPilot refresh status</li>
             </ul>
         </div>
         <div>
@@ -503,9 +654,12 @@
                               |
                               v
     +----------------------------------------------------+
-    |                    SEO Monitor                      |
+    |                    SEO AI AutoPilot                      |
     |  Collector  --->  Analyzer  --->  Processor         |
     |  (GSC API)       (Score)        (Refresh)           |
+    |                                                     |
+    |  Site Totals       Goal Engine     Capacity Planner |
+    |  (reconciliation)  (AI feasibility) (adaptive limits)|
     |                                                     |
     |  Keyword Researcher    Keyword Gap Importer          |
     |  (trends, mapping)     (SEMrush CSV)                |
@@ -532,11 +686,11 @@
 <div class="es-section" id="database">
     <h2>Database Schema</h2>
 
-    <h3>SEO Monitor Tables (8)</h3>
+    <h3>SEO AI AutoPilot Tables (10)</h3>
     <table>
         <thead><tr><th>Table</th><th>Purpose</th><th>Key Fields</th></tr></thead>
         <tbody>
-            <tr><td><code>seom_page_metrics</code></td><td>Daily GSC snapshots per page</td><td>clicks, impressions, ctr, position, top_queries</td></tr>
+            <tr><td><code>seom_page_metrics</code></td><td>Daily GSC snapshots per page</td><td>clicks, impressions, ctr (decimal 7,4), position, top_queries</td></tr>
             <tr><td><code>seom_refresh_queue</code></td><td>Pending content refreshes</td><td>post_id, category (A-F), priority_score, refresh_type</td></tr>
             <tr><td><code>seom_refresh_history</code></td><td>Audit trail of all refreshes</td><td>before/after metrics at 30d and 60d</td></tr>
             <tr><td><code>seom_keywords</code></td><td>GSC keyword intelligence</td><td>trend_direction, opportunity_score, is_content_gap</td></tr>
@@ -544,6 +698,17 @@
             <tr><td><code>seom_keyword_usage</code></td><td>Keyword cooldown tracking</td><td>status (reserved/used), used_at, post_id, queue_id</td></tr>
             <tr><td><code>seom_lsi_keywords</code></td><td>LSI keyword relationships</td><td>seed_keyword &rarr; lsi_keyword pairs</td></tr>
             <tr><td><code>seom_keyword_suggestions</code></td><td>Autocomplete expansion results</td><td>seed_keyword &rarr; suggestion</td></tr>
+            <tr><td><code>seom_goals</code></td><td>SEO goal tracking</td><td>metric, baseline_value, current_value, target_value, deadline, priority, ai_assessment</td></tr>
+            <tr><td><code>seom_untracked_metrics</code></td><td>Non-WordPress GSC URLs</td><td>url, clicks, impressions, ctr, avg_position, url_type</td></tr>
+        </tbody>
+    </table>
+
+    <h3>SEO AI AutoPilot Options (wp_options)</h3>
+    <table>
+        <thead><tr><th>Option</th><th>Purpose</th></tr></thead>
+        <tbody>
+            <tr><td><code>seom_site_totals</code></td><td>Latest true GSC site-wide totals (clicks, impressions, CTR, position)</td></tr>
+            <tr><td><code>seom_site_totals_history</code></td><td>Daily site totals with 90-day retention for historical baseline comparisons</td></tr>
         </tbody>
     </table>
 
@@ -567,8 +732,8 @@
         <thead><tr><th>Operation</th><th>Strategy</th></tr></thead>
         <tbody>
             <tr><td>Blog creation</td><td>4-step pipeline (outline, content, meta, FAQ/schema)</td></tr>
-            <tr><td>SEO Monitor queue</td><td>Step-based processing with 10-min cron intervals</td></tr>
-            <tr><td>GSC data collection</td><td>2-phase batch processing (50 posts per batch)</td></tr>
+            <tr><td>SEO AI AutoPilot queue</td><td>Step-based processing with 10-min cron intervals</td></tr>
+            <tr><td>GSC data collection</td><td>2-phase batch processing (50 posts per batch) + site totals + untracked URL capture</td></tr>
             <tr><td>SEMrush import</td><td>Multi-phase (parse &rarr; upsert batches)</td></tr>
             <tr><td>Tag consolidation</td><td>3-phase (dedup &rarr; AI batch &rarr; apply batch)</td></tr>
             <tr><td>Keyword collection</td><td>Batched at 200 keywords per AJAX call</td></tr>
@@ -582,7 +747,10 @@
         <li>Lost keyword detection (flagged as "lost," not deleted from database)</li>
         <li>Keyword cooldown prevents over-optimization and cannibalization</li>
         <li>Round-robin queue distribution prevents topic clustering</li>
-        <li>Top performer protection (pages with &gt;5 clicks are never auto-refreshed)</li>
+        <li>Top performer protection (CTR benchmarked by position &mdash; pages meeting 60% of expected CTR are never auto-refreshed)</li>
+        <li>CTR stored at 4-decimal precision (decimal 7,4) throughout the pipeline for accurate fractional comparisons</li>
+        <li>GSC data reconciliation ensures tracked + untracked metrics account for full site totals</li>
+        <li>Historical site totals retained for 90 days for baseline verification</li>
     </ul>
 
     <h3>Security</h3>
@@ -599,15 +767,15 @@
     <h2>Platform Metrics</h2>
     <div class="es-stats">
         <div class="es-stat">
-            <span class="es-stat-val">38+</span>
+            <span class="es-stat-val">45+</span>
             <span class="es-stat-label">AJAX Endpoints</span>
         </div>
         <div class="es-stat">
-            <span class="es-stat-val">10</span>
+            <span class="es-stat-val">12</span>
             <span class="es-stat-label">Database Tables</span>
         </div>
         <div class="es-stat">
-            <span class="es-stat-val">6</span>
+            <span class="es-stat-val">8</span>
             <span class="es-stat-label">Cron Jobs</span>
         </div>
         <div class="es-stat">
@@ -623,8 +791,8 @@
             <span class="es-stat-label">Page Categories (A-F)</span>
         </div>
         <div class="es-stat">
-            <span class="es-stat-val">7</span>
-            <span class="es-stat-label">Citation Source Types</span>
+            <span class="es-stat-val">11</span>
+            <span class="es-stat-label">Goal Metrics</span>
         </div>
         <div class="es-stat">
             <span class="es-stat-val">5</span>
@@ -633,7 +801,7 @@
     </div>
 
     <div class="es-callout-green es-callout" style="margin-top: 24px; text-align: center;">
-        This platform transforms SEO management from a manual, reactive process into an <strong>automated, data-driven system</strong> &mdash; identifying what content needs attention through GSC intelligence, prioritizing work with a composite scoring algorithm, executing improvements through AI with strict quality controls, and tracking results to create a continuous improvement loop that scales across hundreds of pages.
+        This platform transforms SEO management from a manual, reactive process into an <strong>automated, data-driven system</strong> &mdash; identifying what content needs attention through GSC intelligence, prioritizing work with a composite scoring algorithm, executing improvements through AI with strict quality controls, tracking results, and closing the loop with <strong>goal-driven planning</strong> that adjusts capacity and priorities based on measurable outcomes &mdash; creating a continuous improvement engine that scales across thousands of pages.
     </div>
 </div>
 

@@ -1,7 +1,7 @@
 <?php
 /*
-Plugin Name: SEO Monitor
-Description: Automated SEO performance monitoring using Google Search Console. Identifies underperforming pages and triggers AI content refresh via AI Product Manager.
+Plugin Name: SEO AI AutoPilot
+Description: AI-powered SEO automation platform — monitors Google Search Console, scores pages, executes AI content refresh with competitive research, tracks goals, and manages the full content optimization lifecycle.
 Version: 1.0
 Author: ITU Online
 Requires Plugins: ai-product-manager
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) exit;
 add_filter('site_transient_update_plugins', function ($transient) {
     if (!is_object($transient)) return $transient;
     $custom_plugins = [
-        'seo-monitor/seo-monitor.php',
+        'seo-ai-autopilot/seo-ai-autopilot.php',
         'blog-queue/blog-queue.php',
         'Blog_Writer_Plugin/Blog_Writer_Plugin.php',
         'ai-product-manager/ai-product-manager.php',
@@ -30,7 +30,7 @@ add_filter('site_transient_update_plugins', function ($transient) {
 
 // Block "View Details" modal from loading wrong plugin info
 add_filter('plugins_api', function ($result, $action, $args) {
-    $blocked_slugs = ['seo-monitor', 'blog-queue', 'blog-writer-plugin', 'ai-product-manager', 'practice-test-manager', 'lms-api', 'seo-content-about'];
+    $blocked_slugs = ['seo-ai-autopilot', 'blog-queue', 'blog-writer-plugin', 'ai-product-manager', 'practice-test-manager', 'lms-api', 'seo-content-about'];
     if ($action === 'plugin_information' && isset($args->slug) && in_array($args->slug, $blocked_slugs, true)) {
         return new WP_Error('no_plugin', 'This is a custom plugin. No updates are available from WordPress.org.');
     }
@@ -60,14 +60,14 @@ add_action('admin_init', function () {
     global $wpdb;
     $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE 'seom_daily_count_%' AND option_name != 'seom_daily_count_" . date('Y-m-d') . "'");
 
-    wp_redirect(admin_url('admin.php?page=seo-monitor&seom_cleaned=1'));
+    wp_redirect(admin_url('admin.php?page=seo-ai-autopilot&seom_cleaned=1'));
     exit;
 });
 
 // Show cleanup success notice
 add_action('admin_notices', function () {
     if (!isset($_GET['seom_cleaned'])) return;
-    echo '<div class="notice notice-success is-dismissible"><p><strong>SEO Monitor:</strong> All caches, locks, and temp files cleared.</p></div>';
+    echo '<div class="notice notice-success is-dismissible"><p><strong>SEO AI AutoPilot:</strong> All caches, locks, and temp files cleared.</p></div>';
 });
 
 // Add cleanup button to admin bar for quick access
@@ -76,11 +76,110 @@ add_action('admin_bar_menu', function ($admin_bar) {
 
     $admin_bar->add_node([
         'id'    => 'seom-cleanup',
-        'title' => 'SEO Monitor: Clear Cache',
+        'title' => 'SEO AI AutoPilot: Clear Cache',
         'href'  => admin_url('?seom_cleanup=1'),
-        'meta'  => ['title' => 'Clear all SEO Monitor caches, locks, and temp files'],
+        'meta'  => ['title' => 'Clear all SEO AI AutoPilot caches, locks, and temp files'],
     ]);
+
+    // Add "Queue Refresh" to admin bar when viewing a single post/product/page
+    if (!is_admin() && is_singular()) {
+        $post_id = get_queried_object_id();
+        $post_type = get_post_type($post_id);
+        if (!$post_id || !in_array($post_type, ['post', 'product', 'page'])) return;
+
+        $admin_bar->add_node([
+            'id'    => 'seom-queue',
+            'title' => '<span class="ab-icon dashicons dashicons-update" style="font:20px/1 dashicons;padding:4px 0;"></span> SEO Refresh',
+            'href'  => '#',
+            'meta'  => ['title' => 'Queue this page for SEO refresh'],
+        ]);
+
+        if (in_array($post_type, ['post', 'product'])) {
+            $admin_bar->add_node([
+                'id'     => 'seom-queue-full',
+                'parent' => 'seom-queue',
+                'title'  => 'Full Refresh',
+                'href'   => '#',
+                'meta'   => ['class' => 'seom-bar-queue', 'data-type' => 'full', 'data-id' => $post_id],
+            ]);
+        }
+
+        $admin_bar->add_node([
+            'id'     => 'seom-queue-meta',
+            'parent' => 'seom-queue',
+            'title'  => 'Meta Only (Title + Description)',
+            'href'   => '#',
+            'meta'   => ['class' => 'seom-bar-queue', 'data-type' => 'meta_only', 'data-id' => $post_id],
+        ]);
+
+        if (in_array($post_type, ['post', 'product'])) {
+            $admin_bar->add_node([
+                'id'     => 'seom-queue-research',
+                'parent' => 'seom-queue',
+                'title'  => 'Collect Research Only',
+                'href'   => '#',
+                'meta'   => ['class' => 'seom-bar-research', 'data-id' => $post_id],
+            ]);
+        }
+    }
 }, 999);
+
+// Admin bar JS for queue/research actions (frontend only)
+add_action('wp_footer', function () {
+    if (!current_user_can('manage_woocommerce') || is_admin() || !is_singular()) return;
+    $nonce = wp_create_nonce('seom_nonce');
+    ?>
+    <script>
+    jQuery(document).ready(function($) {
+        // Queue from admin bar
+        $('#wp-admin-bar-seom-queue-full > .ab-item, #wp-admin-bar-seom-queue-meta > .ab-item').click(function(e) {
+            e.preventDefault();
+            var li = $(this).closest('li');
+            var postId = li.find('.seom-bar-queue').data('id') || li.attr('data-id');
+            var refreshType = li.find('.seom-bar-queue').data('type') || (li.attr('id').indexOf('full') >= 0 ? 'full' : 'meta_only');
+
+            // Get data from the parent menu node attrs
+            if (!postId) {
+                postId = <?php echo get_queried_object_id(); ?>;
+                refreshType = li.attr('id').indexOf('full') >= 0 ? 'full' : 'meta_only';
+            }
+
+            $(this).text('Queuing...');
+            $.post('<?php echo admin_url('admin-ajax.php'); ?>', {
+                action: 'seom_add_to_queue', nonce: '<?php echo $nonce; ?>',
+                post_id: postId, refresh_type: refreshType, priority: 99
+            }, function(resp) {
+                if (resp.success) {
+                    $('#wp-admin-bar-seom-queue > .ab-item').html('<span class="ab-icon dashicons dashicons-yes" style="font:20px/1 dashicons;padding:4px 0;color:#46b450;"></span> Queued!');
+                } else {
+                    alert(resp.data || 'Error queuing');
+                }
+            });
+        });
+
+        // Research from admin bar
+        $('#wp-admin-bar-seom-queue-research > .ab-item').click(function(e) {
+            e.preventDefault();
+            var postId = <?php echo get_queried_object_id(); ?>;
+            $(this).text('Researching...');
+            $.ajax({ url: '<?php echo admin_url('admin-ajax.php'); ?>', method: 'POST', timeout: 90000, data: {
+                action: 'seom_collect_research', nonce: '<?php echo $nonce; ?>', post_id: postId
+            }, success: function(resp) {
+                if (resp.success) {
+                    $('#wp-admin-bar-seom-queue-research > .ab-item').text('Research collected!');
+                } else {
+                    alert(resp.data || 'Research failed');
+                    $('#wp-admin-bar-seom-queue-research > .ab-item').text('Collect Research Only');
+                }
+            }, error: function() {
+                alert('Research timed out');
+                $('#wp-admin-bar-seom-queue-research > .ab-item').text('Collect Research Only');
+            }});
+        });
+    });
+    </script>
+    <?php
+});
 
 // ─── Activation / Deactivation ───────────────────────────────────────────────
 
@@ -140,7 +239,7 @@ function seom_create_tables() {
         date_collected date NOT NULL,
         clicks int NOT NULL DEFAULT 0,
         impressions int NOT NULL DEFAULT 0,
-        ctr decimal(5,2) NOT NULL DEFAULT 0,
+        ctr decimal(7,4) NOT NULL DEFAULT 0,
         avg_position decimal(5,1) NOT NULL DEFAULT 0,
         top_queries text,
         search_appearance text,
@@ -178,15 +277,16 @@ function seom_create_tables() {
         clicks_before int DEFAULT NULL,
         impressions_before int DEFAULT NULL,
         position_before decimal(5,1) DEFAULT NULL,
-        ctr_before decimal(5,2) DEFAULT NULL,
+        ctr_before decimal(7,4) DEFAULT NULL,
         clicks_after_30d int DEFAULT NULL,
         impressions_after_30d int DEFAULT NULL,
         position_after_30d decimal(5,1) DEFAULT NULL,
-        ctr_after_30d decimal(5,2) DEFAULT NULL,
+        ctr_after_30d decimal(7,4) DEFAULT NULL,
         clicks_after_60d int DEFAULT NULL,
         impressions_after_60d int DEFAULT NULL,
         position_after_60d decimal(5,1) DEFAULT NULL,
-        ctr_after_60d decimal(5,2) DEFAULT NULL,
+        ctr_after_60d decimal(7,4) DEFAULT NULL,
+        research_results text DEFAULT NULL,
         PRIMARY KEY (id),
         KEY post_id (post_id),
         KEY refresh_date (refresh_date)
@@ -200,7 +300,7 @@ function seom_create_tables() {
         impressions int DEFAULT 0,
         clicks int DEFAULT 0,
         avg_position decimal(5,1) DEFAULT 0,
-        ctr decimal(5,2) DEFAULT 0,
+        ctr decimal(7,4) DEFAULT 0,
         impressions_prev int DEFAULT 0,
         trend_direction varchar(10) DEFAULT NULL,
         trend_pct decimal(5,1) DEFAULT 0,
@@ -275,10 +375,10 @@ function seom_create_tables() {
         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         metric varchar(50) NOT NULL,
         direction varchar(10) NOT NULL DEFAULT 'reduce',
-        target_value decimal(10,2) NOT NULL,
+        target_value decimal(10,4) NOT NULL,
         target_type varchar(10) NOT NULL DEFAULT 'percent',
-        baseline_value decimal(10,2) NOT NULL,
-        current_value decimal(10,2) DEFAULT NULL,
+        baseline_value decimal(10,4) NOT NULL,
+        current_value decimal(10,4) DEFAULT NULL,
         start_date date NOT NULL,
         deadline date NOT NULL,
         priority tinyint NOT NULL DEFAULT 3,
@@ -289,6 +389,43 @@ function seom_create_tables() {
         PRIMARY KEY (id),
         KEY status (status),
         KEY deadline (deadline)
+    ) $charset;");
+
+    // Untracked URLs — GSC data for URLs with no matching WordPress post
+    dbDelta("CREATE TABLE {$wpdb->prefix}seom_untracked_metrics (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        url varchar(500) NOT NULL,
+        date_collected date NOT NULL,
+        clicks int NOT NULL DEFAULT 0,
+        impressions int NOT NULL DEFAULT 0,
+        ctr decimal(7,4) NOT NULL DEFAULT 0,
+        avg_position decimal(5,1) NOT NULL DEFAULT 0,
+        url_type varchar(30) DEFAULT 'other',
+        PRIMARY KEY (id),
+        UNIQUE KEY url_date (url(191), date_collected),
+        KEY date_collected (date_collected),
+        KEY url_type (url_type)
+    ) $charset;");
+
+    // Daily aggregated metrics summary for trend charts (pre-computed for performance)
+    dbDelta("CREATE TABLE {$wpdb->prefix}seom_daily_summary (
+        id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+        date_collected date NOT NULL,
+        total_pages int NOT NULL DEFAULT 0,
+        pages_with_impressions int NOT NULL DEFAULT 0,
+        ghost_pages int NOT NULL DEFAULT 0,
+        total_clicks int NOT NULL DEFAULT 0,
+        total_impressions int NOT NULL DEFAULT 0,
+        avg_position decimal(5,1) DEFAULT 0,
+        avg_ctr decimal(7,4) DEFAULT 0,
+        page1_pages int NOT NULL DEFAULT 0,
+        page2_pages int NOT NULL DEFAULT 0,
+        gsc_total_clicks int DEFAULT NULL,
+        gsc_total_impressions int DEFAULT NULL,
+        gsc_avg_position decimal(5,1) DEFAULT NULL,
+        gsc_avg_ctr decimal(7,4) DEFAULT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY date_collected (date_collected)
     ) $charset;");
 
     dbDelta("CREATE TABLE {$wpdb->prefix}seom_keyword_suggestions (
@@ -354,6 +491,16 @@ add_action('admin_init', function () {
     if ($wpdb->get_var("SHOW TABLES LIKE '{$lsi_table}'") !== $lsi_table) {
         seom_create_tables();
     }
+    // Daily summary table
+    $summary_table = $wpdb->prefix . 'seom_daily_summary';
+    if ($wpdb->get_var("SHOW TABLES LIKE '{$summary_table}'") !== $summary_table) {
+        seom_create_tables();
+    }
+    // Untracked metrics table
+    $untracked_table = $wpdb->prefix . 'seom_untracked_metrics';
+    if ($wpdb->get_var("SHOW TABLES LIKE '{$untracked_table}'") !== $untracked_table) {
+        seom_create_tables();
+    }
     $goals_table = $wpdb->prefix . 'seom_goals';
     if ($wpdb->get_var("SHOW TABLES LIKE '{$goals_table}'") !== $goals_table) {
         $charset = $wpdb->get_charset_collate();
@@ -361,10 +508,10 @@ add_action('admin_init', function () {
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             metric varchar(50) NOT NULL,
             direction varchar(10) NOT NULL DEFAULT 'reduce',
-            target_value decimal(10,2) NOT NULL,
+            target_value decimal(10,4) NOT NULL,
             target_type varchar(10) NOT NULL DEFAULT 'percent',
-            baseline_value decimal(10,2) NOT NULL,
-            current_value decimal(10,2) DEFAULT NULL,
+            baseline_value decimal(10,4) NOT NULL,
+            current_value decimal(10,4) DEFAULT NULL,
             start_date date NOT NULL,
             deadline date NOT NULL,
             priority tinyint NOT NULL DEFAULT 3,
@@ -386,7 +533,77 @@ add_action('admin_init', function () {
     if (!$col2) {
         $wpdb->query("ALTER TABLE {$goals_table} ADD COLUMN priority tinyint NOT NULL DEFAULT 3 AFTER deadline");
     }
+
+    // Increase decimal precision for CTR and goal values on existing tables
+    $metrics_table = $wpdb->prefix . 'seom_page_metrics';
+    $ctr_type = $wpdb->get_row("SHOW COLUMNS FROM {$metrics_table} LIKE 'ctr'");
+    if ($ctr_type && strpos($ctr_type->Type, '5,2') !== false) {
+        $wpdb->query("ALTER TABLE {$metrics_table} MODIFY ctr decimal(7,4) NOT NULL DEFAULT 0");
+    }
+    $history_table = $wpdb->prefix . 'seom_refresh_history';
+    if ($wpdb->get_var("SHOW TABLES LIKE '{$history_table}'") === $history_table) {
+        $ctr_col = $wpdb->get_row("SHOW COLUMNS FROM {$history_table} LIKE 'ctr_before'");
+        if ($ctr_col && strpos($ctr_col->Type, '5,2') !== false) {
+            $wpdb->query("ALTER TABLE {$history_table} MODIFY ctr_before decimal(7,4) DEFAULT NULL");
+            $wpdb->query("ALTER TABLE {$history_table} MODIFY ctr_after_30d decimal(7,4) DEFAULT NULL");
+            $wpdb->query("ALTER TABLE {$history_table} MODIFY ctr_after_60d decimal(7,4) DEFAULT NULL");
+        }
+    }
+    $keywords_table = $wpdb->prefix . 'seom_keywords';
+    if ($wpdb->get_var("SHOW TABLES LIKE '{$keywords_table}'") === $keywords_table) {
+        $kw_ctr = $wpdb->get_row("SHOW COLUMNS FROM {$keywords_table} LIKE 'ctr'");
+        if ($kw_ctr && strpos($kw_ctr->Type, '5,2') !== false) {
+            $wpdb->query("ALTER TABLE {$keywords_table} MODIFY ctr decimal(7,4) DEFAULT 0");
+        }
+    }
+    $bl_col = $wpdb->get_row("SHOW COLUMNS FROM {$goals_table} LIKE 'baseline_value'");
+    if ($bl_col && strpos($bl_col->Type, '10,2') !== false) {
+        $wpdb->query("ALTER TABLE {$goals_table} MODIFY target_value decimal(10,4) NOT NULL");
+        $wpdb->query("ALTER TABLE {$goals_table} MODIFY baseline_value decimal(10,4) NOT NULL");
+        $wpdb->query("ALTER TABLE {$goals_table} MODIFY current_value decimal(10,4) DEFAULT NULL");
+    }
+    // Add research_results column to refresh history
+    $hist_table = $wpdb->prefix . 'seom_refresh_history';
+    if ($wpdb->get_var("SHOW TABLES LIKE '{$hist_table}'") === $hist_table) {
+        $rc = $wpdb->get_var("SHOW COLUMNS FROM {$hist_table} LIKE 'research_results'");
+        if (!$rc) {
+            $wpdb->query("ALTER TABLE {$hist_table} ADD COLUMN research_results text DEFAULT NULL AFTER ctr_after_60d");
+        }
+    }
 }, 99);
+
+// ─── Site-wide GSC totals ────────────────────────────────────────────────────
+
+/**
+ * Get the true site-wide GSC totals (collected directly from GSC without page dimension).
+ * These are the accurate site-wide numbers — not limited to matched WordPress posts.
+ *
+ * @param string|null $as_of_date Optional date to get historical totals for (YYYY-MM-DD).
+ *                                Returns the closest available record on or before this date.
+ */
+function seom_get_site_totals($as_of_date = null) {
+    $empty = ['clicks' => 0, 'impressions' => 0, 'ctr' => 0, 'position' => 0, 'date' => null];
+
+    if (!$as_of_date) {
+        return get_option('seom_site_totals', $empty);
+    }
+
+    // Look up historical totals
+    $history = get_option('seom_site_totals_history', []);
+    if (empty($history)) return $empty;
+
+    // Find closest date on or before the requested date
+    $best = null;
+    foreach ($history as $date => $record) {
+        if ($date <= $as_of_date) {
+            if (!$best || $date > $best['date']) {
+                $best = $record;
+            }
+        }
+    }
+
+    return $best ?: $empty;
+}
 
 // ─── Settings ────────────────────────────────────────────────────────────────
 
@@ -411,10 +628,261 @@ function seom_get_settings() {
         'visible_max_clicks'   => 10,
         'gap_keyword_cooldown'  => 90,
         'gap_seed_categories'  => '',
+        'limit_mode'           => 'fixed',
+        'limit_max'            => 50,
         'enabled'              => false,
         'dry_run'              => true,
         'notify_email'         => get_option('admin_email'),
+        'research_enabled'     => false,
+        'research_provider'    => 'openai',  // 'openai' or 'perplexity'
+        'perplexity_api_key'   => '',
+        'research_model'       => '',        // blank = auto-select based on provider
+        'research_categories'  => 'B,C,D,E,F',  // which categories trigger research (comma-separated)
+        'research_min_impressions' => 0,     // minimum impressions to trigger research (0 = always for enabled categories)
+        'research_min_position'    => 0,     // minimum position to trigger (0 = any position, 50 = only pages ranking 50+)
     ]);
+}
+
+/**
+ * Check if competitive research should run for this specific refresh.
+ * Evaluates category, impressions, and position thresholds.
+ */
+function seom_should_research($category, $seo_ctx, $settings) {
+    // Manual refreshes (M) always get research — the user explicitly chose to refresh this page
+    if ($category === 'M') return true;
+
+    // Check if this category is in the enabled list
+    $enabled_cats = array_map('trim', explode(',', $settings['research_categories'] ?? 'B,C,D,E,F'));
+    if (!in_array($category, $enabled_cats)) return false;
+
+    // Check minimum impressions threshold
+    $min_imp = intval($settings['research_min_impressions'] ?? 0);
+    if ($min_imp > 0 && ($seo_ctx['impressions'] ?? 0) < $min_imp) return false;
+
+    // Check minimum position threshold (0 = any, only research pages ranking worse than X)
+    $min_pos = intval($settings['research_min_position'] ?? 0);
+    if ($min_pos > 0) {
+        $pos = $seo_ctx['position'] ?? 0;
+        // If page has no position (ghost), allow research. Otherwise check threshold.
+        if ($pos > 0 && $pos < $min_pos) return false;
+    }
+
+    return true;
+}
+
+/**
+ * Unified OpenAI API call that auto-selects Chat Completions or Responses API.
+ * GPT-5.x and o-series models use Responses API (no temperature support).
+ * GPT-4.1 family uses Chat Completions (temperature supported).
+ *
+ * @param string $system    System instruction / prompt
+ * @param string $user      User message (optional)
+ * @param string $model     Model ID
+ * @param float  $temperature Temperature (ignored for 5.x models)
+ * @param int    $timeout   Request timeout in seconds
+ * @return string|WP_Error  Response text or error
+ */
+function seom_ai_call($system, $user = '', $model = '', $temperature = 0.7, $timeout = 60) {
+    if (!$model) $model = function_exists('itu_ai_model') ? itu_ai_model('default') : 'gpt-4.1-nano';
+
+    $api_key = function_exists('itu_ai_key') ? itu_ai_key('blog_writer') : get_option('ai_post_api_key');
+    if (!$api_key) return new WP_Error('no_key', 'API key not configured.');
+
+    $use_responses = (bool) preg_match('/^(gpt-5|o[1-9])/', $model);
+
+    if ($use_responses) {
+        // Responses API — no temperature, uses 'instructions' + 'input'
+        $body = ['model' => $model];
+        if (!empty($system)) $body['instructions'] = $system;
+        $body['input'] = $user ?: $system;
+        if (!empty($user)) $body['input'] = [['role' => 'user', 'content' => $user]];
+
+        $response = wp_remote_post('https://api.openai.com/v1/responses', [
+            'headers' => ['Authorization' => 'Bearer ' . $api_key, 'Content-Type' => 'application/json'],
+            'body'    => json_encode($body),
+            'timeout' => $timeout,
+        ]);
+
+        if (is_wp_error($response)) return $response;
+        $code = wp_remote_retrieve_response_code($response);
+        $data = json_decode(wp_remote_retrieve_body($response), true);
+        if ($code !== 200) return new WP_Error('api_error', $data['error']['message'] ?? "HTTP {$code}");
+
+        $content = '';
+        foreach (($data['output'] ?? []) as $block) {
+            if (($block['type'] ?? '') === 'message') {
+                foreach (($block['content'] ?? []) as $part) {
+                    if (($part['type'] ?? '') === 'output_text') $content .= $part['text'] ?? '';
+                }
+            }
+        }
+        return trim($content) ?: new WP_Error('empty', 'No content returned.');
+    }
+
+    // Chat Completions API — standard for gpt-4.1 family
+    $messages = [['role' => 'system', 'content' => $system]];
+    if ($user) $messages[] = ['role' => 'user', 'content' => $user];
+
+    $body = ['model' => $model, 'messages' => $messages, 'temperature' => $temperature];
+    if (strpos($model, 'gpt-4') !== false && strpos($user . $system, 'JSON') !== false) {
+        $body['response_format'] = ['type' => 'json_object'];
+    }
+
+    $response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
+        'headers' => ['Authorization' => 'Bearer ' . $api_key, 'Content-Type' => 'application/json'],
+        'body'    => json_encode($body),
+        'timeout' => $timeout,
+    ]);
+
+    if (is_wp_error($response)) return $response;
+    $data = json_decode(wp_remote_retrieve_body($response), true);
+    $content = trim($data['choices'][0]['message']['content'] ?? '');
+    return $content ?: new WP_Error('empty', 'No content returned.');
+}
+
+/**
+ * Get a summary of AI models used for a refresh, based on post type and refresh type.
+ * Reads from centralized AI settings if available.
+ */
+function seom_get_refresh_models_summary($post_type, $refresh_type) {
+    if (!function_exists('itu_ai_model')) {
+        $default = 'gpt-4.1-nano';
+        return "Content: {$default}";
+    }
+
+    $models = [];
+    if ($post_type === 'post') {
+        if ($refresh_type === 'meta_only') {
+            $models['Meta'] = itu_ai_model('blog_meta');
+            $models['Keyword'] = itu_ai_model('blog_seo');
+            $models['SEO Title'] = itu_ai_model('blog_seo_title');
+        } else {
+            $models['Content'] = itu_ai_model('blog_content');
+            $models['Meta'] = itu_ai_model('blog_meta');
+            $models['FAQ'] = itu_ai_model('blog_faq');
+            $models['Keyword'] = itu_ai_model('blog_seo');
+            $models['SEO Title'] = itu_ai_model('blog_seo_title');
+        }
+    } else {
+        if ($refresh_type === 'meta_only') {
+            $models['Short Desc'] = itu_ai_model('product_short_desc');
+            $models['Keyword'] = itu_ai_model('product_seo');
+            $models['SEO Title'] = itu_ai_model('product_seo_title');
+        } else {
+            $models['Description'] = itu_ai_model('product_description');
+            $models['Short Desc'] = itu_ai_model('product_short_desc');
+            $models['FAQ'] = itu_ai_model('product_faq');
+            $models['Keyword'] = itu_ai_model('product_seo');
+            $models['SEO Title'] = itu_ai_model('product_seo_title');
+        }
+    }
+
+    // Add research model if research was used
+    $research_model = function_exists('itu_ai_model') ? itu_ai_model('research') : '';
+    if ($research_model) {
+        $models['Research'] = $research_model;
+    }
+
+    // Deduplicate — if all the same model, just show it once
+    $unique = array_unique($models);
+    if (count($unique) === 1) {
+        return reset($unique) . ' (all steps)';
+    }
+
+    // Show each step's model
+    $parts = [];
+    foreach ($models as $step => $model) {
+        $parts[] = "{$step}: {$model}";
+    }
+    return implode(' | ', $parts);
+}
+
+/**
+ * Populate the daily summary table for a specific date.
+ * Aggregates per-page metrics + GSC site totals into a single row.
+ * Safe to call multiple times for the same date (upserts).
+ */
+function seom_update_daily_summary($date = null) {
+    global $wpdb;
+    if (!$date) $date = date('Y-m-d');
+
+    $table = $wpdb->prefix . 'seom_page_metrics';
+    $summary_table = $wpdb->prefix . 'seom_daily_summary';
+    $settings = seom_get_settings();
+    $ghost_threshold = intval($settings['ghost_threshold']);
+
+    // Check if we have data for this date
+    $has_data = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} WHERE date_collected = %s", $date));
+    if (!$has_data) return;
+
+    // Aggregate per-page metrics for this date
+    $agg = $wpdb->get_row($wpdb->prepare("
+        SELECT
+            COUNT(DISTINCT m.post_id) as total_pages,
+            SUM(CASE WHEN m.impressions > 0 THEN 1 ELSE 0 END) as pages_with_impressions,
+            SUM(CASE WHEN m.impressions <= %d AND p.post_date < DATE_SUB(%s, INTERVAL 14 DAY) THEN 1 ELSE 0 END) as ghost_pages,
+            SUM(m.clicks) as total_clicks,
+            SUM(m.impressions) as total_impressions,
+            AVG(CASE WHEN m.avg_position > 0 THEN m.avg_position END) as avg_position,
+            AVG(CASE WHEN m.impressions > 0 THEN m.ctr END) as avg_ctr,
+            SUM(CASE WHEN m.avg_position > 0 AND m.avg_position <= 10 AND m.impressions > 0 THEN 1 ELSE 0 END) as page1_pages,
+            SUM(CASE WHEN m.avg_position > 10 AND m.avg_position <= 20 AND m.impressions > 0 THEN 1 ELSE 0 END) as page2_pages
+        FROM {$table} m
+        JOIN {$wpdb->posts} p ON m.post_id = p.ID
+        WHERE m.date_collected = %s
+        AND p.post_status = 'publish' AND p.post_type IN ('product','post','page')
+    ", $ghost_threshold, $date, $date));
+
+    // Get GSC site totals for this date if available
+    $gsc = seom_get_site_totals($date);
+
+    $row = [
+        'date_collected'       => $date,
+        'total_pages'          => intval($agg->total_pages ?? 0),
+        'pages_with_impressions' => intval($agg->pages_with_impressions ?? 0),
+        'ghost_pages'          => intval($agg->ghost_pages ?? 0),
+        'total_clicks'         => intval($agg->total_clicks ?? 0),
+        'total_impressions'    => intval($agg->total_impressions ?? 0),
+        'avg_position'         => round(floatval($agg->avg_position ?? 0), 1),
+        'avg_ctr'              => round(floatval($agg->avg_ctr ?? 0), 4),
+        'page1_pages'          => intval($agg->page1_pages ?? 0),
+        'page2_pages'          => intval($agg->page2_pages ?? 0),
+        'gsc_total_clicks'     => $gsc['date'] ? intval($gsc['clicks']) : null,
+        'gsc_total_impressions'=> $gsc['date'] ? intval($gsc['impressions']) : null,
+        'gsc_avg_position'     => $gsc['date'] ? round(floatval($gsc['position']), 1) : null,
+        'gsc_avg_ctr'          => $gsc['date'] ? round(floatval($gsc['ctr']), 4) : null,
+    ];
+
+    // Upsert
+    $existing = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$summary_table} WHERE date_collected = %s", $date));
+    if ($existing) {
+        $wpdb->update($summary_table, $row, ['id' => $existing]);
+    } else {
+        $wpdb->insert($summary_table, $row);
+    }
+}
+
+/**
+ * Backfill daily summaries for all dates that have page_metrics data but no summary row.
+ */
+function seom_backfill_daily_summaries() {
+    global $wpdb;
+    $summary_table = $wpdb->prefix . 'seom_daily_summary';
+    $metrics_table = $wpdb->prefix . 'seom_page_metrics';
+
+    $missing_dates = $wpdb->get_col("
+        SELECT DISTINCT pm.date_collected
+        FROM {$metrics_table} pm
+        LEFT JOIN {$summary_table} ds ON pm.date_collected = ds.date_collected
+        WHERE ds.id IS NULL
+        ORDER BY pm.date_collected ASC
+    ");
+
+    foreach ($missing_dates as $date) {
+        seom_update_daily_summary($date);
+    }
+
+    return count($missing_dates);
 }
 
 function seom_update_settings($new) {
@@ -430,6 +898,7 @@ require_once SEOM_PATH . 'includes/class-analyzer.php';
 require_once SEOM_PATH . 'includes/class-processor.php';
 require_once SEOM_PATH . 'includes/class-blog-refresher.php';
 require_once SEOM_PATH . 'includes/class-keyword-researcher.php';
+require_once SEOM_PATH . 'includes/class-researcher.php';
 require_once SEOM_PATH . 'includes/class-dashboard.php';
 
 // ─── Cron Hooks ──────────────────────────────────────────────────────────────
@@ -442,6 +911,8 @@ add_action('seom_daily_collect', function () {
     for ($i = 1; $i <= $total_batches; $i++) {
         SEOM_Collector::run($i);
     }
+    // Update today's daily summary for trend charts
+    seom_update_daily_summary();
 });
 add_action('seom_daily_analyze', ['SEOM_Analyzer', 'run']);
 add_action('seom_daily_process', ['SEOM_Processor', 'start_daily']);
@@ -504,11 +975,19 @@ add_action('seom_daily_goal_email', function () {
                         SUM(CASE WHEN m.impressions > 0 THEN 1 ELSE 0 END) as pages_with_impressions,
                         COUNT(DISTINCT m.post_id) as total_pages
                     FROM {$table} m
-                    INNER JOIN (SELECT post_id, MAX(date_collected) as max_date FROM {$table} GROUP BY post_id) latest
-                        ON m.post_id = latest.post_id AND m.date_collected = latest.max_date
                     JOIN {$wpdb->posts} p ON m.post_id = p.ID
-                    WHERE p.post_status = 'publish' AND p.post_type IN ('product','post','page')
-                ", $ghost_threshold));
+                    WHERE m.date_collected = %s
+                    AND p.post_status = 'publish' AND p.post_type IN ('product','post','page')
+                ", $ghost_threshold, $latest_date));
+
+                // Override with true GSC site-wide totals
+                $st = seom_get_site_totals();
+                if ($st['date']) {
+                    $m->total_clicks = intval($st['clicks']);
+                    $m->total_impressions = intval($st['impressions']);
+                    $m->avg_ctr = floatval($st['ctr']);
+                    $m->avg_position = floatval($st['position']);
+                }
 
                 // Get prior month's results for AI context
                 $last_month_goals = $wpdb->get_results("
@@ -529,7 +1008,7 @@ add_action('seom_daily_goal_email', function () {
                 $days_in_month = $now->diff($month_end_dt)->days;
 
                 // Content production metrics
-                $m->new_content_30d = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type IN ('post','product') AND post_status = 'publish' AND post_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
+                $m->new_content_30d = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type IN ('post','product','page') AND post_status = 'publish'");
                 $cooldown_d = intval($settings_g['cooldown_days']);
                 $m->stale_pages = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->posts} p LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = 'last_page_refresh' WHERE p.post_type IN ('post','product') AND p.post_status = 'publish' AND p.post_date < DATE_SUB(CURDATE(), INTERVAL 90 DAY) AND (pm.meta_value IS NULL OR pm.meta_value < DATE_SUB(CURDATE(), INTERVAL %d DAY))", $cooldown_d));
                 $m->refreshed_this_month = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}seom_refresh_history WHERE refresh_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')");
@@ -537,10 +1016,10 @@ add_action('seom_daily_goal_email', function () {
                 $metrics_summary = "Current metrics for {$site_name}:\n"
                     . "- Ghost Pages: {$m->ghost_pages}\n- Total Clicks (28d): {$m->total_clicks}\n"
                     . "- Total Impressions (28d): {$m->total_impressions}\n- Avg Position: " . round($m->avg_position, 1) . "\n"
-                    . "- Avg CTR: " . round($m->avg_ctr, 2) . "%\n- Pages on Page 1: {$m->page1_pages}\n"
+                    . "- Avg CTR: " . round($m->avg_ctr, 4) . "%\n- Pages on Page 1: {$m->page1_pages}\n"
                     . "- Pages on Page 2: {$m->page2_pages}\n- Pages With Impressions: {$m->pages_with_impressions}\n"
                     . "- Total Pages: {$m->total_pages}\n"
-                    . "- New Content Created (30d): {$m->new_content_30d}\n"
+                    . "- Total Published Content: {$m->new_content_30d}\n"
                     . "- Stale Pages (not refreshed 90+ days): {$m->stale_pages}\n"
                     . "- Pages Refreshed This Month: {$m->refreshed_this_month}\n"
                     . "- Daily Refresh Capacity: {$daily_limit}\n"
@@ -554,6 +1033,7 @@ add_action('seom_daily_goal_email', function () {
                     . "- If prior goals were MET, suggest a stretch version (higher target %) or a new metric\n"
                     . "- Use percentage targets (target_type: 'percent')\n"
                     . "- Include a mix of priorities (1=Critical through 5=Backlog)\n"
+                    . "- IMPORTANT: For avg_position, ghost_pages, stale_pages, page2_pages, direction MUST be 'reduce'. For all others, direction MUST be 'increase'.\n"
                     . "- Be realistic — SEO changes take 2-4 weeks to show\n\n"
                     . "Return a JSON object: {\"goals\": [{\"metric\": \"ghost_pages\", \"direction\": \"reduce\", \"target_value\": 10, \"target_type\": \"percent\", \"priority\": 2, \"notes\": \"reason\"}]}\n"
                     . "Valid metrics: ghost_pages, total_clicks, total_impressions, avg_position, avg_ctr, page1_pages, page2_pages, pages_with_impressions, new_content_30d, stale_pages, refreshed_this_month";
@@ -638,11 +1118,19 @@ add_action('seom_daily_goal_email', function () {
             SUM(CASE WHEN m.avg_position > 10 AND m.avg_position <= 20 AND m.impressions > 0 THEN 1 ELSE 0 END) as page2_pages,
             SUM(CASE WHEN m.impressions > 0 THEN 1 ELSE 0 END) as pages_with_impressions
         FROM {$table} m
-        INNER JOIN (SELECT post_id, MAX(date_collected) as max_date FROM {$table} GROUP BY post_id) latest
-            ON m.post_id = latest.post_id AND m.date_collected = latest.max_date
         JOIN {$wpdb->posts} p ON m.post_id = p.ID
-        WHERE p.post_status = 'publish' AND p.post_type IN ('product','post','page')
-    ", $ghost_threshold));
+        WHERE m.date_collected = %s
+        AND p.post_status = 'publish' AND p.post_type IN ('product','post','page')
+    ", $ghost_threshold, $latest_date));
+
+    // Override with true GSC site-wide totals
+    $site_totals = seom_get_site_totals();
+    if ($site_totals['date']) {
+        $metrics->total_clicks = intval($site_totals['clicks']);
+        $metrics->total_impressions = intval($site_totals['impressions']);
+        $metrics->avg_ctr = floatval($site_totals['ctr']);
+        $metrics->avg_position = floatval($site_totals['position']);
+    }
 
     $metric_values = (array) $metrics;
     $metric_labels = [
@@ -654,7 +1142,7 @@ add_action('seom_daily_goal_email', function () {
         'page1_pages'            => 'Pages on Page 1',
         'page2_pages'            => 'Pages on Page 2',
         'pages_with_impressions' => 'Pages With Impressions',
-        'new_content_30d'        => 'New Content (30d)',
+        'new_content_30d'        => 'Total Published Content',
         'stale_pages'            => 'Stale Pages (90+ days)',
         'refreshed_this_month'   => 'Refreshed This Month',
     ];
@@ -712,9 +1200,10 @@ add_action('seom_daily_goal_email', function () {
 
         $goal_rows .= '<tr>';
         $goal_rows .= '<td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;">' . $dir_arrow . ' ' . ucfirst($g->direction) . ' ' . esc_html($label) . ' by ' . $type_label . '</td>';
-        $goal_rows .= '<td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;text-align:center;">' . round($baseline, 1) . '</td>';
-        $goal_rows .= '<td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:700;">' . round($current, 1) . '</td>';
-        $goal_rows .= '<td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;text-align:center;">' . round($target_num, 1) . '</td>';
+        $precision = in_array($g->metric, ['avg_ctr', 'avg_position']) ? 2 : 1;
+        $goal_rows .= '<td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;text-align:center;">' . round($baseline, $precision) . '</td>';
+        $goal_rows .= '<td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:700;">' . round($current, $precision) . '</td>';
+        $goal_rows .= '<td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;text-align:center;">' . round($target_num, $precision) . '</td>';
         $goal_rows .= '<td style="padding:10px 14px;border-bottom:1px solid #e2e8f0;text-align:center;">';
         $goal_rows .= '<div style="background:#e2e8f0;border-radius:4px;height:10px;width:100px;display:inline-block;vertical-align:middle;">';
         $goal_rows .= '<div style="background:' . $prog_color . ';height:100%;width:' . $progress . '%;border-radius:4px;"></div></div>';
@@ -755,12 +1244,12 @@ add_action('seom_daily_goal_email', function () {
     $body .= $goal_rows;
     $body .= '</tbody></table>';
 
-    $goals_url = admin_url('admin.php?page=seo-monitor&tab=goals');
+    $goals_url = admin_url('admin.php?page=seo-ai-autopilot&tab=goals');
     $body .= '<div style="margin-top:20px;text-align:center;">';
     $body .= '<a href="' . $goals_url . '" style="display:inline-block;padding:10px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">View Goals Dashboard</a>';
     $body .= '</div>';
 
-    $body .= '<p style="margin-top:16px;font-size:11px;color:#94a3b8;text-align:center;">Data as of ' . $latest_date . '. Sent by SEO Monitor on ' . $site_name . '.</p>';
+    $body .= '<p style="margin-top:16px;font-size:11px;color:#94a3b8;text-align:center;">Data as of ' . $latest_date . '. Sent by SEO AI AutoPilot on ' . $site_name . '.</p>';
     $body .= '</div></div>';
 
     wp_mail($email, $subject, $body, ['Content-Type: text/html; charset=UTF-8']);
@@ -770,10 +1259,10 @@ add_action('seom_daily_goal_email', function () {
 
 add_action('admin_menu', function () {
     add_menu_page(
-        'SEO Monitor',
-        'SEO Monitor',
+        'SEO AI AutoPilot',
+        'SEO AI AutoPilot',
         'manage_woocommerce',
-        'seo-monitor',
+        'seo-ai-autopilot',
         ['SEOM_Dashboard', 'render'],
         'dashicons-chart-line',
         57
@@ -784,8 +1273,8 @@ add_action('admin_menu', function () {
     });
 });
 
-// "Documentation" link on the Plugins page for SEO Monitor
-add_filter('plugin_action_links_seo-monitor/seo-monitor.php', function ($links) {
+// "Documentation" link on the Plugins page for SEO AI AutoPilot
+add_filter('plugin_action_links_seo-ai-autopilot/seo-ai-autopilot.php', function ($links) {
     $url = admin_url('admin.php?page=seo-platform-docs');
     array_unshift($links, '<a href="' . esc_url($url) . '">Documentation</a>');
     return $links;
@@ -817,6 +1306,316 @@ add_action('wp_ajax_seom_run_collect', function () {
     $result = SEOM_Collector::run($batch_page);
     if (is_wp_error($result)) wp_send_json_error($result->get_error_message());
     wp_send_json_success($result);
+});
+
+// Get daily trend data for charts
+add_action('wp_ajax_seom_get_trends', function () {
+    check_ajax_referer('seom_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
+
+    global $wpdb;
+    $days = max(1, min(365, intval($_POST['days'] ?? 30)));
+    $post_type = sanitize_text_field($_POST['post_type'] ?? 'all');
+    $filter = sanitize_text_field($_POST['filter'] ?? 'all');
+    $summary_table = $wpdb->prefix . 'seom_daily_summary';
+    $metrics_table = $wpdb->prefix . 'seom_page_metrics';
+    $settings = seom_get_settings();
+    $ghost_threshold = intval($settings['ghost_threshold']);
+
+    // Fast path: unfiltered "all" view uses pre-aggregated summary table
+    if ($post_type === 'all' && $filter === 'all') {
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$summary_table}'") === $summary_table) {
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM {$summary_table} WHERE date_collected >= DATE_SUB(CURDATE(), INTERVAL %d DAY) ORDER BY date_collected ASC", $days
+            ));
+            if (empty($rows)) {
+                seom_backfill_daily_summaries();
+                $rows = $wpdb->get_results($wpdb->prepare(
+                    "SELECT * FROM {$summary_table} WHERE date_collected >= DATE_SUB(CURDATE(), INTERVAL %d DAY) ORDER BY date_collected ASC", $days
+                ));
+            }
+            if (!empty($rows)) {
+                wp_send_json_success($rows);
+            }
+        }
+    }
+
+    // Filtered path: query seom_page_metrics dynamically grouped by date
+    $type_sql = ($post_type === 'all')
+        ? "p.post_type IN ('product','post','page')"
+        : $wpdb->prepare("p.post_type = %s", $post_type);
+
+    // Build filter clause (must match seom_get_indexed exactly)
+    $filter_sql = '';
+    switch ($filter) {
+        case 'ghost':
+            $filter_sql = " AND m.impressions <= {$ghost_threshold} AND p.post_date < DATE_SUB(CURDATE(), INTERVAL 14 DAY)";
+            break;
+        case 'new':
+            $filter_sql = " AND p.post_date >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)";
+            break;
+        case 'page1':
+            $filter_sql = " AND m.avg_position > 0 AND m.avg_position <= 10 AND m.impressions > 0";
+            break;
+        case 'page2':
+            $filter_sql = " AND m.avg_position >= " . intval($settings['near_win_min_pos'])
+                . " AND m.avg_position <= " . intval($settings['near_win_max_pos'])
+                . " AND m.impressions >= " . intval($settings['near_win_min_impressions']);
+            break;
+        case 'buried':
+            $filter_sql = " AND m.avg_position > 20 AND m.impressions >= " . intval($settings['buried_min_impressions']);
+            break;
+        case 'low_ctr':
+            $min_imp = intval($settings['ctr_fix_min_impressions']);
+            $filter_sql = " AND m.impressions >= {$min_imp} AND ("
+                . "(m.avg_position <= 1 AND m.ctr < 15)"
+                . " OR (m.avg_position > 1 AND m.avg_position <= 3 AND m.ctr < 5.5)"
+                . " OR (m.avg_position > 3 AND m.avg_position <= 5 AND m.ctr < 3.5)"
+                . " OR (m.avg_position > 5 AND m.avg_position <= 10 AND m.ctr < 1.5)"
+                . " OR (m.avg_position > 10 AND m.avg_position <= 15 AND m.ctr < 0.5)"
+                . ")";
+            break;
+        case 'limited':
+            $filter_sql = " AND m.impressions > 0 AND (m.impressions < 100 OR m.avg_position >= 30)";
+            break;
+        case 'top_performers':
+            $filter_sql = " AND m.clicks >= 3 AND m.impressions >= 20 AND ("
+                . "(m.avg_position <= 1 AND m.ctr >= 18)"
+                . " OR (m.avg_position > 1 AND m.avg_position <= 2 AND m.ctr >= 10.2)"
+                . " OR (m.avg_position > 2 AND m.avg_position <= 3 AND m.ctr >= 6.6)"
+                . " OR (m.avg_position > 3 AND m.avg_position <= 5 AND m.ctr >= 4.2)"
+                . " OR (m.avg_position > 5 AND m.avg_position <= 10 AND m.ctr >= 1.8)"
+                . " OR (m.avg_position > 10 AND m.avg_position <= 20 AND m.ctr >= 0.6)"
+                . ")";
+            break;
+        case 'stars':
+            $filter_sql = " AND m.clicks >= 15 AND m.impressions >= 200";
+            break;
+        case 'underperforming':
+            $ctr_min_imp = intval($settings['ctr_fix_min_impressions']);
+            $filter_sql = " AND ("
+                . "(m.impressions <= {$ghost_threshold} AND p.post_date < DATE_SUB(CURDATE(), INTERVAL 14 DAY))"
+                . " OR (m.avg_position >= " . intval($settings['near_win_min_pos']) . " AND m.avg_position <= " . intval($settings['near_win_max_pos']) . " AND m.impressions >= " . intval($settings['near_win_min_impressions']) . ")"
+                . " OR (m.impressions >= {$ctr_min_imp} AND m.avg_position <= 15 AND m.ctr < 3)"
+                . " OR (m.impressions >= " . intval($settings['visible_min_impressions']) . " AND m.clicks <= " . intval($settings['visible_max_clicks']) . ")"
+                . ")";
+            break;
+        case 'lost':
+            // Pre-fetch lost post IDs (pages that previously had impressions but now have zero)
+            // Done as a separate query to avoid correlated subquery in the GROUP BY
+            $lost_ids = $wpdb->get_col("
+                SELECT DISTINCT curr.post_id
+                FROM {$metrics_table} curr
+                JOIN {$wpdb->posts} p2 ON curr.post_id = p2.ID
+                WHERE curr.date_collected = (SELECT MAX(date_collected) FROM {$metrics_table})
+                AND curr.impressions <= {$ghost_threshold}
+                AND p2.post_date < DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+                AND curr.post_id IN (
+                    SELECT post_id FROM {$metrics_table} WHERE impressions > 10
+                )
+            ");
+            if (!empty($lost_ids)) {
+                $filter_sql = " AND m.post_id IN (" . implode(',', array_map('intval', $lost_ids)) . ")";
+            } else {
+                $filter_sql = " AND 1=0"; // no lost pages — return empty
+            }
+            break;
+        case 'stale_year':
+            $current_year = (int) date('Y');
+            $year_patterns = [];
+            for ($y = 2020; $y < $current_year; $y++) {
+                $year_patterns[] = $wpdb->prepare("p.post_title LIKE %s", '%' . $y . '%');
+            }
+            if (!empty($year_patterns)) {
+                $filter_sql = " AND (" . implode(' OR ', $year_patterns) . ")";
+            }
+            break;
+    }
+
+    $rows = $wpdb->get_results($wpdb->prepare("
+        SELECT m.date_collected,
+            COUNT(DISTINCT m.post_id) as total_pages,
+            SUM(CASE WHEN m.impressions > 0 THEN 1 ELSE 0 END) as pages_with_impressions,
+            SUM(CASE WHEN m.impressions <= %d AND p.post_date < DATE_SUB(m.date_collected, INTERVAL 14 DAY) THEN 1 ELSE 0 END) as ghost_pages,
+            SUM(m.clicks) as total_clicks,
+            SUM(m.impressions) as total_impressions,
+            AVG(CASE WHEN m.avg_position > 0 THEN m.avg_position END) as avg_position,
+            SUM(CASE WHEN m.avg_position > 0 AND m.avg_position <= 10 AND m.impressions > 0 THEN 1 ELSE 0 END) as page1_pages
+        FROM {$metrics_table} m
+        JOIN {$wpdb->posts} p ON m.post_id = p.ID
+        WHERE m.date_collected >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
+        AND {$type_sql} AND p.post_status = 'publish'
+        {$filter_sql}
+        GROUP BY m.date_collected
+        ORDER BY m.date_collected ASC
+    ", $ghost_threshold, $days));
+
+    wp_send_json_success($rows ?: []);
+});
+
+// Get refresh performance trends for the Performance Tracker chart
+add_action('wp_ajax_seom_get_refresh_trends', function () {
+    check_ajax_referer('seom_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
+
+    global $wpdb;
+    $days = max(7, min(365, intval($_POST['days'] ?? 30)));
+    $post_type = sanitize_text_field($_POST['post_type'] ?? 'all');
+    $trend = sanitize_text_field($_POST['trend'] ?? 'all');
+    $history = $wpdb->prefix . 'seom_refresh_history';
+    $metrics = $wpdb->prefix . 'seom_page_metrics';
+
+    // Build post_type filter for history joins
+    $type_join = '';
+    $type_where = '';
+    if ($post_type !== 'all') {
+        $type_join = "JOIN {$wpdb->posts} p ON h.post_id = p.ID";
+        $type_where = $wpdb->prepare(" AND p.post_type = %s", $post_type);
+    }
+
+    // Daily refresh counts — computed after trend filtering so it only shows matching pages
+
+    // Aggregate before vs current performance for pages refreshed in this period
+    $refreshed = $wpdb->get_results($wpdb->prepare("
+        SELECT h.post_id,
+            h.clicks_before, h.impressions_before, h.position_before, h.ctr_before,
+            h.refresh_date, h.category
+        FROM {$history} h
+        INNER JOIN (
+            SELECT h2.post_id, MAX(h2.id) as max_id
+            FROM {$history} h2
+            " . ($post_type !== 'all' ? "JOIN {$wpdb->posts} p2 ON h2.post_id = p2.ID" : "") . "
+            WHERE h2.refresh_date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
+            AND h2.refresh_type NOT LIKE '%%dry run%%'
+            " . ($post_type !== 'all' ? $wpdb->prepare("AND p2.post_type = %s", $post_type) : "") . "
+            GROUP BY h2.post_id
+        ) latest ON h.id = latest.max_id
+    ", $days));
+
+    if (!empty($refreshed)) {
+        $post_ids = array_map(function($r) { return (int) $r->post_id; }, $refreshed);
+        $id_list = implode(',', $post_ids);
+
+        // Get current metrics for those posts
+        $latest_date = $wpdb->get_var("SELECT MAX(date_collected) FROM {$metrics}");
+        $current = [];
+        if ($latest_date) {
+            $cur_rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT post_id, clicks, impressions, avg_position, ctr FROM {$metrics} WHERE date_collected = %s AND post_id IN ({$id_list})",
+                $latest_date
+            ), OBJECT_K);
+            $current = $cur_rows;
+        }
+
+        // Classify each refresh's trend and filter
+        $total_clicks_before = 0; $total_clicks_now = 0;
+        $total_imp_before = 0; $total_imp_now = 0;
+        $positions_before = []; $positions_now = [];
+        $improving = 0; $declining = 0; $flat = 0;
+        $filtered_ids = [];
+
+        foreach ($refreshed as $r) {
+            $cb = intval($r->clicks_before ?? 0);
+            $ib = intval($r->impressions_before ?? 0);
+            $pb = floatval($r->position_before ?? 0);
+
+            $cur = $current[$r->post_id] ?? null;
+            $cn = $cur ? intval($cur->clicks) : 0;
+            $in = $cur ? intval($cur->impressions) : 0;
+            $pn = $cur ? floatval($cur->avg_position) : 0;
+
+            // Classify trend
+            $page_trend = 'flat';
+            if ($cn > $cb && $pn > 0 && $pb > 0 && $pn < $pb) $page_trend = 'strong';
+            elseif ($cn > $cb) $page_trend = 'clicks_up';
+            elseif ($cn < $cb && $pn > 0 && $pb > 0 && $pn > $pb) $page_trend = 'declining';
+            elseif ($cn < $cb) $page_trend = 'clicks_down';
+            elseif ($pn > 0 && $pb > 0 && $pn < $pb) $page_trend = 'ranking_up';
+            elseif ($pn > 0 && $pb > 0 && $pn > $pb) $page_trend = 'ranking_down';
+
+            // Count all for improving/declining/flat regardless of filter
+            if (in_array($page_trend, ['strong', 'clicks_up', 'ranking_up'])) $improving++;
+            elseif (in_array($page_trend, ['clicks_down', 'ranking_down', 'declining'])) $declining++;
+            else $flat++;
+
+            // Apply trend filter
+            $include = ($trend === 'all');
+            if (!$include) {
+                if ($trend === 'declining') $include = in_array($page_trend, ['clicks_down', 'ranking_down', 'declining']);
+                elseif ($trend === 'strong') $include = ($page_trend === 'strong');
+                else $include = ($page_trend === $trend);
+            }
+            if (!$include) continue;
+
+            $filtered_ids[] = (int) $r->post_id;
+            $total_clicks_before += $cb;
+            $total_clicks_now += $cn;
+            $total_imp_before += $ib;
+            $total_imp_now += $in;
+            if ($pb > 0) $positions_before[] = $pb;
+            if ($pn > 0) $positions_now[] = $pn;
+        }
+
+        $avg_pos_before = !empty($positions_before) ? round(array_sum($positions_before) / count($positions_before), 1) : 0;
+        $avg_pos_now = !empty($positions_now) ? round(array_sum($positions_now) / count($positions_now), 1) : 0;
+
+        $summary = [
+            'pages_refreshed'     => count($filtered_ids),
+            'clicks_before'       => $total_clicks_before,
+            'clicks_now'          => $total_clicks_now,
+            'impressions_before'  => $total_imp_before,
+            'impressions_now'     => $total_imp_now,
+            'avg_position_before' => $avg_pos_before,
+            'avg_position_now'    => $avg_pos_now,
+            'improving'           => $improving,
+            'declining'           => $declining,
+            'flat'                => $flat,
+        ];
+    } else {
+        $summary = ['pages_refreshed' => 0, 'clicks_before' => 0, 'clicks_now' => 0, 'impressions_before' => 0, 'impressions_now' => 0, 'avg_position_before' => 0, 'avg_position_now' => 0, 'improving' => 0, 'declining' => 0, 'flat' => 0];
+        $filtered_ids = [];
+    }
+
+    // Performance trend: daily metrics for filtered post_ids only
+    $perf_trend = [];
+    if (!empty($filtered_ids)) {
+        $id_list = implode(',', array_map('intval', $filtered_ids));
+        $perf_trend = $wpdb->get_results("
+            SELECT m.date_collected as day,
+                SUM(m.clicks) as total_clicks,
+                SUM(m.impressions) as total_impressions,
+                AVG(CASE WHEN m.avg_position > 0 THEN m.avg_position END) as avg_position,
+                COUNT(DISTINCT m.post_id) as page_count
+            FROM {$metrics} m
+            WHERE m.post_id IN ({$id_list})
+            GROUP BY m.date_collected
+            ORDER BY m.date_collected ASC
+        ");
+    }
+
+    // Daily refresh activity — scoped to filtered post IDs so it matches the trend filter
+    $daily = [];
+    if (!empty($filtered_ids)) {
+        $fid_list = implode(',', array_map('intval', $filtered_ids));
+        $daily = $wpdb->get_results($wpdb->prepare("
+            SELECT DATE(h.refresh_date) as day,
+                COUNT(*) as total_refreshed,
+                SUM(CASE WHEN h.refresh_type = 'full' THEN 1 ELSE 0 END) as full_refreshes,
+                SUM(CASE WHEN h.refresh_type = 'meta_only' THEN 1 ELSE 0 END) as meta_refreshes
+            FROM {$history} h
+            WHERE h.refresh_date >= DATE_SUB(CURDATE(), INTERVAL %d DAY)
+            AND h.refresh_type NOT LIKE '%%dry run%%'
+            AND h.post_id IN ({$fid_list})
+            GROUP BY DATE(h.refresh_date)
+            ORDER BY day ASC
+        ", $days));
+    }
+
+    wp_send_json_success([
+        'daily'   => $daily,
+        'perf'    => $perf_trend,
+        'summary' => $summary,
+    ]);
 });
 
 add_action('wp_ajax_seom_run_analyze', function () {
@@ -925,10 +1724,46 @@ add_action('wp_ajax_seom_process_step', function () {
         );
 
         $before = $wpdb->get_row($wpdb->prepare(
-            "SELECT clicks, impressions, ctr, avg_position FROM {$wpdb->prefix}seom_page_metrics
+            "SELECT clicks, impressions, ctr, avg_position, top_queries FROM {$wpdb->prefix}seom_page_metrics
              WHERE post_id = %d ORDER BY date_collected DESC LIMIT 1",
             $post_id
         ));
+
+        // Store SEO performance context for the blog refresher AI prompts
+        $category_labels = [
+            'A' => 'Ghost Page — zero/near-zero impressions, Google is not showing this page in search results at all',
+            'B' => 'CTR Fix — ranking well with impressions but click-through rate is far below expected for the position',
+            'C' => 'Near Win — ranking on page 2 (positions 11-20) with decent impressions, close to breaking into page 1',
+            'D' => 'Declining — significant click drop compared to prior period, content is losing relevance',
+            'E' => 'Visible but Ignored — high impressions but almost no clicks, people see it but don\'t click',
+            'F' => 'Buried Potential — ranking on page 3+ but Google considers it relevant (has impressions)',
+            'M' => 'Manual refresh — queued by admin',
+        ];
+        $top_queries_data = [];
+        if (!empty($before->top_queries)) {
+            $tq = json_decode($before->top_queries, true);
+            if (is_array($tq)) $top_queries_data = $tq;
+        }
+        set_transient('seom_refresh_context_' . $post_id, [
+            'clicks'       => intval($before->clicks ?? 0),
+            'impressions'  => intval($before->impressions ?? 0),
+            'ctr'          => floatval($before->ctr ?? 0),
+            'position'     => floatval($before->avg_position ?? 0),
+            'category'     => $item->category,
+            'category_desc'=> $category_labels[$item->category] ?? 'Unknown',
+            'refresh_type' => $item->refresh_type,
+            'top_queries'  => $top_queries_data,
+            'priority'     => floatval($item->priority_score),
+        ], 3600);
+
+        // Update stale years in title BEFORE research and content generation
+        // so research queries use the current year and AI writes for the right year
+        if ($item->refresh_type !== 'meta_only') {
+            SEOM_Blog_Refresher::update_title_year($post_id);
+        }
+
+        // Resolve the AI model that will be used for this refresh
+        $ai_model = function_exists('itu_ai_model') ? itu_ai_model('default') : 'gpt-4.1-nano';
 
         set_transient($progress_key, [
             'item_id'      => $item->id,
@@ -937,7 +1772,51 @@ add_action('wp_ajax_seom_process_step', function () {
             'category'     => $item->category,
             'priority'     => $item->priority_score,
             'before'       => $before,
+            'ai_model'     => $ai_model,
         ], 3600);
+
+        // Run competitive research if enabled and thresholds met (Step 0)
+        // Research is stored as post meta so it persists and can be reused
+        $research_status = 'skipped';
+        if ($item->refresh_type === 'meta_only') {
+            $research_status = 'skipped:meta_only';
+        } elseif (!SEOM_Researcher::is_available()) {
+            $research_status = 'skipped:not_enabled';
+        } else {
+            $seo_ctx = get_transient('seom_refresh_context_' . $post_id);
+            if (!$seo_ctx) {
+                $research_status = 'skipped:no_context';
+            } elseif (!seom_should_research($item->category, $seo_ctx, $settings)) {
+                $research_status = 'skipped:threshold_not_met(cat=' . $item->category . ',imp=' . ($seo_ctx['impressions'] ?? 0) . ')';
+            } else {
+                $research = SEOM_Researcher::research($post_id, $seo_ctx);
+                if (is_wp_error($research)) {
+                    $research_status = 'error:' . $research->get_error_message();
+                } elseif (empty($research)) {
+                    $research_status = 'error:empty_response';
+                } else {
+                    update_post_meta($post_id, '_seom_research', $research);
+                    update_post_meta($post_id, '_seom_research_date', current_time('mysql'));
+                    $seo_ctx['competitive_research'] = $research;
+                    set_transient('seom_refresh_context_' . $post_id, $seo_ctx, 3600);
+                    $research_status = 'collected';
+                }
+            }
+        }
+
+        // Always inject existing research into context if available (even if we didn't just run it)
+        if ($item->refresh_type !== 'meta_only') {
+            $seo_ctx = get_transient('seom_refresh_context_' . $post_id);
+            if ($seo_ctx && empty($seo_ctx['competitive_research'])) {
+                $existing_research = get_post_meta($post_id, '_seom_research', true);
+                if (!empty($existing_research)) {
+                    $research_date = get_post_meta($post_id, '_seom_research_date', true);
+                    $seo_ctx['competitive_research'] = $existing_research;
+                    $seo_ctx['research_date'] = $research_date;
+                    set_transient('seom_refresh_context_' . $post_id, $seo_ctx, 3600);
+                }
+            }
+        }
 
         // Dry run check
         if ($settings['dry_run']) {
@@ -1065,6 +1944,10 @@ add_action('wp_ajax_seom_process_step', function () {
         ], ['id' => $progress['item_id']]);
 
         $before = $progress['before'];
+        // Retrieve research results from context before it's deleted
+        $seo_ctx = get_transient('seom_refresh_context_' . $post_id);
+        $research_text = ($seo_ctx && !empty($seo_ctx['competitive_research'])) ? $seo_ctx['competitive_research'] : null;
+
         $wpdb->insert("{$wpdb->prefix}seom_refresh_history", [
             'post_id'            => $post_id,
             'refresh_date'       => current_time('mysql'),
@@ -1075,16 +1958,18 @@ add_action('wp_ajax_seom_process_step', function () {
             'impressions_before' => $before->impressions ?? null,
             'position_before'    => $before->avg_position ?? null,
             'ctr_before'         => $before->ctr ?? null,
+            'research_results'   => $research_text,
         ]);
 
         delete_transient($progress_key);
+        delete_transient('seom_refresh_context_' . $post_id);
 
         // Send notification email for completed/failed refresh
         $settings = seom_get_settings();
         if ($settings['notify_email']) {
             $title = get_the_title($post_id);
             $status_label = $error ? 'Failed' : 'Refreshed';
-            $subject = "[SEO Monitor] {$status_label}: {$title}";
+            $subject = "[SEO AI AutoPilot] {$status_label}: {$title}";
             $cat_labels = ['A' => 'Ghost', 'B' => 'CTR Fix', 'C' => 'Near Win', 'D' => 'Declining', 'E' => 'Visible/Ignored', 'F' => 'Buried', 'M' => 'Manual'];
             $cat = $cat_labels[$progress['category']] ?? $progress['category'];
             $edit_url = admin_url('post.php?action=edit&post=' . $post_id);
@@ -1093,7 +1978,7 @@ add_action('wp_ajax_seom_process_step', function () {
             $status_color = $error ? '#dc2626' : '#059669';
 
             $email_body = '<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:600px;margin:0 auto;">'
-                . '<div style="background:#1d2327;padding:16px 20px;border-radius:8px 8px 0 0;"><h1 style="margin:0;color:#fff;font-size:16px;">SEO Monitor</h1></div>'
+                . '<div style="background:#1d2327;padding:16px 20px;border-radius:8px 8px 0 0;"><h1 style="margin:0;color:#fff;font-size:16px;">SEO AI AutoPilot</h1></div>'
                 . '<div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:20px;">'
                 . '<div style="display:inline-block;padding:4px 12px;border-radius:4px;background:' . $status_color . ';color:#fff;font-weight:600;font-size:13px;margin-bottom:12px;">' . $status_label . '</div>'
                 . '<h2 style="margin:0 0 12px;font-size:18px;">' . esc_html($title) . '</h2>'
@@ -1101,6 +1986,7 @@ add_action('wp_ajax_seom_process_step', function () {
                 . '<tr><td style="padding:8px 12px;color:#999;">Type</td><td style="padding:8px 12px;">' . esc_html($post_type) . '</td></tr>'
                 . '<tr><td style="padding:8px 12px;color:#999;">Category</td><td style="padding:8px 12px;"><strong>' . esc_html($cat) . '</strong></td></tr>'
                 . '<tr><td style="padding:8px 12px;color:#999;">Refresh</td><td style="padding:8px 12px;">' . esc_html($refresh_type) . '</td></tr>'
+                . '<tr><td style="padding:8px 12px;color:#999;vertical-align:top;">AI Models</td><td style="padding:8px 12px;">' . esc_html(seom_get_refresh_models_summary($post_type, $refresh_type)) . '</td></tr>'
                 . $error_row . '</table>'
                 . '<a href="' . esc_url($view_url) . '" style="display:inline-block;padding:8px 16px;background:#2271b1;color:#fff;text-decoration:none;border-radius:4px;font-size:13px;margin-right:8px;">View</a>'
                 . '<a href="' . esc_url($edit_url) . '" style="display:inline-block;padding:8px 16px;background:#f0f0f1;color:#1d2327;text-decoration:none;border-radius:4px;font-size:13px;">Edit</a>'
@@ -1152,14 +2038,14 @@ add_action('wp_ajax_seom_queue_bulk', function () {
         case 'skip':
             if (empty($ids)) wp_send_json_error('No items selected.');
             $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-            $wpdb->query($wpdb->prepare("UPDATE {$table} SET status = 'skipped' WHERE id IN ($placeholders)", ...$ids));
+            $wpdb->query($wpdb->prepare("DELETE FROM {$table} WHERE id IN ($placeholders) AND status IN ('pending','processing')", ...$ids));
             wp_send_json_success(['affected' => count($ids)]);
             break;
 
         case 'delete':
             if (empty($ids)) wp_send_json_error('No items selected.');
             $placeholders = implode(',', array_fill(0, count($ids), '%d'));
-            $wpdb->query($wpdb->prepare("DELETE FROM {$table} WHERE id IN ($placeholders) AND status = 'pending'", ...$ids));
+            $wpdb->query($wpdb->prepare("DELETE FROM {$table} WHERE id IN ($placeholders) AND status IN ('pending','processing')", ...$ids));
             wp_send_json_success(['affected' => count($ids)]);
             break;
 
@@ -1172,7 +2058,7 @@ add_action('wp_ajax_seom_queue_bulk', function () {
             break;
 
         case 'clear':
-            $affected = $wpdb->query("DELETE FROM {$table} WHERE status = 'pending'");
+            $affected = $wpdb->query("DELETE FROM {$table} WHERE status IN ('pending','processing')");
             wp_send_json_success(['affected' => $affected]);
             break;
 
@@ -1187,14 +2073,16 @@ add_action('wp_ajax_seom_save_settings', function () {
 
     $fields = [
         'gsc_property_url', 'notify_email', 'exclude_post_ids', 'exclude_categories', 'gap_seed_categories',
+        'perplexity_api_key', 'research_provider', 'research_model', 'research_categories',
     ];
     $int_fields = [
         'daily_limit', 'cooldown_days', 'ghost_threshold',
         'ctr_fix_min_impressions', 'near_win_min_impressions',
         'buried_min_impressions', 'visible_min_impressions', 'visible_max_clicks', 'gap_keyword_cooldown',
+        'limit_max', 'research_min_impressions', 'research_min_position',
     ];
     $float_fields = ['ctr_fix_max_ctr', 'near_win_min_pos', 'near_win_max_pos', 'decline_threshold_pct'];
-    $bool_fields = ['enabled', 'dry_run'];
+    $bool_fields = ['enabled', 'dry_run', 'research_enabled'];
 
     $new = [];
     foreach ($fields as $f) {
@@ -1223,6 +2111,9 @@ add_action('wp_ajax_seom_save_settings', function () {
     if (isset($_POST['process_post_types'])) {
         $new['process_post_types'] = array_map('sanitize_text_field', (array) $_POST['process_post_types']);
     }
+    if (isset($_POST['limit_mode']) && in_array($_POST['limit_mode'], ['fixed', 'adaptive', 'burst'])) {
+        $new['limit_mode'] = $_POST['limit_mode'];
+    }
 
     seom_update_settings($new);
     wp_send_json_success('Settings saved.');
@@ -1233,15 +2124,65 @@ add_action('wp_ajax_seom_get_indexed', function () {
     if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
 
     global $wpdb;
-    $post_type = sanitize_text_field($_POST['post_type'] ?? 'product');
-    $type_sql = ($post_type === 'all')
-        ? "p.post_type IN ('product','post','page')"
-        : $wpdb->prepare("p.post_type = %s", $post_type);
+    $post_type = sanitize_text_field($_POST['post_type'] ?? 'all');
     $sort = sanitize_text_field($_POST['sort'] ?? 'clicks');
     $order = sanitize_text_field($_POST['order'] ?? 'DESC');
     $filter = sanitize_text_field($_POST['filter'] ?? 'all');
     $page = max(1, intval($_POST['page'] ?? 1));
     $date_range = max(1, min(365, intval($_POST['date_range'] ?? 28)));
+    $per_page = 50;
+
+    // Handle "Other" type — serve untracked URLs from seom_untracked_metrics
+    if ($post_type === 'other') {
+        $ut_table = $wpdb->prefix . 'seom_untracked_metrics';
+        $ut_exists = ($wpdb->get_var("SHOW TABLES LIKE '{$ut_table}'") === $ut_table);
+        if (!$ut_exists) wp_send_json_success(['rows' => [], 'total' => 0, 'page' => 1, 'summary' => (object)['total_pages' => 0, 'pages_with_impressions' => 0, 'ghost_pages' => 0, 'new_pages' => 0, 'total_clicks' => 0, 'total_impressions' => 0, 'avg_position' => 0], 'date_range' => $date_range, 'cooldown_days' => 90, 'is_other' => true]);
+
+        $ut_date = $wpdb->get_var("SELECT MAX(date_collected) FROM {$ut_table}");
+        if (!$ut_date) wp_send_json_success(['rows' => [], 'total' => 0, 'page' => 1, 'summary' => (object)['total_pages' => 0, 'pages_with_impressions' => 0, 'ghost_pages' => 0, 'new_pages' => 0, 'total_clicks' => 0, 'total_impressions' => 0, 'avg_position' => 0], 'date_range' => $date_range, 'cooldown_days' => 90, 'is_other' => true]);
+
+        $allowed_sorts = ['url', 'clicks', 'impressions', 'ctr', 'avg_position', 'url_type'];
+        if (!in_array($sort, $allowed_sorts)) $sort = 'impressions';
+        $order = strtoupper($order) === 'ASC' ? 'ASC' : 'DESC';
+        $offset = ($page - 1) * $per_page;
+
+        $total = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$ut_table} WHERE date_collected = %s", $ut_date));
+        $rows = $wpdb->get_results($wpdb->prepare("SELECT url, clicks, impressions, ctr, avg_position, url_type, date_collected FROM {$ut_table} WHERE date_collected = %s ORDER BY {$sort} {$order} LIMIT %d OFFSET %d", $ut_date, $per_page, $offset));
+
+        // Build summary matching the expected format
+        $ut_summary = $wpdb->get_row($wpdb->prepare("SELECT COUNT(*) as total_pages, SUM(CASE WHEN impressions > 0 THEN 1 ELSE 0 END) as pages_with_impressions, SUM(CASE WHEN impressions = 0 THEN 1 ELSE 0 END) as ghost_pages, 0 as new_pages, SUM(clicks) as total_clicks, SUM(impressions) as total_impressions, AVG(CASE WHEN avg_position > 0 THEN avg_position END) as avg_position FROM {$ut_table} WHERE date_collected = %s", $ut_date));
+
+        // Add fields the JS expects
+        foreach ($rows as &$r) {
+            $r->post_id = 0;
+            $r->post_title = $r->url;
+            $r->post_type = 'other';
+            $r->post_date = $r->date_collected;
+            $r->last_refresh = null;
+            $r->last_refresh_type = null;
+            $r->in_queue = false;
+            $r->was_category = 'OTHER';
+            $r->research_date = null;
+            $r->clicks_prior = null;
+            $r->impressions_prior = null;
+            $r->position_prior = null;
+        }
+        unset($r);
+
+        wp_send_json_success([
+            'rows'          => $rows,
+            'total'         => $total,
+            'page'          => $page,
+            'summary'       => $ut_summary,
+            'date_range'    => $date_range,
+            'cooldown_days' => intval(seom_get_settings()['cooldown_days']),
+            'is_other'      => true,
+        ]);
+    }
+
+    $type_sql = ($post_type === 'all')
+        ? "p.post_type IN ('product','post','page')"
+        : $wpdb->prepare("p.post_type = %s", $post_type);
     $per_page = 50;
     $offset = ($page - 1) * $per_page;
     $date_warning = '';
@@ -1286,6 +2227,9 @@ add_action('wp_ajax_seom_get_indexed', function () {
         // Build a temp table in memory for the live data
         $temp_table = $wpdb->prefix . 'seom_live_metrics';
         $wpdb->query("DROP TEMPORARY TABLE IF EXISTS {$temp_table}");
+        // MEMORY engine allocates full VARCHAR width per row — keep columns small
+        // and increase heap limit to handle ~4000+ rows
+        $wpdb->query("SET SESSION max_heap_table_size = 67108864"); // 64MB
         $wpdb->query("CREATE TEMPORARY TABLE {$temp_table} (
             post_id BIGINT UNSIGNED NOT NULL,
             url VARCHAR(500),
@@ -1294,7 +2238,7 @@ add_action('wp_ajax_seom_get_indexed', function () {
             ctr FLOAT DEFAULT 0,
             avg_position FLOAT DEFAULT 0,
             date_collected DATE,
-            top_queries TEXT,
+            top_queries VARCHAR(500),
             PRIMARY KEY (post_id)
         ) ENGINE=MEMORY");
 
@@ -1441,6 +2385,39 @@ add_action('wp_ajax_seom_get_indexed', function () {
             // Stars: High-traffic pages carrying the site — 15+ clicks and 200+ impressions
             $filter_sql = ' AND m.clicks >= 15 AND m.impressions >= 200';
             break;
+        case 'lost':
+            // Lost: Pages that currently have 0 impressions but previously had meaningful impressions
+            // in an earlier collection — these have dropped out of the index. Distinct from ghosts
+            // which may never have had impressions.
+            $ghost_t = intval($settings['ghost_threshold']);
+            $filter_sql = " AND m.impressions <= {$ghost_t} AND p.post_date < DATE_SUB(CURDATE(), INTERVAL 14 DAY)"
+                . " AND m.post_id IN (SELECT pm2.post_id FROM {$wpdb->prefix}seom_page_metrics pm2"
+                . " WHERE pm2.impressions > 10 AND pm2.post_id = m.post_id AND pm2.date_collected < m.date_collected)";
+            break;
+        case 'stale_year':
+            // Pages with a date-context year in the title that is older than the current year
+            // Excludes product version numbers (Windows Server 2016, Word 2019, SQL 2022, etc.)
+            $current_year = (int) date('Y');
+            $year_patterns = [];
+            // Exclude titles containing known product version patterns
+            $version_excludes = ['Server%', 'Windows%', 'Office%', 'Word%', 'Excel%', 'Outlook%',
+                'SQL%', 'Exchange%', 'SharePoint%', 'Visual Studio%', 'AutoCAD%', 'R2%'];
+            for ($y = 2020; $y < $current_year; $y++) {
+                $year_patterns[] = $wpdb->prepare("p.post_title LIKE %s", '%' . $y . '%');
+            }
+            if (!empty($year_patterns)) {
+                $exclude_parts = [];
+                foreach ($version_excludes as $ve) {
+                    for ($y = 2020; $y < $current_year; $y++) {
+                        $exclude_parts[] = $wpdb->prepare("p.post_title LIKE %s", '%' . rtrim($ve, '%') . '%' . $y . '%');
+                    }
+                }
+                $filter_sql = " AND (" . implode(' OR ', $year_patterns) . ")";
+                if (!empty($exclude_parts)) {
+                    $filter_sql .= " AND NOT (" . implode(' OR ', $exclude_parts) . ")";
+                }
+            }
+            break;
     }
 
     // For the temp table (live GSC), no need for the MAX(date_collected) subquery — one row per post
@@ -1454,11 +2431,18 @@ add_action('wp_ajax_seom_get_indexed', function () {
 
     $rows = $wpdb->get_results($wpdb->prepare("
         SELECT m.*, p.post_title, p.post_type, p.post_date,
-               lr_meta.meta_value as last_refresh
+               lr_meta.meta_value as last_refresh,
+               rh_latest.refresh_type as last_refresh_type
         FROM {$metrics_table} m
         {$latest_join}
         JOIN {$wpdb->posts} p ON m.post_id = p.ID
         LEFT JOIN {$wpdb->postmeta} lr_meta ON p.ID = lr_meta.post_id AND lr_meta.meta_key = 'last_page_refresh'
+        LEFT JOIN (
+            SELECT h.post_id, h.refresh_type
+            FROM {$wpdb->prefix}seom_refresh_history h
+            INNER JOIN (SELECT post_id, MAX(id) as max_id FROM {$wpdb->prefix}seom_refresh_history GROUP BY post_id) hmax
+                ON h.id = hmax.max_id
+        ) rh_latest ON m.post_id = rh_latest.post_id
         WHERE {$type_sql} AND p.post_status = 'publish'
         $filter_sql
         ORDER BY $sort_col $order
@@ -1491,6 +2475,31 @@ add_action('wp_ajax_seom_get_indexed', function () {
         WHERE {$type_sql} AND p.post_status = 'publish'
         $filter_sql
     ");
+
+    // Override site-wide totals with true GSC data — only for default 28-day range,
+    // unfiltered "all" type view with no active filter. When a filter or specific type
+    // is active, the per-post summary from the DB query is the correct filtered total.
+    if (!$use_live_gsc && $post_type === 'all' && $filter === 'all') {
+        $site_totals = seom_get_site_totals();
+        if ($site_totals['date']) {
+            $summary->total_clicks = intval($site_totals['clicks']);
+            $summary->total_impressions = intval($site_totals['impressions']);
+            $summary->avg_position = floatval($site_totals['position']);
+        }
+
+        // Include untracked URL counts in the "All" totals for full auditability
+        $ut_table = $wpdb->prefix . 'seom_untracked_metrics';
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$ut_table}'") === $ut_table) {
+            $ut_date = $wpdb->get_var("SELECT MAX(date_collected) FROM {$ut_table}");
+            if ($ut_date) {
+                $ut_counts = $wpdb->get_row($wpdb->prepare(
+                    "SELECT COUNT(*) as cnt, SUM(CASE WHEN impressions > 0 THEN 1 ELSE 0 END) as with_imp FROM {$ut_table} WHERE date_collected = %s", $ut_date
+                ));
+                $summary->total_pages = intval($summary->total_pages) + intval($ut_counts->cnt ?? 0);
+                $summary->pages_with_impressions = intval($summary->pages_with_impressions) + intval($ut_counts->with_imp ?? 0);
+            }
+        }
+    }
 
     // Check which posts are already in queue
     $queued_ids = $wpdb->get_col("SELECT post_id FROM {$wpdb->prefix}seom_refresh_queue WHERE status IN ('pending', 'processing')");
@@ -1556,6 +2565,7 @@ add_action('wp_ajax_seom_get_indexed', function () {
         $hist = $refresh_map[$r->post_id] ?? null;
         if ($hist) {
             $r->was_category = $hist['category'];
+            $r->last_refresh_type = $hist['refresh_type'];
             // Use history date, but also check post meta in case it's more recent
             // (e.g., admin bar refresh sets meta but uses category 'M')
             $meta_date = $r->last_refresh ?? null;
@@ -1563,6 +2573,7 @@ add_action('wp_ajax_seom_get_indexed', function () {
             $r->last_refresh = ($meta_date && $meta_date > $hist_date) ? $meta_date : $hist_date;
         } else {
             // No refresh history — check if it was refreshed via other means (Blog Queue, admin bar)
+            $r->last_refresh_type = null;
             if (!empty($r->last_refresh)) {
                 $r->was_category = 'M'; // Manual/external refresh
             } elseif ($r->post_date >= $fourteen_days_ago) {
@@ -1571,6 +2582,9 @@ add_action('wp_ajax_seom_get_indexed', function () {
                 $r->was_category = 'NEVER';
             }
         }
+
+        // Add research date
+        $r->research_date = get_post_meta($r->post_id, '_seom_research_date', true) ?: null;
     }
 
     wp_send_json_success([
@@ -1580,6 +2594,82 @@ add_action('wp_ajax_seom_get_indexed', function () {
         'summary'      => $summary,
         'date_warning' => $date_warning ?: null,
         'date_range'   => $date_range,
+        'cooldown_days'=> intval($settings['cooldown_days']),
+    ]);
+});
+
+// Get untracked URLs (GSC data with no matching WordPress post) + reconciliation
+add_action('wp_ajax_seom_get_untracked', function () {
+    check_ajax_referer('seom_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
+
+    global $wpdb;
+    $table = $wpdb->prefix . 'seom_untracked_metrics';
+    $table_exists = ($wpdb->get_var("SHOW TABLES LIKE '{$table}'") === $table);
+
+    $empty_ut = ['clicks' => 0, 'impressions' => 0, 'url_count' => 0];
+
+    // Get tracked totals (always available from page_metrics)
+    $metrics_table = $wpdb->prefix . 'seom_page_metrics';
+    $tracked_date = $wpdb->get_var("SELECT MAX(date_collected) FROM {$metrics_table}");
+    $tt = $tracked_date ? $wpdb->get_row($wpdb->prepare("SELECT SUM(clicks) as clicks, SUM(impressions) as impressions, COUNT(*) as url_count FROM {$metrics_table} WHERE date_collected = %s", $tracked_date)) : null;
+    $tracked_totals = [
+        'clicks'      => intval($tt->clicks ?? 0),
+        'impressions' => intval($tt->impressions ?? 0),
+        'url_count'   => intval($tt->url_count ?? 0),
+    ];
+
+    $latest_date = $table_exists ? $wpdb->get_var("SELECT MAX(date_collected) FROM {$table}") : null;
+    if (!$latest_date) {
+        wp_send_json_success([
+            'rows' => [], 'total' => 0, 'type_counts' => [],
+            'untracked_totals' => $empty_ut,
+            'tracked_totals' => $tracked_totals,
+            'gsc_totals' => seom_get_site_totals(),
+            'needs_collection' => true,
+        ]);
+    }
+
+    $url_type = sanitize_text_field($_POST['url_type'] ?? '');
+    $sort = sanitize_text_field($_POST['sort'] ?? 'impressions');
+    $order = strtoupper(sanitize_text_field($_POST['order'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
+    $page = max(1, intval($_POST['page'] ?? 1));
+    $per_page = 50;
+    $offset_val = ($page - 1) * $per_page;
+
+    $allowed_sorts = ['url', 'clicks', 'impressions', 'ctr', 'avg_position', 'url_type'];
+    if (!in_array($sort, $allowed_sorts)) $sort = 'impressions';
+
+    $where = $wpdb->prepare("WHERE date_collected = %s", $latest_date);
+    if ($url_type) $where .= $wpdb->prepare(" AND url_type = %s", $url_type);
+
+    $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} {$where}");
+    $rows = $wpdb->get_results("SELECT * FROM {$table} {$where} ORDER BY {$sort} {$order} LIMIT {$per_page} OFFSET {$offset_val}");
+
+    // Untracked totals (all types, not filtered)
+    $ut = $wpdb->get_row($wpdb->prepare("SELECT SUM(clicks) as clicks, SUM(impressions) as impressions, COUNT(*) as url_count FROM {$table} WHERE date_collected = %s", $latest_date));
+
+    // Type breakdown
+    $type_counts = $wpdb->get_results($wpdb->prepare("SELECT url_type, COUNT(*) as cnt, SUM(impressions) as impressions FROM {$table} WHERE date_collected = %s GROUP BY url_type ORDER BY impressions DESC", $latest_date));
+
+    wp_send_json_success([
+        'rows'  => $rows,
+        'total' => $total,
+        'page'  => $page,
+        'per_page' => $per_page,
+        'date'  => $latest_date,
+        'untracked_totals' => [
+            'clicks'      => intval($ut->clicks ?? 0),
+            'impressions' => intval($ut->impressions ?? 0),
+            'url_count'   => intval($ut->url_count ?? 0),
+        ],
+        'tracked_totals' => [
+            'clicks'      => intval($tt->clicks ?? 0),
+            'impressions' => intval($tt->impressions ?? 0),
+            'url_count'   => intval($tt->url_count ?? 0),
+        ],
+        'gsc_totals' => seom_get_site_totals(),
+        'type_counts' => $type_counts,
     ]);
 });
 
@@ -1615,6 +2705,89 @@ add_action('wp_ajax_seom_add_to_queue', function () {
     wp_send_json_success(['queued' => true]);
 });
 
+// Manual competitive research collection for a single post
+add_action('wp_ajax_seom_collect_research', function () {
+    check_ajax_referer('seom_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
+
+    $post_id = intval($_POST['post_id'] ?? 0);
+    if (!$post_id) wp_send_json_error('Missing post ID.');
+
+    // For manual research, check if a provider is configured (don't require the auto-enable toggle)
+    $r_settings = seom_get_settings();
+    $r_provider = $r_settings['research_provider'] ?? 'openai';
+    $has_key = false;
+    if ($r_provider === 'perplexity') {
+        $has_key = !empty($r_settings['perplexity_api_key']);
+    } else {
+        $has_key = !empty(function_exists('itu_ai_key') ? itu_ai_key('blog_writer') : get_option('ai_post_api_key'));
+    }
+    if (!$has_key) {
+        wp_send_json_error('Research API key not configured. Set up a provider in Settings > Competitive Research.');
+    }
+
+    global $wpdb;
+    $before = $wpdb->get_row($wpdb->prepare(
+        "SELECT clicks, impressions, ctr, avg_position, top_queries FROM {$wpdb->prefix}seom_page_metrics
+         WHERE post_id = %d ORDER BY date_collected DESC LIMIT 1",
+        $post_id
+    ));
+
+    $top_queries_data = [];
+    if (!empty($before->top_queries)) {
+        $tq = json_decode($before->top_queries, true);
+        if (is_array($tq)) $top_queries_data = $tq;
+    }
+
+    $seo_ctx = [
+        'clicks'       => intval($before->clicks ?? 0),
+        'impressions'  => intval($before->impressions ?? 0),
+        'ctr'          => floatval($before->ctr ?? 0),
+        'position'     => floatval($before->avg_position ?? 0),
+        'category'     => 'M',
+        'category_desc'=> 'Manual research collection',
+        'top_queries'  => $top_queries_data,
+    ];
+
+    $research = SEOM_Researcher::research($post_id, $seo_ctx);
+    if (is_wp_error($research)) {
+        wp_send_json_error('Research failed: ' . $research->get_error_message());
+    }
+
+    update_post_meta($post_id, '_seom_research', $research);
+    update_post_meta($post_id, '_seom_research_date', current_time('mysql'));
+
+    wp_send_json_success([
+        'research' => $research,
+        'date'     => current_time('mysql'),
+        'post_id'  => $post_id,
+    ]);
+});
+
+// View stored research for a post
+add_action('wp_ajax_seom_get_research', function () {
+    check_ajax_referer('seom_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
+
+    $post_id = intval($_POST['post_id'] ?? 0);
+    if (!$post_id) wp_send_json_error('Missing post ID.');
+
+    $research = get_post_meta($post_id, '_seom_research', true);
+    $date = get_post_meta($post_id, '_seom_research_date', true);
+    $title = get_the_title($post_id);
+
+    if (empty($research)) {
+        wp_send_json_error('No research collected for this page yet.');
+    }
+
+    wp_send_json_success([
+        'post_id'  => $post_id,
+        'title'    => $title,
+        'research' => $research,
+        'date'     => $date,
+    ]);
+});
+
 add_action('wp_ajax_seom_get_queue', function () {
     check_ajax_referer('seom_nonce', 'nonce');
     if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
@@ -1637,9 +2810,33 @@ add_action('wp_ajax_seom_get_queue', function () {
         LIMIT 100
     ");
 
+    // Get last refresh dates from SEO AI AutoPilot history (not post meta which includes Blog Queue creation dates)
+    $queue_post_ids = wp_list_pluck($rows, 'post_id');
+    $refresh_dates = [];
+    if (!empty($queue_post_ids)) {
+        $id_list = implode(',', array_map('intval', $queue_post_ids));
+        $refresh_rows = $wpdb->get_results(
+            "SELECT post_id, MAX(refresh_date) as last_refresh
+             FROM {$wpdb->prefix}seom_refresh_history
+             WHERE post_id IN ({$id_list})
+             GROUP BY post_id"
+        );
+        foreach ($refresh_rows as $rr) {
+            $refresh_dates[$rr->post_id] = $rr->last_refresh;
+        }
+    }
+
+    // Bulk load URLs from stored metrics to avoid get_permalink per row
+    $stored_urls = [];
+    if (!empty($queue_post_ids)) {
+        $id_list = implode(',', array_map('intval', $queue_post_ids));
+        $url_rows = $wpdb->get_results("SELECT post_id, url FROM {$wpdb->prefix}seom_page_metrics WHERE post_id IN ({$id_list}) AND url IS NOT NULL AND url != '' GROUP BY post_id, url");
+        foreach ($url_rows as $ur) $stored_urls[$ur->post_id] = $ur->url;
+    }
+
     foreach ($rows as &$row) {
-        $row->url = get_permalink($row->post_id);
-        $row->last_refresh = get_post_meta($row->post_id, 'last_page_refresh', true) ?: null;
+        $row->url = $stored_urls[$row->post_id] ?? get_permalink($row->post_id);
+        $row->last_refresh = $refresh_dates[$row->post_id] ?? null;
         $row->has_description = !empty(trim(strip_tags(get_post_field('post_content', $row->post_id))));
         $row->has_excerpt = !empty(trim(get_post_field('post_excerpt', $row->post_id)));
     }
@@ -1753,6 +2950,13 @@ add_action('wp_ajax_seom_get_overview', function () {
     $last_collect = get_option('seom_last_collect', 'Never');
     $last_analyze = get_option('seom_last_analyze', 'Never');
 
+    // Active goals for overview cards
+    $active_goals = [];
+    $gt = $wpdb->prefix . 'seom_goals';
+    if ($wpdb->get_var("SHOW TABLES LIKE '{$gt}'") === $gt) {
+        $active_goals = $wpdb->get_results("SELECT * FROM {$gt} WHERE status = 'active' ORDER BY priority ASC, deadline ASC");
+    }
+
     wp_send_json_success([
         'monitored'       => $monitored,
         'in_queue'        => $in_queue,
@@ -1767,6 +2971,7 @@ add_action('wp_ajax_seom_get_overview', function () {
         'last_analyze'    => $last_analyze,
         'enabled'         => $settings['enabled'],
         'dry_run'         => $settings['dry_run'],
+        'active_goals'    => $active_goals,
     ]);
 });
 
@@ -2839,34 +4044,47 @@ add_action('wp_ajax_seom_get_goal_metrics', function () {
         AND p.post_status = 'publish' AND p.post_type IN ('product','post','page')
     ", $ghost_threshold, $target_date, $target_date, $target_date));
 
+    // Override site-wide aggregate metrics with true GSC totals
+    // The per-post SUM only captures matched WordPress posts; GSC site totals are the real numbers
+    $site_totals = seom_get_site_totals($as_of ?: null);
+    if ($site_totals['date']) {
+        $metrics->total_clicks = intval($site_totals['clicks']);
+        $metrics->total_impressions = intval($site_totals['impressions']);
+        $metrics->avg_ctr = floatval($site_totals['ctr']);
+        $metrics->avg_position = floatval($site_totals['position']);
+    }
+
     // Available collection dates for the date picker
     $available_dates = $wpdb->get_col("SELECT DISTINCT date_collected FROM {$table} ORDER BY date_collected ASC");
 
     // Additional metrics: new content created and stale pages
+    // Use $target_date so baseline reflects the requested start date, not today
     $cooldown_days = intval($settings['cooldown_days']);
 
-    // New content: posts/products published in last 30 days
-    $new_content_30d = (int) $wpdb->get_var("
+    // New content: total published pages/posts/products as of the target date
+    // Baseline = how many pages existed at the start date; progress = how many exist now
+    $new_content_30d = (int) $wpdb->get_var($wpdb->prepare("
         SELECT COUNT(*) FROM {$wpdb->posts}
-        WHERE post_type IN ('post','product') AND post_status = 'publish'
-        AND post_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-    ");
+        WHERE post_type IN ('post','product','page') AND post_status = 'publish'
+        AND post_date <= %s
+    ", $target_date));
 
-    // Stale pages: published posts/products older than 90 days that have NEVER been refreshed
-    // or whose last refresh is older than cooldown period
+    // Stale pages: published posts/products older than 90 days (relative to target date)
+    // that have NEVER been refreshed or whose last refresh is older than cooldown period
     $stale_pages = (int) $wpdb->get_var($wpdb->prepare("
         SELECT COUNT(*) FROM {$wpdb->posts} p
         LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = 'last_page_refresh'
         WHERE p.post_type IN ('post','product') AND p.post_status = 'publish'
-        AND p.post_date < DATE_SUB(CURDATE(), INTERVAL 90 DAY)
-        AND (pm.meta_value IS NULL OR pm.meta_value < DATE_SUB(CURDATE(), INTERVAL %d DAY))
-    ", $cooldown_days));
+        AND p.post_date < DATE_SUB(%s, INTERVAL 90 DAY)
+        AND (pm.meta_value IS NULL OR pm.meta_value < DATE_SUB(%s, INTERVAL %d DAY))
+    ", $target_date, $target_date, $cooldown_days));
 
-    // Refreshed this month count
-    $refreshed_this_month = (int) $wpdb->get_var("
+    // Refreshed this month count (month of the target date)
+    $refreshed_this_month = (int) $wpdb->get_var($wpdb->prepare("
         SELECT COUNT(*) FROM {$wpdb->prefix}seom_refresh_history
-        WHERE refresh_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
-    ");
+        WHERE refresh_date >= DATE_FORMAT(%s, '%%Y-%%m-01')
+        AND refresh_date <= %s
+    ", $target_date, $target_date));
 
     // Add to metrics object
     $metrics->new_content_30d = $new_content_30d;
@@ -2916,7 +4134,7 @@ add_action('wp_ajax_seom_create_goal', function () {
         wp_send_json_error('Missing required fields.');
     }
 
-    // Get the actual current value for this metric (not the historical baseline)
+    // Get the actual current value for this metric using the latest single collection date
     $table = $wpdb->prefix . 'seom_page_metrics';
     $ghost_threshold = intval(seom_get_settings()['ghost_threshold']);
     $latest_date = $wpdb->get_var("SELECT MAX(date_collected) FROM {$table}");
@@ -2933,11 +4151,18 @@ add_action('wp_ajax_seom_create_goal', function () {
                 SUM(CASE WHEN m.avg_position > 10 AND m.avg_position <= 20 AND m.impressions > 0 THEN 1 ELSE 0 END) as page2_pages,
                 SUM(CASE WHEN m.impressions > 0 THEN 1 ELSE 0 END) as pages_with_impressions
             FROM {$table} m
-            INNER JOIN (SELECT post_id, MAX(date_collected) as max_date FROM {$table} GROUP BY post_id) latest
-                ON m.post_id = latest.post_id AND m.date_collected = latest.max_date
             JOIN {$wpdb->posts} p ON m.post_id = p.ID
-            WHERE p.post_status = 'publish' AND p.post_type IN ('product','post','page')
-        ", $ghost_threshold));
+            WHERE m.date_collected = %s
+            AND p.post_status = 'publish' AND p.post_type IN ('product','post','page')
+        ", $ghost_threshold, $latest_date));
+        // Override site-wide totals with true GSC data
+        $site_totals = seom_get_site_totals();
+        if ($site_totals['date']) {
+            $cur_metrics->total_clicks = intval($site_totals['clicks']);
+            $cur_metrics->total_impressions = intval($site_totals['impressions']);
+            $cur_metrics->avg_ctr = floatval($site_totals['ctr']);
+            $cur_metrics->avg_position = floatval($site_totals['position']);
+        }
         if ($cur_metrics && isset($cur_metrics->$metric)) {
             $current_value = floatval($cur_metrics->$metric);
         }
@@ -3034,7 +4259,7 @@ add_action('wp_ajax_seom_check_goal_feasibility', function () {
         'page1_pages'           => 'Pages Ranking on Page 1',
         'page2_pages'           => 'Pages Ranking on Page 2',
         'pages_with_impressions'=> 'Pages With Impressions',
-        'new_content_30d'       => 'New Content Created in Last 30 Days',
+        'new_content_30d'       => 'Total Published Content',
         'stale_pages'           => 'Stale Pages (not refreshed in 90+ days)',
         'refreshed_this_month'  => 'Pages Refreshed This Month',
     ];
@@ -3051,8 +4276,35 @@ add_action('wp_ajax_seom_check_goal_feasibility', function () {
     }
 
     $max_refreshes = $daily_limit * $days;
+    $abs_change = abs($target_num - $baseline);
 
-    $prompt = "You are an SEO strategist for {$site_name}, an IT training and certification website with approximately {$baseline} baseline for the metric below.
+    // Build metric-specific context for the AI
+    if ($metric === 'new_content_30d') {
+        $prompt = "You are an SEO strategist for {$site_name}, an IT training and certification website.
+
+GOAL: {$change_desc} for metric \"{$metric_label}\" within {$days} days.
+CURRENT BASELINE: {$baseline} total published pages/posts on the site as of the start date.
+TARGET: " . round($target_num) . " total published pages — that means publishing approximately " . round($abs_change) . " new pages within {$days} days.
+
+Evaluate whether publishing " . round($abs_change) . " new pages in {$days} days is feasible. Respond with EXACTLY this JSON format:
+{
+  \"feasibility\": \"achievable\" or \"stretch\" or \"unlikely\" or \"unrealistic\",
+  \"confidence\": 1-100,
+  \"reasoning\": \"2-3 sentence explanation of why\",
+  \"recommendation\": \"1-2 sentence suggestion for adjusting if needed\",
+  \"suggested_target\": number (your recommended target as a percentage if target_type is percent, or absolute number if absolute — use the SAME unit as the goal),
+  \"suggested_days\": number (your recommended timeline in days)
+}
+
+Key considerations:
+- This is about PUBLISHING NEW CONTENT, not refreshing existing pages
+- A well-resourced team with AI-assisted content creation can publish 5-20+ pages per day
+- " . round($abs_change) . " new pages over {$days} days = roughly " . round($abs_change / max(1, $days), 1) . " pages per day
+- The site already has {$baseline} pages so this is a " . round(($abs_change / max(1, $baseline)) * 100, 2) . "% increase
+- Consider whether the volume is reasonable for an IT training and certification website
+- suggested_target must use the same unit as the goal: if target_type is percent, return a percentage number (e.g. 3 means 3%); if absolute, return the total page count";
+    } else {
+        $prompt = "You are an SEO strategist for {$site_name}, an IT training and certification website with approximately {$baseline} baseline for the metric below.
 
 GOAL: {$change_desc} for metric \"{$metric_label}\" within {$days} days.
 CAPACITY: We can refresh up to {$daily_limit} pages per day ({$max_refreshes} total in the period).
@@ -3064,7 +4316,7 @@ Evaluate this goal and respond with EXACTLY this JSON format:
   \"confidence\": 1-100,
   \"reasoning\": \"2-3 sentence explanation of why\",
   \"recommendation\": \"1-2 sentence suggestion for adjusting if needed\",
-  \"suggested_target\": number (your recommended realistic target value using the same unit),
+  \"suggested_target\": number (your recommended target as a percentage if target_type is percent, or absolute number if absolute — use the SAME unit as the goal),
   \"suggested_days\": number (your recommended timeline in days)
 }
 
@@ -3075,7 +4327,9 @@ Key considerations:
 - Position improvements from content refresh average 2-5 positions over 30-60 days
 - Not every refresh produces improvement — expect 30-40% success rate
 - Large percentage targets on already-good metrics are harder than fixing poor ones
-- Factor in the {$max_refreshes} refresh capacity vs the scale of change needed";
+- Factor in the {$max_refreshes} refresh capacity vs the scale of change needed
+- suggested_target must use the same unit as the goal: if target_type is percent, return a percentage number (e.g. 5 means 5%); if absolute, return the metric value";
+    }
 
     $api_key = function_exists('itu_ai_key') ? itu_ai_key('blog_writer') : get_option('ai_post_api_key');
     if (!$api_key) wp_send_json_error('API key not configured.');
@@ -3109,6 +4363,17 @@ Key considerations:
 
     if (!$result) wp_send_json_error('AI returned invalid response.');
 
+    // Normalize suggested_target: AI often returns an absolute number even when
+    // the goal uses percentage. Detect and convert back to a percentage.
+    if ($target_type === 'percent' && isset($result['suggested_target']) && $baseline > 0) {
+        $st = floatval($result['suggested_target']);
+        // If the suggested value looks like an absolute number (much larger than
+        // a reasonable percentage), convert it to a percentage of baseline
+        if ($st > $target_value * 10 && $st > 100) {
+            $result['suggested_target'] = round(abs($st - $baseline) / $baseline * 100, 1);
+        }
+    }
+
     wp_send_json_success($result);
 });
 
@@ -3137,18 +4402,26 @@ add_action('wp_ajax_seom_refresh_goal_progress', function () {
             SUM(CASE WHEN m.avg_position > 10 AND m.avg_position <= 20 AND m.impressions > 0 THEN 1 ELSE 0 END) as page2_pages,
             SUM(CASE WHEN m.impressions > 0 THEN 1 ELSE 0 END) as pages_with_impressions
         FROM {$table} m
-        INNER JOIN (SELECT post_id, MAX(date_collected) as max_date FROM {$table} GROUP BY post_id) latest
-            ON m.post_id = latest.post_id AND m.date_collected = latest.max_date
         JOIN {$wpdb->posts} p ON m.post_id = p.ID
-        WHERE p.post_status = 'publish' AND p.post_type IN ('product','post','page')
-    ", $ghost_threshold));
+        WHERE m.date_collected = %s
+        AND p.post_status = 'publish' AND p.post_type IN ('product','post','page')
+    ", $ghost_threshold, $latest_date));
+
+    // Override site-wide aggregate metrics with true GSC totals
+    $site_totals = seom_get_site_totals();
+    if ($site_totals['date']) {
+        $metrics->total_clicks = intval($site_totals['clicks']);
+        $metrics->total_impressions = intval($site_totals['impressions']);
+        $metrics->avg_ctr = floatval($site_totals['ctr']);
+        $metrics->avg_position = floatval($site_totals['position']);
+    }
 
     // Additional metrics
     $cooldown_days = intval($settings['cooldown_days']);
+    // Total published pages/posts/products (current count for goal progress)
     $metrics->new_content_30d = (int) $wpdb->get_var("
         SELECT COUNT(*) FROM {$wpdb->posts}
-        WHERE post_type IN ('post','product') AND post_status = 'publish'
-        AND post_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+        WHERE post_type IN ('post','product','page') AND post_status = 'publish'
     ");
     $metrics->stale_pages = (int) $wpdb->get_var($wpdb->prepare("
         SELECT COUNT(*) FROM {$wpdb->posts} p
@@ -3198,6 +4471,13 @@ add_action('wp_ajax_seom_refresh_goal_progress', function () {
     wp_send_json_success(['updated' => $updated]);
 });
 
+// Get capacity analysis for goals
+add_action('wp_ajax_seom_get_capacity', function () {
+    check_ajax_referer('seom_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
+    wp_send_json_success(SEOM_Analyzer::calculate_capacity());
+});
+
 // AI auto-create monthly goals
 add_action('wp_ajax_seom_auto_create_goals', function () {
     check_ajax_referer('seom_nonce', 'nonce');
@@ -3227,11 +4507,19 @@ add_action('wp_ajax_seom_auto_create_goals', function () {
             SUM(CASE WHEN m.impressions > 0 THEN 1 ELSE 0 END) as pages_with_impressions,
             COUNT(DISTINCT m.post_id) as total_pages
         FROM {$table} m
-        INNER JOIN (SELECT post_id, MAX(date_collected) as max_date FROM {$table} GROUP BY post_id) latest
-            ON m.post_id = latest.post_id AND m.date_collected = latest.max_date
         JOIN {$wpdb->posts} p ON m.post_id = p.ID
-        WHERE p.post_status = 'publish' AND p.post_type IN ('product','post','page')
-    ", $ghost_threshold));
+        WHERE m.date_collected = %s
+        AND p.post_status = 'publish' AND p.post_type IN ('product','post','page')
+    ", $ghost_threshold, $latest_date));
+
+    // Override with true GSC site-wide totals
+    $st = seom_get_site_totals();
+    if ($st['date']) {
+        $m->total_clicks = intval($st['clicks']);
+        $m->total_impressions = intval($st['impressions']);
+        $m->avg_ctr = floatval($st['ctr']);
+        $m->avg_position = floatval($st['position']);
+    }
 
     // Check which metrics already have active goals this month
     $now = new \DateTime();
@@ -3255,7 +4543,7 @@ add_action('wp_ajax_seom_auto_create_goals', function () {
     $site_name = get_bloginfo('name');
     // Content production metrics
     $cooldown_d = intval($settings['cooldown_days']);
-    $m->new_content_30d = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type IN ('post','product') AND post_status = 'publish' AND post_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
+    $m->new_content_30d = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type IN ('post','product','page') AND post_status = 'publish'");
     $m->stale_pages = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->posts} p LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = 'last_page_refresh' WHERE p.post_type IN ('post','product') AND p.post_status = 'publish' AND p.post_date < DATE_SUB(CURDATE(), INTERVAL 90 DAY) AND (pm.meta_value IS NULL OR pm.meta_value < DATE_SUB(CURDATE(), INTERVAL %d DAY))", $cooldown_d));
     $m->refreshed_this_month = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}seom_refresh_history WHERE refresh_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')");
 
@@ -3264,12 +4552,12 @@ add_action('wp_ajax_seom_auto_create_goals', function () {
         . "- Total Clicks (28d): {$m->total_clicks}\n"
         . "- Total Impressions (28d): {$m->total_impressions}\n"
         . "- Avg Position: " . round($m->avg_position, 1) . "\n"
-        . "- Avg CTR: " . round($m->avg_ctr, 2) . "%\n"
+        . "- Avg CTR: " . round($m->avg_ctr, 4) . "%\n"
         . "- Pages on Page 1: {$m->page1_pages}\n"
         . "- Pages on Page 2: {$m->page2_pages}\n"
         . "- Pages With Impressions: {$m->pages_with_impressions}\n"
         . "- Total Pages: {$m->total_pages}\n"
-        . "- New Content Created (30d): {$m->new_content_30d}\n"
+        . "- Total Published Content: {$m->new_content_30d}\n"
         . "- Stale Pages (not refreshed 90+ days): {$m->stale_pages}\n"
         . "- Pages Refreshed This Month: {$m->refreshed_this_month}\n"
         . "- Daily Refresh Capacity: {$daily_limit}\n"
@@ -3296,6 +4584,8 @@ add_action('wp_ajax_seom_auto_create_goals', function () {
         . "- Do NOT suggest goals for metrics that already have active goals\n"
         . "- Use percentage targets (target_type: 'percent')\n"
         . "- Include a mix of priorities (1=Critical, 2=High, 3=Medium, 4=Low, 5=Backlog)\n"
+        . "- IMPORTANT: For avg_position, ghost_pages, stale_pages, and page2_pages, the direction MUST be 'reduce' (lower number = better for SEO)\n"
+        . "- For total_clicks, total_impressions, avg_ctr, page1_pages, pages_with_impressions, new_content_30d, refreshed_this_month, direction MUST be 'increase'\n"
         . "- SEO changes take 2-4 weeks to show results — be realistic\n\n"
         . "Return a JSON object with a \"goals\" array:\n"
         . "{\"goals\": [{\"metric\": \"ghost_pages\", \"direction\": \"reduce\", \"target_value\": 10, \"target_type\": \"percent\", \"priority\": 2, \"notes\": \"reason\"}]}\n"

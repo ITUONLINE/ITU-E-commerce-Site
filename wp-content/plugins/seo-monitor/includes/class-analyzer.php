@@ -54,6 +54,188 @@ class SEOM_Analyzer {
     /**
      * Run the daily analysis: score all monitored pages and queue the top candidates.
      */
+    // ── Goal-to-category mapping ──
+    // Maps goal metrics to the categories that serve them
+    private static $goal_category_map = [
+        'ghost_pages'            => ['A'],
+        'avg_ctr'                => ['B', 'E'],
+        'page1_pages'            => ['C'],        // near wins → page 1
+        'page2_pages'            => ['C'],        // reducing page 2 = moving to page 1
+        'avg_position'           => ['C', 'F'],   // near wins + buried
+        'total_clicks'           => ['B', 'C', 'D', 'E'], // all categories that affect clicks
+        'total_impressions'      => ['A', 'C', 'F'],      // visibility categories
+        'pages_with_impressions' => ['A'],                 // ghost→impressions
+        'stale_pages'            => ['_STALE'],            // special: boosts staleness weight
+        'new_content_30d'        => [],                    // no refresh category — blog queue handles this
+        'refreshed_this_month'   => ['_ALL'],              // special: increase overall throughput
+    ];
+
+    // Success rate by category (conservative estimates)
+    private static $success_rates = [
+        'A' => 0.25,  // Ghost — many truly dead
+        'B' => 0.55,  // CTR fix — meta changes work faster
+        'C' => 0.45,  // Near wins — content refresh can push to page 1
+        'D' => 0.40,  // Declining — depends on cause
+        'E' => 0.50,  // Visible/ignored — meta fix helps
+        'F' => 0.30,  // Buried — hardest to move
+    ];
+
+    /**
+     * Calculate capacity requirements for all active goals.
+     * Returns array with per-goal breakdown and recommendations.
+     */
+    public static function calculate_capacity() {
+        global $wpdb;
+        $settings = seom_get_settings();
+        $daily_limit = intval($settings['daily_limit']);
+        $goals_table = $wpdb->prefix . 'seom_goals';
+
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$goals_table}'") !== $goals_table) {
+            return ['goals' => [], 'total_daily_needed' => 0, 'current_limit' => $daily_limit, 'recommended_limit' => $daily_limit];
+        }
+
+        $active_goals = $wpdb->get_results("SELECT * FROM {$goals_table} WHERE status = 'active' ORDER BY priority ASC");
+        if (empty($active_goals)) {
+            return ['goals' => [], 'total_daily_needed' => 0, 'current_limit' => $daily_limit, 'recommended_limit' => $daily_limit];
+        }
+
+        // Count available candidates per category
+        $table = $wpdb->prefix . 'seom_page_metrics';
+        $ghost_threshold = intval($settings['ghost_threshold']);
+        $cat_counts = [
+            'A' => (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} m INNER JOIN (SELECT post_id, MAX(date_collected) as md FROM {$table} GROUP BY post_id) l ON m.post_id=l.post_id AND m.date_collected=l.md WHERE m.impressions <= %d", $ghost_threshold)),
+            'B' => 0, 'C' => 0, 'D' => 0, 'E' => 0, 'F' => 0,
+        ];
+        // Rough counts for other categories (approximate — full analysis is expensive)
+        $cat_counts['C'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} m INNER JOIN (SELECT post_id, MAX(date_collected) as md FROM {$table} GROUP BY post_id) l ON m.post_id=l.post_id AND m.date_collected=l.md WHERE m.avg_position >= %d AND m.avg_position <= %d AND m.impressions >= %d", $settings['near_win_min_pos'], $settings['near_win_max_pos'], $settings['near_win_min_impressions']));
+        $cat_counts['F'] = (int) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$table} m INNER JOIN (SELECT post_id, MAX(date_collected) as md FROM {$table} GROUP BY post_id) l ON m.post_id=l.post_id AND m.date_collected=l.md WHERE m.avg_position > 20 AND m.impressions >= %d", $settings['buried_min_impressions']));
+
+        $goal_details = [];
+        $total_daily_needed = 0;
+
+        foreach ($active_goals as $g) {
+            $baseline = floatval($g->baseline_value);
+            $current = floatval($g->current_value);
+            $target = floatval($g->target_value);
+            $days_left = max(1, ceil((strtotime($g->deadline) - time()) / 86400));
+            $start = $g->start_date ?: substr($g->created_at, 0, 10);
+            $total_days = max(1, (strtotime($g->deadline) - strtotime($start)) / 86400);
+            $days_elapsed = max(0, (time() - strtotime($start)) / 86400);
+            $time_pct = min(100, round(($days_elapsed / $total_days) * 100));
+
+            // Calculate target number
+            if ($g->target_type === 'percent') {
+                $change_needed = $baseline * ($target / 100);
+                $target_num = ($g->direction === 'reduce') ? $baseline - $change_needed : $baseline + $change_needed;
+            } else {
+                $target_num = $target;
+            }
+
+            // How much more change is needed
+            $remaining_change = ($g->direction === 'reduce')
+                ? max(0, $current - $target_num)
+                : max(0, $target_num - $current);
+
+            // Progress
+            $total_change = abs($target_num - $baseline);
+            $actual_change = ($g->direction === 'reduce') ? $baseline - $current : $current - $baseline;
+            $progress = $total_change > 0 ? min(100, max(0, ($actual_change / $total_change) * 100)) : 0;
+
+            // Urgency multiplier based on progress vs time
+            $urgency = 1.0;
+            $urgency_label = 'on_track';
+            if ($progress < $time_pct - 50) { $urgency = 2.0; $urgency_label = 'critical'; }
+            elseif ($progress < $time_pct - 25) { $urgency = 1.5; $urgency_label = 'behind'; }
+            elseif ($progress < $time_pct - 10) { $urgency = 1.25; $urgency_label = 'slightly_behind'; }
+            elseif ($progress >= 100) { $urgency = 0.25; $urgency_label = 'completed'; }
+
+            // Map to categories and estimate required refreshes
+            $categories = self::$goal_category_map[$g->metric] ?? [];
+            $avg_success = 0.35;
+            if (!empty($categories) && $categories[0] !== '_STALE' && $categories[0] !== '_ALL') {
+                $rates = array_map(function($c) { return self::$success_rates[$c] ?? 0.35; }, $categories);
+                $avg_success = array_sum($rates) / count($rates);
+            }
+
+            // Metrics are either page-count (1 refresh per page) or aggregate (indirect impact).
+            // Page-count: ghost_pages, page1_pages, page2_pages, pages_with_impressions, stale_pages, refreshed_this_month
+            // Aggregate: total_clicks, total_impressions, avg_position, avg_ctr, new_content_30d
+            $page_count_metrics = ['ghost_pages', 'page1_pages', 'page2_pages', 'pages_with_impressions', 'stale_pages', 'refreshed_this_month'];
+
+            if (in_array($g->metric, $page_count_metrics)) {
+                // Each refresh can fix ~1 page at the success rate
+                $refreshes_needed = $remaining_change > 0 ? ceil($remaining_change / max(0.01, $avg_success)) : 0;
+            } else {
+                // Aggregate metrics: estimate how many refreshes move the needle.
+                // These are site-wide metrics — refreshing one page doesn't add 100 impressions to the total,
+                // it improves THAT page's performance which contributes to the aggregate over time.
+                // We estimate the total refreshes needed to move the site-wide metric by the target amount.
+                $refreshes_per_pct = [
+                    'total_clicks'       => 15,    // ~15 refreshes to move total clicks by 1% of baseline
+                    'total_impressions'  => 15,    // ~15 refreshes to move total impressions by 1% of baseline
+                    'avg_position'       => 20,    // ~20 refreshes to improve avg position by 1 spot
+                    'avg_ctr'            => 10,    // ~10 refreshes to improve avg CTR by 0.1%
+                    'new_content_30d'    => 0,     // blog queue, not refreshes — no capacity needed
+                ];
+                $per_unit = $refreshes_per_pct[$g->metric] ?? 10;
+                if ($g->metric === 'new_content_30d' || $per_unit === 0) {
+                    $refreshes_needed = 0;
+                } elseif ($g->metric === 'avg_position') {
+                    // remaining_change is in position points
+                    $refreshes_needed = ceil($remaining_change * $per_unit);
+                } elseif ($g->metric === 'avg_ctr') {
+                    // remaining_change is in CTR percentage points
+                    $refreshes_needed = ceil($remaining_change * 10 * $per_unit); // 0.1% units
+                } else {
+                    // clicks/impressions: convert remaining to % of baseline, then multiply
+                    $pct_remaining = $baseline > 0 ? ($remaining_change / $baseline) * 100 : 0;
+                    $refreshes_needed = ceil($pct_remaining * $per_unit);
+                }
+            }
+
+            $daily_rate_needed = $days_left > 0 ? round($refreshes_needed / $days_left, 1) : $refreshes_needed;
+
+            // Priority weight: P1=5, P2=4, P3=3, P4=2, P5=1
+            $priority_weight = max(1, 6 - intval($g->priority));
+
+            $total_daily_needed += $daily_rate_needed;
+
+            $goal_details[] = [
+                'id'                => $g->id,
+                'metric'            => $g->metric,
+                'direction'         => $g->direction,
+                'priority'          => intval($g->priority),
+                'priority_weight'   => $priority_weight,
+                'categories'        => $categories,
+                'baseline'          => $baseline,
+                'current'           => $current,
+                'target_num'        => round($target_num, 1),
+                'remaining_change'  => round($remaining_change, 1),
+                'progress'          => round($progress, 1),
+                'time_pct'          => round($time_pct, 1),
+                'days_left'         => $days_left,
+                'urgency'           => $urgency,
+                'urgency_label'     => $urgency_label,
+                'success_rate'      => round($avg_success, 2),
+                'refreshes_needed'  => $refreshes_needed,
+                'daily_rate_needed' => $daily_rate_needed,
+                'feasible'          => $daily_rate_needed <= $daily_limit,
+            ];
+        }
+
+        $limit_max = intval($settings['limit_max'] ?? 50);
+        $recommended = min($limit_max, max($daily_limit, ceil($total_daily_needed * 1.2))); // 20% buffer, capped at configured max
+
+        return [
+            'goals'               => $goal_details,
+            'cat_counts'          => $cat_counts,
+            'total_daily_needed'  => round($total_daily_needed, 1),
+            'current_limit'       => $daily_limit,
+            'recommended_limit'   => $recommended,
+            'sufficient'          => $total_daily_needed <= $daily_limit,
+        ];
+    }
+
     public static function run() {
         global $wpdb;
         $settings = seom_get_settings();
@@ -97,6 +279,41 @@ class SEOM_Analyzer {
             $excluded_categories = array_map('trim', array_filter(explode(',', $settings['exclude_categories'])));
         }
 
+        // Pre-check: is there an active stale_pages goal?
+        $goals_t = $wpdb->prefix . 'seom_goals';
+        if ($wpdb->get_var("SHOW TABLES LIKE '{$goals_t}'") === $goals_t) {
+            $stale_goal = $wpdb->get_var("SELECT COUNT(*) FROM {$goals_t} WHERE status = 'active' AND metric = 'stale_pages'");
+            self::$boost_staleness = ($stale_goal > 0);
+        }
+
+        // Bulk-load last refresh info from history (date + type of most recent refresh per post)
+        $refresh_history_map = []; // post_id => ['date' => ..., 'type' => ...]
+        $history_rows = $wpdb->get_results(
+            "SELECT h.post_id, h.refresh_date, h.refresh_type
+             FROM {$wpdb->prefix}seom_refresh_history h
+             INNER JOIN (
+                 SELECT post_id, MAX(id) as max_id
+                 FROM {$wpdb->prefix}seom_refresh_history
+                 GROUP BY post_id
+             ) latest ON h.id = latest.max_id"
+        );
+        foreach ($history_rows as $hr) {
+            $refresh_history_map[$hr->post_id] = [
+                'date' => $hr->refresh_date,
+                'type' => $hr->refresh_type,
+            ];
+        }
+
+        // Also track if a post has EVER had a meta_only refresh (for escalation)
+        $had_meta_map = array_flip($wpdb->get_col(
+            "SELECT DISTINCT post_id FROM {$wpdb->prefix}seom_refresh_history WHERE refresh_type = 'meta_only'"
+        ));
+
+        // Bulk-load posts already in active queue
+        $queued_ids_map = array_flip($wpdb->get_col(
+            "SELECT post_id FROM {$wpdb->prefix}seom_refresh_queue WHERE status IN ('pending', 'processing')"
+        ));
+
         $candidates = [];
         foreach ($metrics as $m) {
             $post_id = intval($m->post_id);
@@ -134,16 +351,35 @@ class SEOM_Analyzer {
                 continue; // CTR is healthy for this position — don't risk breaking it
             }
 
-            // Check cooldown via last_page_refresh meta
-            $last_refresh = get_post_meta($post_id, 'last_page_refresh', true);
-            if ($last_refresh && $last_refresh >= $cooldown_date) continue;
+            // Check cooldown — use BOTH post meta AND refresh history (whichever is more recent)
+            $last_refresh_meta = get_post_meta($post_id, 'last_page_refresh', true);
+            $hist = $refresh_history_map[$post_id] ?? null;
+            $last_refresh_history = $hist ? $hist['date'] : null;
+            $last_refresh_type = $hist ? $hist['type'] : null;
 
-            // Also check if already in active queue
-            $in_queue = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(*) FROM {$wpdb->prefix}seom_refresh_queue WHERE post_id = %d AND status IN ('pending', 'processing')",
-                $post_id
-            ));
-            if ($in_queue > 0) continue;
+            $last_refresh = null;
+            if ($last_refresh_meta && $last_refresh_history) {
+                $last_refresh = max($last_refresh_meta, $last_refresh_history);
+            } else {
+                $last_refresh = $last_refresh_meta ?: $last_refresh_history;
+            }
+
+            if ($last_refresh) {
+                // Meta-only refreshes get a shorter cooldown (30 days) — if the title/description
+                // change didn't improve CTR within 2-4 weeks, it won't. Allow full refresh sooner.
+                $meta_cooldown_date = date('Y-m-d', strtotime('-30 days'));
+
+                if ($last_refresh_type === 'meta_only') {
+                    // Short cooldown for meta-only: skip if within 30 days
+                    if ($last_refresh >= $meta_cooldown_date) continue;
+                } else {
+                    // Full cooldown for full refreshes
+                    if ($last_refresh >= $cooldown_date) continue;
+                }
+            }
+
+            // Check if already in active queue (using bulk-loaded map)
+            if (isset($queued_ids_map[$post_id])) continue;
 
             // Categorize the page
             $category = self::categorize($m, $prev_metrics[$post_id] ?? null, $settings);
@@ -157,15 +393,8 @@ class SEOM_Analyzer {
 
             // Meta escalation: if this post had a previous meta_only refresh and is back
             // in the queue, the meta fix didn't move the needle — escalate to full refresh
-            if ($refresh_type === 'meta_only') {
-                $had_meta = $wpdb->get_var($wpdb->prepare(
-                    "SELECT COUNT(*) FROM {$wpdb->prefix}seom_refresh_history
-                     WHERE post_id = %d AND refresh_type = 'meta_only'",
-                    $post_id
-                ));
-                if ($had_meta > 0) {
-                    $refresh_type = 'full';
-                }
+            if ($refresh_type === 'meta_only' && isset($had_meta_map[$post_id])) {
+                $refresh_type = 'full';
             }
 
             $candidates[] = [
@@ -177,9 +406,50 @@ class SEOM_Analyzer {
             ];
         }
 
-        // Sort candidates within each category by priority score descending
-        // then distribute across categories for a balanced daily mix
-        $to_queue = self::balanced_queue($candidates, $settings['daily_limit']);
+        // Calculate goal-aware capacity and apply urgency multipliers
+        $capacity = self::calculate_capacity();
+        $goal_urgency_map = []; // category => highest urgency multiplier from goals
+        $has_stale_goal = false;
+
+        foreach ($capacity['goals'] as $gd) {
+            if (in_array('_STALE', $gd['categories'])) $has_stale_goal = true;
+            foreach ($gd['categories'] as $gc) {
+                if ($gc[0] === '_') continue; // skip special markers
+                $existing = $goal_urgency_map[$gc] ?? 1.0;
+                $goal_urgency_map[$gc] = max($existing, $gd['urgency'] * $gd['priority_weight'] / 3);
+            }
+        }
+
+        // Apply goal urgency as a tiebreaker bonus (keeps scores in 0-100 range)
+        // Adds up to +15 points for highest urgency goals — enough to reorder within a category
+        // but not enough to make a weak candidate outscore a strong one from another category
+        foreach ($candidates as &$c) {
+            $multiplier = $goal_urgency_map[$c['category']] ?? 1.0;
+            $bonus = min(15, ($multiplier - 1.0) * 10); // 1.0=+0, 1.5=+5, 2.0=+10, 2.5=+15
+            $c['priority_score'] = min(100, round($c['priority_score'] + $bonus, 2));
+        }
+        unset($c);
+
+        // Determine effective daily limit (goal-adaptive if configured)
+        $daily_limit = intval($settings['daily_limit']);
+        $limit_mode = $settings['limit_mode'] ?? 'fixed';
+        $limit_max = intval($settings['limit_max'] ?? $daily_limit);
+
+        if ($limit_mode === 'adaptive' && !empty($capacity['goals'])) {
+            $daily_limit = min($limit_max, max($daily_limit, $capacity['recommended_limit']));
+        } elseif ($limit_mode === 'burst' && !empty($capacity['goals'])) {
+            // Burst only if any goal is behind
+            $any_behind = false;
+            foreach ($capacity['goals'] as $gd) {
+                if ($gd['urgency'] > 1.0) { $any_behind = true; break; }
+            }
+            if ($any_behind) {
+                $daily_limit = min($limit_max, ceil($daily_limit * 1.5));
+            }
+        }
+
+        // Goal-weighted queue allocation
+        $to_queue = self::goal_weighted_queue($candidates, $daily_limit, $capacity['goals']);
         $now = current_time('mysql');
 
         foreach ($to_queue as $c) {
@@ -263,11 +533,24 @@ class SEOM_Analyzer {
     /**
      * Calculate composite priority score (0-100).
      */
+    private static $boost_staleness = false;
+
     private static function score($metrics, $prev, $category, $last_refresh, $settings) {
         $opportunity = self::opportunity_score($metrics, $category);
         $momentum    = self::momentum_score($metrics, $prev);
         $quick_win   = self::quick_win_score($category, floatval($metrics->avg_position));
         $staleness   = self::staleness_score($last_refresh);
+
+        // If there's an active "reduce stale pages" goal, boost staleness weight
+        if (self::$boost_staleness) {
+            return round(
+                ($opportunity * 0.25) +
+                ($momentum * 0.20) +
+                ($quick_win * 0.20) +
+                ($staleness * 0.35),
+                2
+            );
+        }
 
         return round(
             ($opportunity * 0.35) +
@@ -344,13 +627,18 @@ class SEOM_Analyzer {
     }
 
     /**
-     * Build a balanced queue by round-robin picking from each category.
+     * Build a goal-weighted queue.
      *
-     * Instead of just taking the top N by score (which lets one category dominate),
-     * this groups candidates by category, sorts each group by score, then picks
-     * the top item from each category in rotation until the daily limit is filled.
+     * Instead of equal round-robin, allocates slots proportional to
+     * active goal priorities and urgency. Falls back to balanced
+     * round-robin if no goals are active.
+     *
+     * @param array $candidates All scored candidates
+     * @param int   $limit      Daily limit (may be adjusted by adaptive mode)
+     * @param array $goal_details From calculate_capacity()
+     * @return array Selected candidates for the queue
      */
-    private static function balanced_queue($candidates, $limit) {
+    private static function goal_weighted_queue($candidates, $limit, $goal_details = []) {
         if (empty($candidates)) return [];
 
         // Group by category, sorted by score within each group
@@ -365,9 +653,78 @@ class SEOM_Analyzer {
         }
         unset($items);
 
-        // Round-robin pick: cycle through categories taking the top remaining item
+        $all_cats = array_keys($groups);
+
+        // If no goals, fall back to equal round-robin
+        if (empty($goal_details)) {
+            return self::round_robin_pick($groups, $all_cats, $limit);
+        }
+
+        // ── Step 1: Calculate slot allocation per category based on goals ──
+        $cat_weights = array_fill_keys($all_cats, 1); // base weight of 1 each
+
+        foreach ($goal_details as $gd) {
+            if ($gd['urgency_label'] === 'completed') continue; // goal already met
+            foreach ($gd['categories'] as $gc) {
+                if ($gc[0] === '_') continue;
+                if (!isset($cat_weights[$gc])) continue;
+                // Weight = priority_weight × urgency × daily_rate_needed (capped)
+                $boost = $gd['priority_weight'] * $gd['urgency'] * max(0.5, min(3, $gd['daily_rate_needed']));
+                $cat_weights[$gc] += $boost;
+            }
+        }
+
+        // ── Step 2: Convert weights to slot counts ──
+        $total_weight = array_sum($cat_weights);
+        $slot_allocation = [];
+        $allocated = 0;
+
+        foreach ($cat_weights as $cat => $weight) {
+            // Every category gets at least 1 slot (if it has candidates)
+            $slots = max(1, round(($weight / $total_weight) * $limit));
+            // Can't allocate more than available candidates
+            $slots = min($slots, count($groups[$cat] ?? []));
+            $slot_allocation[$cat] = $slots;
+            $allocated += $slots;
+        }
+
+        // Distribute any remaining slots to highest-weight categories with remaining candidates
+        $remaining = $limit - $allocated;
+        if ($remaining > 0) {
+            arsort($cat_weights);
+            foreach ($cat_weights as $cat => $w) {
+                if ($remaining <= 0) break;
+                $available = count($groups[$cat] ?? []) - $slot_allocation[$cat];
+                if ($available > 0) {
+                    $give = min($remaining, $available);
+                    $slot_allocation[$cat] += $give;
+                    $remaining -= $give;
+                }
+            }
+        }
+
+        // ── Step 3: Pick top N from each category per allocation ──
         $queue = [];
-        $category_order = array_keys($groups);
+        foreach ($slot_allocation as $cat => $slots) {
+            if (!isset($groups[$cat])) continue;
+            for ($i = 0; $i < $slots && $i < count($groups[$cat]); $i++) {
+                $queue[] = $groups[$cat][$i];
+            }
+        }
+
+        // Sort final queue by score descending for processing order
+        usort($queue, function ($a, $b) {
+            return $b['priority_score'] <=> $a['priority_score'];
+        });
+
+        return array_slice($queue, 0, $limit);
+    }
+
+    /**
+     * Simple round-robin fallback when no goals are active.
+     */
+    private static function round_robin_pick($groups, $category_order, $limit) {
+        $queue = [];
         $pointers = array_fill_keys($category_order, 0);
 
         while (count($queue) < $limit) {
@@ -380,7 +737,6 @@ class SEOM_Analyzer {
                     $picked = true;
                 }
             }
-            // All categories exhausted
             if (!$picked) break;
         }
 

@@ -231,6 +231,34 @@ class SEOM_GSC_Client {
     }
 
     /**
+     * Fetch site-wide aggregate totals from GSC (no page dimension).
+     * Returns the true site-wide clicks, impressions, CTR, and position.
+     *
+     * @param int $days Number of days to look back (default 28)
+     * @return array|WP_Error ['clicks' => int, 'impressions' => int, 'ctr' => float, 'position' => float]
+     */
+    public function get_site_totals($days = 28) {
+        $end_date   = date('Y-m-d', strtotime('-1 day'));
+        $start_date = date('Y-m-d', strtotime("-{$days} days"));
+
+        // Query with NO dimensions — GSC returns a single row with site-wide aggregates
+        $result = $this->get_search_analytics($start_date, $end_date, [], 1, 0);
+        if (is_wp_error($result)) return $result;
+
+        $row = $result['rows'][0] ?? null;
+        if (!$row) {
+            return ['clicks' => 0, 'impressions' => 0, 'ctr' => 0, 'position' => 0];
+        }
+
+        return [
+            'clicks'      => $row['clicks'] ?? 0,
+            'impressions' => $row['impressions'] ?? 0,
+            'ctr'         => round(($row['ctr'] ?? 0) * 100, 4),
+            'position'    => round($row['position'] ?? 0, 1),
+        ];
+    }
+
+    /**
      * Fetch page-level metrics for all pages.
      * Handles pagination automatically.
      *
@@ -255,7 +283,7 @@ class SEOM_GSC_Client {
                 $all_rows[$url] = [
                     'clicks'      => $row['clicks'] ?? 0,
                     'impressions' => $row['impressions'] ?? 0,
-                    'ctr'         => round(($row['ctr'] ?? 0) * 100, 2),
+                    'ctr'         => round(($row['ctr'] ?? 0) * 100, 4),
                     'position'    => round($row['position'] ?? 0, 1),
                 ];
             }
@@ -298,7 +326,7 @@ class SEOM_GSC_Client {
                     'query'       => $query,
                     'clicks'      => $row['clicks'] ?? 0,
                     'impressions' => $row['impressions'] ?? 0,
-                    'ctr'         => round(($row['ctr'] ?? 0) * 100, 2),
+                    'ctr'         => round(($row['ctr'] ?? 0) * 100, 4),
                     'position'    => round($row['position'] ?? 0, 1),
                 ];
             }
@@ -351,7 +379,7 @@ class SEOM_GSC_Client {
                 'query'       => $row['keys'][0],
                 'clicks'      => $row['clicks'] ?? 0,
                 'impressions' => $row['impressions'] ?? 0,
-                'ctr'         => round(($row['ctr'] ?? 0) * 100, 2),
+                'ctr'         => round(($row['ctr'] ?? 0) * 100, 4),
                 'position'    => round($row['position'] ?? 0, 1),
             ];
         }
@@ -383,7 +411,7 @@ class SEOM_GSC_Client {
                 $all[$row['keys'][0]] = [
                     'clicks'      => $row['clicks'] ?? 0,
                     'impressions' => $row['impressions'] ?? 0,
-                    'ctr'         => round(($row['ctr'] ?? 0) * 100, 2),
+                    'ctr'         => round(($row['ctr'] ?? 0) * 100, 4),
                     'position'    => round($row['position'] ?? 0, 1),
                 ];
             }
@@ -418,7 +446,7 @@ class SEOM_GSC_Client {
                 $prev_all[$row['keys'][0]] = [
                     'clicks'      => $row['clicks'] ?? 0,
                     'impressions' => $row['impressions'] ?? 0,
-                    'ctr'         => round(($row['ctr'] ?? 0) * 100, 2),
+                    'ctr'         => round(($row['ctr'] ?? 0) * 100, 4),
                     'position'    => round($row['position'] ?? 0, 1),
                 ];
             }

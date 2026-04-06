@@ -4248,6 +4248,173 @@ function related_blog_posts_shortcode($atts) {
 }
 add_shortcode('related_blog_posts', 'related_blog_posts_shortcode');
 
+/**
+ * Related Articles for Single Blog Posts
+ * Finds related blogs using multiple relevance signals:
+ * 1. Shared tags (strongest signal — editorial intent)
+ * 2. Shared categories
+ * 3. RankMath focus keyword matching
+ * 4. Title keyword overlap
+ * Results are cached for 7 days per post. Cache clears on post update.
+ */
+add_shortcode('itu_related_articles', function ($atts) {
+    $atts = shortcode_atts(['count' => 10, 'heading' => 'Related Articles'], $atts);
+    $count = intval($atts['count']);
+
+    $post_id = get_the_ID();
+    if (!$post_id || get_post_type($post_id) !== 'post') return '';
+
+    $cache_key = 'itu_related_' . $post_id;
+    $cached = get_transient($cache_key);
+    if ($cached !== false) {
+        if (empty($cached)) return '';
+        return itu_render_related_articles($cached, $atts['heading'], $count);
+    }
+
+    global $wpdb;
+
+    // Collect relevance signals
+    $tag_ids = wp_get_post_tags($post_id, ['fields' => 'ids']);
+    $cat_ids = wp_get_post_categories($post_id, ['fields' => 'ids']);
+    $focus_kw = get_post_meta($post_id, 'rank_math_focus_keyword', true);
+    $title_words = array_filter(explode(' ', strtolower(get_the_title($post_id))), function($w) {
+        return strlen($w) > 3 && !in_array($w, ['this', 'that', 'with', 'from', 'your', 'what', 'when', 'how', 'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 'one', 'our', 'out']);
+    });
+
+    $scored = []; // post_id => score
+
+    // Signal 1: Shared tags (weight: 5 per shared tag)
+    if (!empty($tag_ids)) {
+        $tag_list = implode(',', array_map('intval', $tag_ids));
+        $tag_matches = $wpdb->get_results("
+            SELECT tr.object_id as post_id, COUNT(*) as shared
+            FROM {$wpdb->term_relationships} tr
+            JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+            WHERE tt.term_id IN ({$tag_list}) AND tt.taxonomy = 'post_tag'
+            AND tr.object_id != {$post_id}
+            GROUP BY tr.object_id
+        ");
+        foreach ($tag_matches as $m) {
+            $scored[$m->post_id] = ($scored[$m->post_id] ?? 0) + ($m->shared * 5);
+        }
+    }
+
+    // Signal 2: Shared categories (weight: 3 per shared category)
+    if (!empty($cat_ids)) {
+        $cat_list = implode(',', array_map('intval', $cat_ids));
+        $cat_matches = $wpdb->get_results("
+            SELECT tr.object_id as post_id, COUNT(*) as shared
+            FROM {$wpdb->term_relationships} tr
+            JOIN {$wpdb->term_taxonomy} tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+            WHERE tt.term_id IN ({$cat_list}) AND tt.taxonomy = 'category'
+            AND tr.object_id != {$post_id}
+            GROUP BY tr.object_id
+        ");
+        foreach ($cat_matches as $m) {
+            $scored[$m->post_id] = ($scored[$m->post_id] ?? 0) + ($m->shared * 3);
+        }
+    }
+
+    // Signal 3: Focus keyword match (weight: 8 — strong relevance signal)
+    if ($focus_kw) {
+        $kw_parts = array_filter(array_map('trim', explode(',', $focus_kw)));
+        foreach ($kw_parts as $kw) {
+            $kw_matches = $wpdb->get_col($wpdb->prepare("
+                SELECT pm.post_id FROM {$wpdb->postmeta} pm
+                JOIN {$wpdb->posts} p ON pm.post_id = p.ID
+                WHERE pm.meta_key = 'rank_math_focus_keyword'
+                AND pm.meta_value LIKE %s
+                AND p.post_type = 'post' AND p.post_status = 'publish'
+                AND pm.post_id != %d
+            ", '%' . $wpdb->esc_like($kw) . '%', $post_id));
+            foreach ($kw_matches as $mid) {
+                $scored[$mid] = ($scored[$mid] ?? 0) + 8;
+            }
+        }
+    }
+
+    // Signal 4: Title word overlap (weight: 2 per shared word)
+    if (!empty($title_words)) {
+        // Get candidate post IDs from signals 1-3, plus recent posts as fallback
+        $candidate_ids = array_keys($scored);
+        if (count($candidate_ids) < 50) {
+            $recent = $wpdb->get_col("SELECT ID FROM {$wpdb->posts} WHERE post_type = 'post' AND post_status = 'publish' AND ID != {$post_id} ORDER BY post_modified DESC LIMIT 100");
+            $candidate_ids = array_unique(array_merge($candidate_ids, $recent));
+        }
+        if (!empty($candidate_ids)) {
+            $id_list = implode(',', array_map('intval', $candidate_ids));
+            $titles = $wpdb->get_results("SELECT ID, post_title FROM {$wpdb->posts} WHERE ID IN ({$id_list})");
+            foreach ($titles as $t) {
+                $other_words = array_filter(explode(' ', strtolower($t->post_title)), function($w) { return strlen($w) > 3; });
+                $overlap = count(array_intersect($title_words, $other_words));
+                if ($overlap > 0) {
+                    $scored[$t->ID] = ($scored[$t->ID] ?? 0) + ($overlap * 2);
+                }
+            }
+        }
+    }
+
+    // Filter to published posts only and exclude current
+    if (empty($scored)) {
+        set_transient($cache_key, [], 7 * DAY_IN_SECONDS);
+        return '';
+    }
+
+    arsort($scored);
+    $top_ids = array_slice(array_keys($scored), 0, $count * 2); // get extra for filtering
+    $id_list = implode(',', array_map('intval', $top_ids));
+
+    $results = $wpdb->get_results("
+        SELECT ID, post_title, post_modified
+        FROM {$wpdb->posts}
+        WHERE ID IN ({$id_list})
+        AND post_type = 'post' AND post_status = 'publish'
+        ORDER BY FIELD(ID, {$id_list})
+        LIMIT {$count}
+    ");
+
+    $articles = [];
+    foreach ($results as $r) {
+        $articles[] = [
+            'id'        => $r->ID,
+            'title'     => $r->post_title,
+            'url'       => get_permalink($r->ID),
+            'modified'  => $r->post_modified,
+            'score'     => $scored[$r->ID] ?? 0,
+        ];
+    }
+
+    set_transient($cache_key, $articles, 7 * DAY_IN_SECONDS);
+
+    if (empty($articles)) return '';
+    return itu_render_related_articles($articles, $atts['heading'], $count);
+});
+
+// Clear related articles cache when a post is updated
+add_action('save_post_post', function ($post_id) {
+    delete_transient('itu_related_' . $post_id);
+});
+
+function itu_render_related_articles($articles, $heading, $count) {
+    $articles = array_slice($articles, 0, $count);
+
+    $html = '<div style="margin:40px 0;padding:32px;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0">'
+        . '<h2 style="margin:0 0 20px;font-size:22px;color:#0f172a">' . esc_html($heading) . '</h2>'
+        . '<ul style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+
+    foreach ($articles as $a) {
+        $date = date('M j, Y', strtotime($a['modified']));
+        $html .= '<li style="margin:0;padding:0">'
+            . '<a href="' . esc_url($a['url']) . '" style="display:block;padding:14px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;text-decoration:none">'
+            . '<strong style="display:block;font-size:14px;color:#1e293b;line-height:1.4;margin-bottom:6px">' . esc_html($a['title']) . '</strong>'
+            . '<small style="color:#94a3b8">Updated ' . $date . '</small>'
+            . '</a></li>';
+    }
+
+    $html .= '</ul></div>';
+    return $html;
+}
+
 
 add_action('rest_api_init', function () {
     register_rest_route('custom/v1', '/submit-form', array(

@@ -86,12 +86,11 @@ function _itu_ai_call_openai($api_key, $model, $instruction, $user_prompt, $temp
     ];
 
     if ($is_reasoning) {
-        // GPT-5.x: use reasoning_effort instead of temperature
-        // Map temperature to reasoning_effort: low temp = less reasoning, high = more
-        if ($temperature <= 0.2) $body['reasoning_effort'] = 'low';
-        elseif ($temperature <= 0.5) $body['reasoning_effort'] = 'medium';
-        else $body['reasoning_effort'] = 'none'; // Creative tasks — skip reasoning, faster
-        // Note: temperature, top_p, logprobs are NOT supported when reasoning is active
+        // GPT-5.x: temperature is not supported. Do NOT send reasoning_effort
+        // unless specifically needed — omitting it lets the model use its default behavior,
+        // which produces the best content for creative/writing tasks.
+        // Only set low reasoning for trivial tasks (JSON conversion, keyword extraction).
+        if ($temperature <= 0.2) $body['reasoning'] = ['effort' => 'low'];
     } else {
         $body['temperature'] = $temperature;
     }

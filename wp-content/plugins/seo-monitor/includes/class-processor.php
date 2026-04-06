@@ -280,8 +280,8 @@ class SEOM_Processor {
             $cat_label  = $cat_labels[$item->category] ?? $item->category;
 
             $subject = $error
-                ? "[SEO Monitor] Failed: {$title}"
-                : "[SEO Monitor] Refreshed: {$title}";
+                ? "[SEO AI AutoPilot] Failed: {$title}"
+                : "[SEO AI AutoPilot] Refreshed: {$title}";
 
             $status_color = $error ? '#dc2626' : '#16a34a';
             $status_label = $error ? 'Failed' : 'Success';
@@ -306,7 +306,7 @@ class SEOM_Processor {
             $body = '
             <div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:600px;margin:0 auto;">
                 <div style="background:#1d2327;padding:20px 24px;border-radius:8px 8px 0 0;">
-                    <h1 style="margin:0;color:#fff;font-size:18px;font-weight:600;">SEO Monitor</h1>
+                    <h1 style="margin:0;color:#fff;font-size:18px;font-weight:600;">SEO AI AutoPilot</h1>
                 </div>
                 <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:24px;">
                     <div style="display:inline-block;padding:6px 14px;border-radius:4px;background:' . $status_color . ';color:#fff;font-weight:600;font-size:14px;margin-bottom:16px;">
@@ -330,7 +330,7 @@ class SEOM_Processor {
                     </div>
 
                     <p style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;color:#999;font-size:12px;">
-                        Sent by SEO Monitor on ' . esc_html(get_bloginfo('name')) . ' &middot; ' . esc_html(current_time('M j, Y g:i A')) . '
+                        Sent by SEO AI AutoPilot on ' . esc_html(get_bloginfo('name')) . ' &middot; ' . esc_html(current_time('M j, Y g:i A')) . '
                     </p>
                 </div>
             </div>';
@@ -398,12 +398,12 @@ class SEOM_Processor {
         }
 
         $site_name = get_bloginfo('name');
-        $subject = "[SEO Monitor] Daily Summary: {$completed} refreshed, {$failed} failed";
+        $subject = "[SEO AI AutoPilot] Daily Summary: {$completed} refreshed, {$failed} failed";
 
         $body = '
         <div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:700px;margin:0 auto;">
             <div style="background:#1d2327;padding:20px 24px;border-radius:8px 8px 0 0;">
-                <h1 style="margin:0;color:#fff;font-size:18px;">SEO Monitor — Daily Refresh Summary</h1>
+                <h1 style="margin:0;color:#fff;font-size:18px;">SEO AI AutoPilot — Daily Refresh Summary</h1>
             </div>
             <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;padding:24px;">
                 <div style="display:flex;gap:24px;margin-bottom:20px;">
@@ -420,8 +420,8 @@ class SEOM_Processor {
                     </tr></thead>
                     <tbody>' . $rows . '</tbody>
                 </table>
-                <p style="margin-top:20px;"><a href="' . esc_url(admin_url('admin.php?page=seo-monitor&tab=tracker')) . '" style="color:#2563eb;">View Performance Tracker &rarr;</a></p>
-                <p style="margin-top:12px;color:#9ca3af;font-size:12px;">Sent by SEO Monitor on ' . esc_html($site_name) . ' &middot; ' . esc_html(current_time('M j, Y g:i A')) . '</p>
+                <p style="margin-top:20px;"><a href="' . esc_url(admin_url('admin.php?page=seo-ai-autopilot&tab=tracker')) . '" style="color:#2563eb;">View Performance Tracker &rarr;</a></p>
+                <p style="margin-top:12px;color:#9ca3af;font-size:12px;">Sent by SEO AI AutoPilot on ' . esc_html($site_name) . ' &middot; ' . esc_html(current_time('M j, Y g:i A')) . '</p>
             </div>
         </div>';
 

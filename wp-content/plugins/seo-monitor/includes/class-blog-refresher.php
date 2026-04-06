@@ -13,6 +13,130 @@ if (!defined('ABSPATH')) exit;
 class SEOM_Blog_Refresher {
 
     /**
+     * Get SEO performance context for a post from the refresh context transient.
+     * Returns a formatted string for AI prompt injection, or empty string if no data.
+     */
+    public static function get_seo_context($post_id) {
+        $ctx = get_transient('seom_refresh_context_' . $post_id);
+        if (!$ctx) return '';
+
+        $position = $ctx['position'] ?? 0;
+        $clicks = $ctx['clicks'] ?? 0;
+        $impressions = $ctx['impressions'] ?? 0;
+        $ctr = $ctx['ctr'] ?? 0;
+        $category = $ctx['category'] ?? '';
+        $category_desc = $ctx['category_desc'] ?? '';
+        $queries = $ctx['top_queries'] ?? [];
+
+        // Build the performance summary
+        $lines = [];
+        $lines[] = "=== CURRENT SEO PERFORMANCE DATA (from Google Search Console, last 28 days) ===";
+        $lines[] = "Category: {$category} — {$category_desc}";
+
+        if ($position > 0) {
+            $page_num = ceil($position / 10);
+            $lines[] = "Current Average Position: {$position} (page {$page_num} of Google)";
+        } else {
+            $lines[] = "Current Average Position: Not ranking (no position data)";
+        }
+
+        $lines[] = "Impressions: {$impressions} (how many times Google showed this page in search results)";
+        $lines[] = "Clicks: {$clicks} (how many people clicked through from search)";
+        $lines[] = "CTR: " . round($ctr, 2) . "% (click-through rate)";
+
+        // Top search queries
+        if (!empty($queries)) {
+            $lines[] = "";
+            $lines[] = "TOP SEARCH QUERIES people use to find this page:";
+            foreach (array_slice($queries, 0, 5) as $q) {
+                $qname = $q['query'] ?? '';
+                $qpos = round($q['position'] ?? 0, 1);
+                $qimp = $q['impressions'] ?? 0;
+                $qclicks = $q['clicks'] ?? 0;
+                $qctr = round(($q['ctr'] ?? 0), 2);
+                $lines[] = "  - \"{$qname}\" — position {$qpos}, {$qimp} impressions, {$qclicks} clicks, {$qctr}% CTR";
+            }
+        }
+
+        // Category-specific optimization strategy
+        $lines[] = "";
+        $lines[] = "OPTIMIZATION STRATEGY based on this page's performance:";
+
+        switch ($category) {
+            case 'A':
+                $lines[] = "- This is a GHOST PAGE — Google is not showing it at all. The content likely lacks topical authority or relevance signals.";
+                $lines[] = "- PRIORITY: Comprehensive rewrite with strong keyword targeting, clear topical focus, and authoritative references to establish relevance.";
+                $lines[] = "- Add clear, specific headings that match search intent. Use definition-style openings that tell Google exactly what this page is about.";
+                $lines[] = "- Include structured data signals: FAQ section, comparison tables, and clear entity mentions.";
+                break;
+            case 'B':
+                $lines[] = "- This is a CTR FIX — the page ranks well and gets impressions but people aren't clicking. The title and meta description are not compelling enough.";
+                $lines[] = "- PRIORITY: Make the content opening extremely compelling. The first paragraph should hook readers immediately.";
+                $lines[] = "- Write content that delivers on a strong promise — if we improve the title/meta, the content must back it up.";
+                $lines[] = "- Focus on differentiating from competitors who rank nearby — what unique value does this page offer?";
+                break;
+            case 'C':
+                $lines[] = "- This is a NEAR WIN — ranking on page 2, close to breaking into page 1. A small improvement could mean a big traffic increase.";
+                $lines[] = "- PRIORITY: Deepen content authority and relevance. Add more comprehensive coverage of the topic than competing page-1 results.";
+                $lines[] = "- Strengthen E-E-A-T signals: more authoritative citations, more specific data points, more expert-level detail.";
+                $lines[] = "- Target the exact search queries listed above — make sure each query is thoroughly addressed in the content.";
+                break;
+            case 'D':
+                $lines[] = "- This page is DECLINING — it used to get more traffic but clicks are dropping. The content may be outdated or competitors have improved.";
+                $lines[] = "- PRIORITY: Update all outdated information, add current-year data and trends, refresh examples and tools mentioned.";
+                $lines[] = "- Add new sections covering recent developments in this topic area.";
+                $lines[] = "- Strengthen the content to be more comprehensive than what's currently ranking above it.";
+                break;
+            case 'E':
+                $lines[] = "- This page is VISIBLE BUT IGNORED — lots of impressions but almost no clicks. People see it in search results but choose other results instead.";
+                $lines[] = "- PRIORITY: The content itself needs to be rewritten to better match search intent. Users see the snippet and decide it's not what they need.";
+                $lines[] = "- Restructure content to directly address what searchers are looking for based on the queries above.";
+                $lines[] = "- Make the opening section immediately valuable — answer the core question in the first 100 words.";
+                break;
+            case 'F':
+                $lines[] = "- This page has BURIED POTENTIAL — Google considers it relevant (it has impressions on page 3+) but doesn't rank it well.";
+                $lines[] = "- PRIORITY: Major content upgrade needed. Significantly expand depth, add unique insights, and strengthen topical authority.";
+                $lines[] = "- The page needs to be substantially better than what's currently on page 1 to climb from this position.";
+                $lines[] = "- Focus heavily on the search queries above — build comprehensive coverage around each one.";
+                break;
+            default:
+                $lines[] = "- General optimization: improve content quality, depth, and keyword relevance.";
+        }
+
+        // Append competitive research if available
+        $research = $ctx['competitive_research'] ?? '';
+        if (!empty($research)) {
+            $research_date = $ctx['research_date'] ?? 'just collected';
+            $lines[] = "";
+            $lines[] = "=== COMPETITIVE INTELLIGENCE (web search of top-ranking pages, collected: {$research_date}) ===";
+            $lines[] = $research;
+            $lines[] = "";
+            $lines[] = "HOW TO USE THIS COMPETITIVE RESEARCH:";
+            $lines[] = "";
+            $lines[] = "DO use the research to:";
+            $lines[] = "- Cover TOPICS and CONCEPTS that top-ranking pages cover (content gaps identified above)";
+            $lines[] = "- Answer the People Also Ask questions within your content body (NOT as a separate FAQ section — FAQs are generated in a separate step with proper schema)";
+            $lines[] = "- Match or exceed the content depth (word count, number of sections) of top results";
+            $lines[] = "- Incorporate unique angles that competitors are missing";
+            $lines[] = "- Structure headings to target the same search intents competitors rank for";
+            $lines[] = "";
+            $lines[] = "DO NOT use the research to:";
+            $lines[] = "- Fabricate course outlines, module lists, curriculum details, or pricing you don't have — only reference what exists in the provided content";
+            $lines[] = "- Add images, videos, infographics, or interactive elements — you are generating text/HTML only";
+            $lines[] = "- Invent instructor names, credentials, student reviews, or testimonials";
+            $lines[] = "- Promise features, labs, practice tests, or tools unless they are mentioned in the existing content";
+            $lines[] = "- Copy competitor content or structure directly — use the intelligence to INFORM, not imitate";
+            $lines[] = "- Add a FAQ section to the content — FAQs are generated separately with proper JSON-LD schema in a dedicated pipeline step. Including inline FAQs creates duplicates";
+            $lines[] = "";
+            $lines[] = "If the research suggests including something you don't have data for (like a detailed syllabus or specific pricing), "
+                     . "write about the TOPIC conceptually instead. For example, if research says 'include a course outline,' write about "
+                     . "what skills and knowledge areas the certification covers — don't fabricate a module-by-module breakdown.";
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
      * Convert any Markdown formatting that slipped through to proper HTML.
      */
     private static function fix_markdown_in_html($content) {
@@ -101,8 +225,27 @@ class SEOM_Blog_Refresher {
     }
 
     /**
-     * Call OpenAI with given instruction and prompt.
+     * Detect if a model requires the Responses API (gpt-5.x, o-series reasoning models).
+     * GPT-4.1 family uses Chat Completions; GPT-5+ uses Responses API.
      */
+    private static function use_responses_api($model) {
+        // gpt-5.x, gpt-5, o1, o3, o4 models require Responses API
+        if (preg_match('/^(gpt-5|o[1-9])/', $model)) return true;
+        return false;
+    }
+
+    /**
+     * Call OpenAI with given instruction and prompt.
+     * Automatically selects Chat Completions or Responses API based on model.
+     * GPT-5.x models do not support temperature — uses reasoning effort instead.
+     */
+    /**
+     * Resolve the model for a specific blog refresh step from centralized AI settings.
+     */
+    private static function model_for($process) {
+        return function_exists('itu_ai_model') ? itu_ai_model($process) : '';
+    }
+
     private static function call_openai($instruction, $user_prompt = '', $model = '', $temperature = 0.7) {
         if (!$model) $model = function_exists('itu_ai_model') ? itu_ai_model('default') : 'gpt-4.1-nano';
 
@@ -114,6 +257,11 @@ class SEOM_Blog_Refresher {
         $api_key = function_exists('itu_ai_key') ? itu_ai_key('blog_writer') : get_option('ai_post_api_key');
         if (!$api_key) return new WP_Error('no_key', 'Blog Writer API key not configured.');
 
+        if (self::use_responses_api($model)) {
+            return self::call_responses_api($api_key, $model, $instruction, $user_prompt);
+        }
+
+        // Chat Completions API (gpt-4.1 family)
         $messages = [['role' => 'system', 'content' => $instruction]];
         if ($user_prompt) {
             $messages[] = ['role' => 'user', 'content' => $user_prompt];
@@ -143,9 +291,164 @@ class SEOM_Blog_Refresher {
     }
 
     /**
+     * Call OpenAI Responses API (for gpt-5.x and reasoning models).
+     * Uses 'input' instead of 'messages', 'instructions' for system prompt,
+     * and does NOT send temperature (unsupported — uses default reasoning).
+     */
+    private static function call_responses_api($api_key, $model, $instruction, $user_prompt = '') {
+        $input = [];
+        if ($user_prompt) {
+            $input = [
+                ['role' => 'user', 'content' => $user_prompt],
+            ];
+        } else {
+            // If no user prompt, send instruction as user input
+            $input = $instruction;
+            $instruction = '';
+        }
+
+        $body = [
+            'model' => $model,
+            'input' => $input,
+        ];
+
+        // System-level guidance goes in 'instructions' (not as a message role)
+        if (!empty($instruction)) {
+            $body['instructions'] = $instruction;
+        }
+
+        $response = wp_remote_post('https://api.openai.com/v1/responses', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $api_key,
+                'Content-Type'  => 'application/json',
+            ],
+            'body'    => json_encode($body),
+            'timeout' => 240,
+        ]);
+
+        if (is_wp_error($response)) return $response;
+
+        $code = wp_remote_retrieve_response_code($response);
+        $data = json_decode(wp_remote_retrieve_body($response), true);
+
+        if ($code !== 200) {
+            $err = $data['error']['message'] ?? "HTTP {$code}";
+            return new WP_Error('responses_api_error', 'OpenAI Responses API error: ' . $err);
+        }
+
+        // Responses API returns output as an array of content blocks
+        $output = $data['output'] ?? [];
+        $content = '';
+        foreach ($output as $block) {
+            if (($block['type'] ?? '') === 'message') {
+                foreach (($block['content'] ?? []) as $part) {
+                    if (($part['type'] ?? '') === 'output_text') {
+                        $content .= $part['text'] ?? '';
+                    }
+                }
+            }
+        }
+
+        $content = trim($content);
+        if (empty($content)) return new WP_Error('empty', 'No content returned from Responses API.');
+
+        return $content;
+    }
+
+    /**
+     * Check if a year in text is a date reference vs a product version number.
+     * Returns true if the year appears to be a date (safe to update).
+     */
+    private static function is_date_year($text, $year, $match_pos) {
+        // Words that precede product version years — do NOT update these
+        $version_prefixes = [
+            'server', 'windows', 'office', 'word', 'excel', 'outlook', 'powerpoint',
+            'access', 'visio', 'project', 'exchange', 'sharepoint', 'sql',
+            'visual studio', 'autocad', 'solidworks', 'revit', 'sketchup',
+            'quickbooks', 'photoshop', 'illustrator', 'indesign', 'premiere',
+            'r2', 'edition', 'version', 'v', 'release',
+        ];
+
+        // Get the ~40 chars before the year match
+        $before = strtolower(substr($text, max(0, $match_pos - 40), min(40, $match_pos)));
+
+        foreach ($version_prefixes as $prefix) {
+            if (str_contains($before, $prefix)) return false;
+        }
+
+        // Check if the year is followed by version-like suffixes
+        $after = strtolower(substr($text, $match_pos + 4, 20));
+        $version_suffixes = [' r2', ' sp', ' edition', ' server', ' lts'];
+        foreach ($version_suffixes as $suffix) {
+            if (str_starts_with($after, $suffix)) return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Replace stale years in a string, but only date references — not product versions.
+     * "Job Trends for 2025" → "Job Trends for 2026"
+     * "Windows Server 2016" → unchanged
+     * "Word 2019" → unchanged
+     */
+    private static function replace_stale_years($text, $current_year) {
+        return preg_replace_callback('/\b(20[2-3]\d)\b/', function($m) use ($current_year, $text) {
+            $year = (int) $m[1];
+            if ($year >= $current_year) return $m[0]; // not stale
+            // Find the position of this match in the original text
+            $pos = strpos($text, $m[0]);
+            if ($pos !== false && !self::is_date_year($text, $year, $pos)) {
+                return $m[0]; // product version — don't touch
+            }
+            return (string) $current_year;
+        }, $text);
+    }
+
+    /**
+     * Update stale year references in a post's title and SEO title to the current year.
+     * Only updates date-context years — preserves product version numbers like
+     * "Windows Server 2016", "Word 2019", "SQL Server 2022", etc.
+     * Returns true if any updates were made.
+     */
+    public static function update_title_year($post_id) {
+        $current_year = (int) date('Y');
+        $post = get_post($post_id);
+        if (!$post) return false;
+
+        $updated = false;
+        $original_slug = $post->post_name;
+
+        // Update post title — preserve the original slug to avoid breaking the permalink
+        $new_title = self::replace_stale_years($post->post_title, $current_year);
+        if ($new_title !== $post->post_title) {
+            wp_update_post([
+                'ID'         => $post_id,
+                'post_title' => $new_title,
+                'post_name'  => $original_slug, // force WordPress to keep the original slug
+            ]);
+            $updated = true;
+        }
+
+        // Update RankMath SEO title if it contains a stale year
+        $seo_title = get_post_meta($post_id, 'rank_math_title', true);
+        if ($seo_title) {
+            $new_seo = self::replace_stale_years($seo_title, $current_year);
+            if ($new_seo !== $seo_title) {
+                update_post_meta($post_id, 'rank_math_title', $new_seo);
+                $updated = true;
+            }
+        }
+
+        return $updated;
+    }
+
+    /**
      * Step 1: Generate new blog content from existing content.
      */
     public static function step_content($post_id) {
+        // Note: year update already runs in Step 1 (before research), no need to repeat here
+
         $post = get_post($post_id);
         if (!$post) return new WP_Error('no_post', 'Post not found.');
 
@@ -173,7 +476,17 @@ class SEOM_Blog_Refresher {
             . "Return the outline in plain text using section headings and bulleted key points. Do not use numbers or Roman numerals.\n\n"
             . "Format:\nBLOG TITLE\n\nMain Heading\n- Key point 1\n- Key point 2\n- Additional subtopics\n\nNext Main Heading\n- Key point 1\n- Key point 2";
 
-        $outline = self::call_openai($outline_instruction, "Title: {$title}\n\nExisting Content:\n{$existing_snippet}");
+        // Inject SEO performance context so AI understands why this page is being refreshed
+        $seo_context = self::get_seo_context($post_id);
+        if ($seo_context) {
+            $outline_instruction .= "\n\n" . $seo_context
+                . "\n\nUse this performance data to inform the outline structure. "
+                . "If the page is a ghost or buried, design the outline to establish strong topical authority. "
+                . "If it's a near win, focus the outline on deepening existing coverage. "
+                . "If it's declining, plan sections that add fresh, current information.";
+        }
+
+        $outline = self::call_openai($outline_instruction, "Title: {$title}\n\nExisting Content:\n{$existing_snippet}", self::model_for('blog_outline'));
         if (is_wp_error($outline)) {
             // Fall back to using existing content as the outline
             $outline = $existing_snippet;
@@ -272,6 +585,17 @@ class SEOM_Blog_Refresher {
             . "- Do NOT fabricate URLs — use main domain or well-known subpages you are confident exist\n"
             . "- Include concrete data: salary ranges, growth %, pass rates, market size, exam details\n"
             . "- Think like a human researcher: cross-reference claims from multiple sources\n\n"
+            . "TRADEMARK & COPYRIGHT:\n"
+            . "When you mention a vendor or certification by name, use the proper symbol on FIRST mention only:\n"
+            . "- Vendor names get &reg; : CompTIA&reg;, Cisco&reg;, Microsoft&reg;, AWS&reg;, EC-Council&reg;, ISC2&reg;, ISACA&reg;, PMI&reg;\n"
+            . "- Cert names get &trade; or &reg; : CEH&trade;, CISSP&reg;, Security+&trade;, A+&trade;, CCNA&trade;, PMP&reg;\n"
+            . "- After first mention, symbols may be omitted.\n"
+            . "- If you mention EC-Council or CEH, use 'EC-Council&reg; Certified Ethical Hacker (C|EH&trade;)' on first mention.\n"
+            . "- ONLY include a trademark disclaimer at the end if you actually used trademarked names in the content.\n"
+            . "  The disclaimer should name ONLY the specific trademarks you mentioned — not a blanket list of every vendor.\n"
+            . "  Example: '<p><em>CompTIA&reg; and Security+&trade; are trademarks of CompTIA, Inc.</em></p>'\n"
+            . "- Do NOT add a disclaimer if no trademarked names appear in the article.\n"
+            . "- Do NOT invent or guess exam codes — only reference exam codes you are confident exist\n\n"
             . "AI SEARCH OPTIMIZATION — Structure content so AI search engines (Google AI Overview, Perplexity, ChatGPT) can cite it:\n"
             . "- Lead sections with clear, factual thesis statements that directly answer common questions\n"
             . "- Use definition-style sentences for key concepts (e.g., \"SIEM is a security solution that...\" not \"Let's talk about SIEM\")\n"
@@ -295,9 +619,15 @@ class SEOM_Blog_Refresher {
             $instruction .= "These are real queries people use to find this page. Optimize for them.";
         }
 
+        // Inject SEO performance context
+        $seo_context = self::get_seo_context($post_id);
+        if ($seo_context) {
+            $instruction .= "\n\n" . $seo_context;
+        }
+
         $prompt = "Blog Title: {$title}\n\nOutline:\n{$outline}";
 
-        $result = self::call_openai($instruction, $prompt);
+        $result = self::call_openai($instruction, $prompt, self::model_for('blog_content'));
         if (is_wp_error($result)) return $result;
 
         // Safety net: convert any Markdown that slipped through to HTML
@@ -322,9 +652,28 @@ class SEOM_Blog_Refresher {
         $snippet = mb_substr($content, 0, 500);
 
         $instruction = "Write a meta description for this blog post. Rules: exactly 1-2 sentences, 140-155 characters total, start with an action verb (Learn, Discover, Master, Explore, Understand), mention what the reader will gain, do not use quotes or special characters. IMPORTANT: Do NOT invent or assume any certification name or exam code.";
+
+        // Add performance context for CTR-aware meta descriptions
+        $seo_context = self::get_seo_context($post_id);
+        if ($seo_context) {
+            $ctx = get_transient('seom_refresh_context_' . $post_id);
+            $cat = $ctx['category'] ?? '';
+            if (in_array($cat, ['B', 'E'])) {
+                $instruction .= "\n\nIMPORTANT CTR CONTEXT: This page has a click-through rate problem — people see it in search results but don't click. "
+                    . "The meta description MUST be significantly more compelling than a generic summary. "
+                    . "Include a specific benefit, number, or outcome that differentiates this result from competitors.";
+            }
+            if (!empty($ctx['top_queries'])) {
+                $top_query = $ctx['top_queries'][0]['query'] ?? '';
+                if ($top_query) {
+                    $instruction .= "\nThe #1 search query people use to find this page is: \"{$top_query}\" — make sure the meta description addresses this query directly.";
+                }
+            }
+        }
+
         $prompt = "Title: {$title}\n\nContent:\n{$snippet}";
 
-        $result = self::call_openai($instruction, $prompt, 'gpt-4.1-nano', 0.4);
+        $result = self::call_openai($instruction, $prompt, self::model_for('blog_meta'), 0.4);
         if (is_wp_error($result)) return $result;
 
         $clean = wp_strip_all_tags($result);
@@ -359,9 +708,17 @@ class SEOM_Blog_Refresher {
             . "- IMPORTANT: Do NOT invent or fabricate any certification names or exam codes\n"
             . "- Do NOT number the FAQs or add text outside the <details> blocks";
 
+        // Use search queries to inform FAQ questions
+        $ctx = get_transient('seom_refresh_context_' . $post_id);
+        if ($ctx && !empty($ctx['top_queries'])) {
+            $query_list = array_map(function($q) { return '"' . ($q['query'] ?? '') . '"'; }, array_slice($ctx['top_queries'], 0, 5));
+            $instruction .= "\n\nREAL SEARCH QUERIES from Google for this page: " . implode(', ', $query_list)
+                . "\nBase at least 2-3 of your FAQ questions on these actual search queries — they represent what real users are searching for.";
+        }
+
         $prompt = "Title: {$title}\n\nContent:\n{$snippet}";
 
-        $result = self::call_openai($instruction, $prompt);
+        $result = self::call_openai($instruction, $prompt, self::model_for('blog_faq'));
         if (is_wp_error($result)) return $result;
 
         // Fix FAQ answers that are missing <p> tags inside faq-content divs
@@ -386,7 +743,7 @@ class SEOM_Blog_Refresher {
 
         $instruction = "Convert the following HTML FAQ into a valid JSON-LD FAQPage schema. Return ONLY the raw JSON object — do NOT wrap it in <script> tags. Pretty-print the JSON. Input HTML:\n\n" . $faq_html;
 
-        $result = self::call_openai($instruction, null, 'gpt-4.1-nano', 0.3);
+        $result = self::call_openai($instruction, null, self::model_for('blog_faq'), 0.3);
         if (is_wp_error($result)) return $result;
 
         // Strip markdown code fences and script tags if included
@@ -422,9 +779,20 @@ class SEOM_Blog_Refresher {
         $snippet = mb_substr($content, 0, 1500);
 
         $instruction = "You are an SEO expert. Given the blog title and content below, return a single primary focus keyword (2-4 words) that best represents what this blog post is about. The keyword should be something people would actually search for. Return ONLY the keyword, nothing else.";
+
+        // Use actual search queries to inform keyword selection
+        $ctx = get_transient('seom_refresh_context_' . $post_id);
+        if ($ctx && !empty($ctx['top_queries'])) {
+            $top_q = $ctx['top_queries'][0]['query'] ?? '';
+            if ($top_q) {
+                $instruction .= "\n\nIMPORTANT: The #1 actual search query people use to find this page is: \"{$top_q}\". "
+                    . "Strongly consider using this (or a close variant) as the focus keyword since real users are already searching for it.";
+            }
+        }
+
         $prompt = "Title: {$title}\n\nContent:\n{$snippet}";
 
-        $keyword = self::call_openai($instruction, $prompt, 'gpt-4.1-nano', 0.3);
+        $keyword = self::call_openai($instruction, $prompt, self::model_for('blog_seo'), 0.3);
         if (is_wp_error($keyword)) {
             $keyword = sanitize_text_field($title);
         } else {
@@ -466,9 +834,29 @@ class SEOM_Blog_Refresher {
             . "- IT Asset Management - {$site_name} (too generic, no hook)\n"
             . "- You Won't Believe These ITAM Secrets! - {$site_name} (clickbait)";
 
+        // Add CTR context for title optimization
+        $ctx = get_transient('seom_refresh_context_' . $post_id);
+        if ($ctx) {
+            $cat = $ctx['category'] ?? '';
+            $pos = $ctx['position'] ?? 0;
+            $ctr_val = round($ctx['ctr'] ?? 0, 2);
+            $clicks_val = $ctx['clicks'] ?? 0;
+            $imp_val = $ctx['impressions'] ?? 0;
+
+            if (in_array($cat, ['B', 'E'])) {
+                $instruction .= "\n\nCRITICAL: This page has a CTR problem — position " . round($pos, 1) . " with {$imp_val} impressions but only {$clicks_val} clicks ({$ctr_val}% CTR). "
+                    . "The current title is NOT compelling enough. Write a title that would make a searcher choose this result over competitors.";
+            } elseif ($pos > 0) {
+                $instruction .= "\n\nThis page currently ranks at position " . round($pos, 1) . " with {$ctr_val}% CTR. Optimize the title to improve click-through rate.";
+            }
+            if (!empty($ctx['top_queries'][0]['query'])) {
+                $instruction .= "\nTop search query: \"" . $ctx['top_queries'][0]['query'] . "\" — the title should resonate with this search intent.";
+            }
+        }
+
         $prompt = "Current Title: {$title}\nFocus Keyword: {$keyword}\n\nContent:\n{$snippet}";
 
-        $result = self::call_openai($instruction, $prompt, 'gpt-4.1-nano', 0.5);
+        $result = self::call_openai($instruction, $prompt, self::model_for('blog_seo_title'), 0.5);
         if (is_wp_error($result)) return $result;
 
         $seo_title = sanitize_text_field(trim($result));

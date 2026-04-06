@@ -14,19 +14,20 @@ class SEOM_Dashboard {
         $nonce = wp_create_nonce('seom_nonce');
         $active_tab = sanitize_text_field($_GET['tab'] ?? 'overview');
         ?>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
         <div class="wrap">
-            <h1>SEO Monitor</h1>
+            <h1>SEO AI AutoPilot</h1>
 
             <nav class="nav-tab-wrapper">
-                <a href="?page=seo-monitor&tab=overview" class="nav-tab <?php echo $active_tab === 'overview' ? 'nav-tab-active' : ''; ?>">Overview</a>
-                <a href="?page=seo-monitor&tab=indexed" class="nav-tab <?php echo $active_tab === 'indexed' ? 'nav-tab-active' : ''; ?>">Indexed Pages</a>
-                <a href="?page=seo-monitor&tab=tracker" class="nav-tab <?php echo $active_tab === 'tracker' ? 'nav-tab-active' : ''; ?>">Performance Tracker</a>
-                <a href="?page=seo-monitor&tab=queue" class="nav-tab <?php echo $active_tab === 'queue' ? 'nav-tab-active' : ''; ?>">Queue</a>
-                <a href="?page=seo-monitor&tab=history" class="nav-tab <?php echo $active_tab === 'history' ? 'nav-tab-active' : ''; ?>">History</a>
-                <a href="?page=seo-monitor&tab=keywords" class="nav-tab <?php echo $active_tab === 'keywords' ? 'nav-tab-active' : ''; ?>">Keywords</a>
-                <a href="?page=seo-monitor&tab=gaps" class="nav-tab <?php echo $active_tab === 'gaps' ? 'nav-tab-active' : ''; ?>">Keyword Gaps</a>
-                <a href="?page=seo-monitor&tab=goals" class="nav-tab <?php echo $active_tab === 'goals' ? 'nav-tab-active' : ''; ?>">Goals</a>
-                <a href="?page=seo-monitor&tab=settings" class="nav-tab <?php echo $active_tab === 'settings' ? 'nav-tab-active' : ''; ?>">Settings</a>
+                <a href="?page=seo-ai-autopilot&tab=overview" class="nav-tab <?php echo $active_tab === 'overview' ? 'nav-tab-active' : ''; ?>">Overview</a>
+                <a href="?page=seo-ai-autopilot&tab=indexed" class="nav-tab <?php echo $active_tab === 'indexed' ? 'nav-tab-active' : ''; ?>">Indexed Pages</a>
+                <a href="?page=seo-ai-autopilot&tab=tracker" class="nav-tab <?php echo $active_tab === 'tracker' ? 'nav-tab-active' : ''; ?>">Performance Tracker</a>
+                <a href="?page=seo-ai-autopilot&tab=queue" class="nav-tab <?php echo $active_tab === 'queue' ? 'nav-tab-active' : ''; ?>">Queue</a>
+                <a href="?page=seo-ai-autopilot&tab=history" class="nav-tab <?php echo $active_tab === 'history' ? 'nav-tab-active' : ''; ?>">History</a>
+                <a href="?page=seo-ai-autopilot&tab=keywords" class="nav-tab <?php echo $active_tab === 'keywords' ? 'nav-tab-active' : ''; ?>">Keywords</a>
+                <a href="?page=seo-ai-autopilot&tab=gaps" class="nav-tab <?php echo $active_tab === 'gaps' ? 'nav-tab-active' : ''; ?>">Keyword Gaps</a>
+                <a href="?page=seo-ai-autopilot&tab=goals" class="nav-tab <?php echo $active_tab === 'goals' ? 'nav-tab-active' : ''; ?>">Goals</a>
+                <a href="?page=seo-ai-autopilot&tab=settings" class="nav-tab <?php echo $active_tab === 'settings' ? 'nav-tab-active' : ''; ?>">Settings</a>
             </nav>
 
             <div class="seom-tab-content" style="margin-top:16px;">
@@ -47,7 +48,11 @@ class SEOM_Dashboard {
         </div>
 
         <style>
-            /* ─── SEO Monitor Modern Theme ─── */
+            /* ─── SEO AI AutoPilot Modern Theme ─── */
+
+            /* Light gray page background so white cards stand out */
+            #wpbody-content { background: #f1f5f9; }
+            .wrap { background: #f1f5f9; padding: 0 20px 20px; }
 
             /* Page header */
             .wrap > h1 {
@@ -57,18 +62,21 @@ class SEOM_Dashboard {
 
             /* Tab navigation */
             .nav-tab-wrapper {
-                border-bottom: 2px solid #e2e8f0; margin-bottom: 0; padding: 0;
+                border-bottom: 2px solid #e2e8f0; margin-bottom: 0; padding: 0; display: flex; gap: 4px;
             }
             .nav-tab {
-                border: none; border-bottom: 2px solid transparent; background: none;
-                color: #64748b; font-weight: 500; font-size: 13px; padding: 10px 18px;
-                margin-bottom: -2px; transition: all 0.15s ease;
+                border: 1px solid #e2e8f0; border-bottom: 2px solid #e2e8f0;
+                border-radius: 6px 6px 0 0;
+                background: #f8fafc; color: #64748b; font-weight: 500; font-size: 13px;
+                padding: 9px 18px; margin-bottom: -2px; transition: all 0.15s ease;
+                text-decoration: none;
             }
-            .nav-tab:hover { color: #1e293b; background: none; border-bottom-color: #cbd5e1; }
+            .nav-tab:hover { color: #1e293b; background: #f1f5f9; border-color: #cbd5e1; border-bottom-color: #cbd5e1; }
             .nav-tab-active, .nav-tab-active:hover {
-                color: #2563eb; border-bottom-color: #2563eb; background: none; font-weight: 600;
+                color: #2563eb; background: transparent; font-weight: 600;
+                border: 2px solid #2563eb; border-bottom-color: transparent;
             }
-            .seom-tab-content { margin-top: 24px; }
+            .seom-tab-content { margin-top: 0; }
 
             /* Cards */
             .seom-cards { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
@@ -104,6 +112,19 @@ class SEOM_Dashboard {
 
             /* Status indicators */
             .seom-status-enabled { color: #059669; font-weight: 600; }
+            .seom-section-header {
+                background: #1e293b;
+                color: #fff;
+                padding: 10px 18px;
+                border-radius: 8px;
+                margin: 20px 0 12px;
+                font-size: 16px;
+                font-weight: 700;
+            }
+            .seom-section-header:first-child { margin-top: 0; }
+            .seom-section-header small { font-weight: 400; color: #94a3b8; font-size: 13px; }
+            .seom-section-header a { font-size: 13px; font-weight: 500; text-decoration: none; color: #93c5fd; float: right; margin-top: 2px; }
+            .seom-section-header a:hover { color: #fff; }
             .seom-status-disabled { color: #dc2626; font-weight: 600; }
             .seom-status-dryrun { color: #d97706; font-weight: 600; }
 
@@ -253,6 +274,13 @@ class SEOM_Dashboard {
                 </div>
             </div>
 
+            <!-- Monthly Goals Progress -->
+            <div id="seom-overview-goals" style="display:none; margin-bottom:20px;">
+                <div class="seom-section-header">Monthly Goals <a href="?page=seo-ai-autopilot&tab=goals">Manage &rarr;</a></div>
+                <div id="seom-overview-goals-cards" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;"></div>
+            </div>
+
+            <div class="seom-section-header">System Status</div>
             <div class="seom-cards" style="margin-bottom: 8px;">
                 <div class="seom-card">
                     <h3>Last Data Collection</h3>
@@ -272,10 +300,7 @@ class SEOM_Dashboard {
 
             <div id="seom-category-breakdown"></div>
 
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:24px;">
-                <h3 style="margin:0;">Recent Refresh Results <small style="color:#94a3b8;font-weight:normal;">(last 14 days, top 30 by performance)</small></h3>
-                <a href="?page=seo-monitor&tab=tracker" class="button">View All in Performance Tracker &rarr;</a>
-            </div>
+            <div class="seom-section-header">Recent Refresh Results <small>(last 14 days, top 30 by performance)</small> <a href="?page=seo-ai-autopilot&tab=tracker">Performance Tracker &rarr;</a></div>
             <table class="seom-table" id="seom-recent-table">
                 <thead>
                     <tr><th>Page</th><th>Was</th><th>Now</th><th>Type</th><th>Days Ago</th><th>Clicks Before</th><th>Clicks Now</th><th>Change</th><th>Pos Before</th><th>Pos Now</th><th>Trend</th></tr>
@@ -285,9 +310,9 @@ class SEOM_Dashboard {
                 </tbody>
             </table>
 
-            <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:32px;">
+            <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:8px;">
                 <div style="flex:1;min-width:400px;">
-                    <h3>Top Improvements (30d)</h3>
+                    <div class="seom-section-header" style="margin-top:0;">Top Improvements (30d)</div>
                     <table class="seom-table" id="seom-improvements-table">
                         <thead>
                             <tr><th>Page</th><th>Clicks Before</th><th>Clicks 30d</th><th>Change</th></tr>
@@ -298,7 +323,7 @@ class SEOM_Dashboard {
                     </table>
                 </div>
                 <div style="flex:1;min-width:400px;">
-                    <h3>Declines After Refresh (30d)</h3>
+                    <div class="seom-section-header" style="margin-top:0;">Declines After Refresh (30d)</div>
                     <table class="seom-table" id="seom-declines-table">
                         <thead>
                             <tr><th>Page</th><th>Clicks Before</th><th>Clicks 30d</th><th>Change</th></tr>
@@ -328,6 +353,82 @@ class SEOM_Dashboard {
                     $('#seom-last-collect').text(d.last_collect);
                     $('#seom-last-analyze').text(d.last_analyze);
 
+                    // Goals mini-cards
+                    if (d.active_goals && d.active_goals.length > 0) {
+                        var goalMetricLabels = {
+                            ghost_pages:'Ghost Pages', total_clicks:'Clicks (28d)', total_impressions:'Impressions (28d)',
+                            avg_position:'Avg Position', avg_ctr:'Avg CTR', page1_pages:'Page 1 Pages',
+                            page2_pages:'Page 2 Pages', pages_with_impressions:'With Impressions',
+                            new_content_30d:'Total Published Content', stale_pages:'Stale Pages', refreshed_this_month:'Refreshed (MTD)'
+                        };
+                        var priColors = {1:'#dc2626',2:'#d97706',3:'#2563eb',4:'#64748b',5:'#94a3b8'};
+                        var gc = $('#seom-overview-goals-cards').empty();
+
+                        d.active_goals.forEach(function(g) {
+                            var baseline = parseFloat(g.baseline_value);
+                            var current = parseFloat(g.current_value);
+                            var target = parseFloat(g.target_value);
+                            var targetNum = (g.target_type === 'percent')
+                                ? (g.direction === 'reduce' ? baseline - baseline * target / 100 : baseline + baseline * target / 100)
+                                : target;
+                            var totalChange = Math.abs(targetNum - baseline);
+                            var actualChange = (g.direction === 'reduce') ? baseline - current : current - baseline;
+                            var progress = totalChange > 0 ? Math.min(100, Math.max(0, Math.round(actualChange / totalChange * 100))) : 0;
+
+                            var _precisionMetrics = {avg_ctr:1, avg_position:1};
+                            var changeVal = _precisionMetrics[g.metric] ? parseFloat((current - baseline).toFixed(4)) : Math.round(current - baseline);
+                            // Is the change moving in the right direction for this goal?
+                            // For lower-is-better metrics (position, ghosts, stale, page2), decrease is always good
+                            var _lowerBetter = {avg_position:1, ghost_pages:1, stale_pages:1, page2_pages:1};
+                            var isGoodChange = _lowerBetter[g.metric] ? (changeVal < 0) : (g.direction === 'reduce' ? changeVal < 0 : changeVal > 0);
+                            var isBadChange = _lowerBetter[g.metric] ? (changeVal > 0) : (g.direction === 'reduce' ? changeVal > 0 : changeVal < 0);
+
+                            var daysLeft = Math.max(0, Math.ceil((new Date(g.deadline) - new Date()) / 86400000));
+                            var pri = parseInt(g.priority) || 3;
+                            var _start = g.start_date || g.created_at.substring(0, 10);
+                            var _totalD = Math.max(1, Math.ceil((new Date(g.deadline) - new Date(_start)) / 86400000));
+                            var _elapsedD = Math.max(0, Math.ceil((new Date() - new Date(_start)) / 86400000));
+                            var _timePct = Math.min(100, (_elapsedD / _totalD) * 100);
+                            var progColor;
+                            if (isBadChange) { progColor = '#dc2626'; }
+                            else if (progress >= 100) { progColor = '#059669'; }
+                            else if (progress >= _timePct - 10) { progColor = '#059669'; }
+                            else if (progress >= _timePct - 30) { progColor = '#d97706'; }
+                            else { progColor = '#dc2626'; }
+                            var label = goalMetricLabels[g.metric] || g.metric;
+                            var typeLabel = g.target_type === 'percent' ? target + '%' : target;
+
+                            // Change indicator: arrow based on ACTUAL direction of change, color based on good/bad
+                            var changeHtml;
+                            var fmtVal = _precisionMetrics[g.metric] ? parseFloat(changeVal).toFixed(2) : changeVal;
+                            if (changeVal === 0) {
+                                changeHtml = '<span style="font-size:12px; color:#94a3b8;">--</span>';
+                            } else {
+                                var actualArrow = changeVal > 0 ? '&#9650;' : '&#9660;';
+                                var changeColor = isGoodChange ? '#059669' : '#dc2626';
+                                changeHtml = '<span style="font-size:12px; color:' + changeColor + ';">' + actualArrow + ' ' + (changeVal > 0 ? '+' : '') + fmtVal + '</span>';
+                            }
+
+                            var displayCurrent = _precisionMetrics[g.metric] ? parseFloat(current).toFixed(2) : Math.round(current);
+                            var card = '<div style="background:#fff; border:1px solid #e2e8f0; border-top:3px solid ' + priColors[pri] + '; border-radius:8px; padding:12px 16px;">';
+                            card += '<div style="font-size:11px; color:#64748b; text-transform:uppercase; letter-spacing:0.3px; margin-bottom:4px;">' + label + '</div>';
+                            card += '<div style="display:flex; align-items:baseline; gap:6px;">';
+                            card += '<span style="font-size:22px; font-weight:700; color:#0f172a;">' + displayCurrent + '</span>';
+                            card += changeHtml;
+                            card += '</div>';
+                            // Mini progress bar
+                            card += '<div style="background:#e2e8f0; border-radius:3px; height:6px; margin:6px 0 4px; overflow:hidden;">';
+                            card += '<div style="width:' + Math.max(0, progress) + '%; background:' + progColor + '; height:100%; border-radius:3px;"></div></div>';
+                            card += '<div style="display:flex; justify-content:space-between; font-size:10px; color:#94a3b8;">';
+                            card += '<span>' + progress + '% of ' + typeLabel + '</span>';
+                            card += '<span>' + daysLeft + 'd left</span>';
+                            card += '</div></div>';
+                            gc.append(card);
+                        });
+
+                        $('#seom-overview-goals').show();
+                    }
+
                     // Status
                     if (!d.enabled) {
                         $('#seom-system-status').html('<span class="seom-status-disabled">Disabled</span>');
@@ -339,7 +440,7 @@ class SEOM_Dashboard {
 
                     // Category breakdown
                     if (d.categories && d.categories.length > 0) {
-                        var html = '<h3>Queue by Category</h3><div style="display:flex;gap:12px;flex-wrap:wrap;">';
+                        var html = '<div class="seom-section-header">Queue by Category</div><div style="display:flex;gap:12px;flex-wrap:wrap;">';
                         var labels = {A:'Ghost Pages',B:'CTR Fix',C:'Near Wins',D:'Declining',E:'Visible/Ignored',F:'Buried Potential',M:'Manual'};
                         d.categories.forEach(function(c) {
                             html += '<span class="seom-badge seom-badge-' + c.category.toLowerCase() + '" style="font-size:13px;padding:6px 12px;">'
@@ -495,10 +596,11 @@ class SEOM_Dashboard {
 
         <div style="margin-bottom:12px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
             <strong>Type:</strong>
-            <button type="button" class="button seom-type-btn" data-type="all">All</button>
-            <button type="button" class="button seom-type-btn active" data-type="product">Products</button>
+            <button type="button" class="button seom-type-btn active" data-type="all">All</button>
+            <button type="button" class="button seom-type-btn" data-type="product">Products</button>
             <button type="button" class="button seom-type-btn" data-type="post">Blog Posts</button>
             <button type="button" class="button seom-type-btn" data-type="page">Pages</button>
+            <button type="button" class="button seom-type-btn" data-type="other">Other (Untracked)</button>
             <span style="margin:0 8px; color:#ccc;">|</span>
             <strong>Filter:</strong>
             <button type="button" class="button seom-filter-btn active" data-filter="all">All</button>
@@ -511,12 +613,13 @@ class SEOM_Dashboard {
             <button type="button" class="button seom-filter-btn" data-filter="page1">Page 1</button>
             <button type="button" class="button seom-filter-btn" data-filter="limited">Limited Visibility</button>
             <span style="margin:0 4px; color:#e2e8f0;">|</span>
+            <button type="button" class="button seom-filter-btn" data-filter="lost" style="color:#dc2626;">Lost</button>
+            <button type="button" class="button seom-filter-btn" data-filter="stale_year" style="color:#d97706;">Stale Year</button>
             <button type="button" class="button seom-filter-btn" data-filter="top_performers" style="color:#059669;">Top Performers</button>
             <button type="button" class="button seom-filter-btn" data-filter="stars" style="color:#d97706;">Stars</button>
             <span style="margin:0 8px; color:#ccc;">|</span>
             <strong>Date Range:</strong>
             <select id="seom-date-range" style="padding:4px 8px; border:1px solid #c3c4c7; border-radius:4px; font-size:13px;">
-                <option value="1">Last 1 Day</option>
                 <option value="7">Last 7 Days</option>
                 <option value="28" selected>Last 28 Days</option>
                 <option value="90">Last 3 Months</option>
@@ -546,17 +649,52 @@ class SEOM_Dashboard {
                 <div class="seom-card-value" id="si-new" style="color:#1e40af;">-</div>
                 <div class="seom-card-sub">Published &lt; 14 days, no impressions yet</div>
             </div>
+            <?php $gsc_tip = 'GSC metrics reflect the most recent data collection snapshot. Due to Google&#39;s 2-3 day processing delay, the most recent days may contain partial data. Totals typically represent 95-97% of the final GSC values for the same period.'; ?>
             <div class="seom-card">
-                <h3>Total Clicks (28d)</h3>
+                <h3>Total Clicks (<span id="si-clicks-label">28d</span>) <span title="<?php echo $gsc_tip; ?>" style="cursor:help;color:#94a3b8;font-size:12px;">&#9432;</span></h3>
                 <div class="seom-card-value" id="si-clicks">-</div>
             </div>
             <div class="seom-card">
-                <h3>Total Impressions (28d)</h3>
+                <h3>Total Impressions (<span id="si-imp-label">28d</span>) <span title="<?php echo $gsc_tip; ?>" style="cursor:help;color:#94a3b8;font-size:12px;">&#9432;</span></h3>
                 <div class="seom-card-value" id="si-impressions">-</div>
             </div>
             <div class="seom-card">
-                <h3>Avg Position</h3>
+                <h3>Avg Position <span title="<?php echo $gsc_tip; ?>" style="cursor:help;color:#94a3b8;font-size:12px;">&#9432;</span></h3>
                 <div class="seom-card-value" id="si-avg-pos">-</div>
+            </div>
+        </div>
+
+        <!-- Trend Chart -->
+        <div id="seom-trend-container" style="display:none; margin-bottom:16px; padding:20px; background:#fff; border:1px solid #e2e8f0; border-radius:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h4 style="margin:0; font-size:14px; color:#334155;">Daily Trends</h4>
+                <div style="display:flex; gap:6px;">
+                    <button class="button button-small seom-trend-range" data-days="7">7 Days</button>
+                    <button class="button button-small seom-trend-range active" data-days="30">30 Days</button>
+                    <button class="button button-small seom-trend-range" data-days="60">60 Days</button>
+                    <button class="button button-small seom-trend-range" data-days="90">90 Days</button>
+                </div>
+            </div>
+            <div style="position:relative; height:300px;">
+                <canvas id="seom-trend-chart"></canvas>
+            </div>
+            <div id="seom-trend-summary"></div>
+        </div>
+
+        <!-- Research Viewer Modal -->
+        <div id="seom-research-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:100000; overflow:auto;">
+            <div style="max-width:800px; margin:60px auto; background:#fff; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.3); overflow:hidden;">
+                <div style="padding:20px 24px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <h3 style="margin:0; font-size:16px;" id="seom-research-modal-title">Competitive Research</h3>
+                        <span style="font-size:12px; color:#64748b;" id="seom-research-modal-date"></span>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <button class="button button-small seom-research-btn" id="seom-research-refresh-btn" data-id="" style="color:#7c3aed;">Refresh Research</button>
+                        <button class="button button-small" id="seom-research-modal-close" style="font-size:16px; line-height:1; padding:4px 10px;">&times;</button>
+                    </div>
+                </div>
+                <div id="seom-research-modal-body" style="padding:24px; font-size:14px; line-height:1.7; white-space:pre-wrap; max-height:70vh; overflow:auto;"></div>
             </div>
         </div>
 
@@ -587,7 +725,7 @@ class SEOM_Dashboard {
                     <th style="width:45px;">&Delta;</th>
                     <th class="seom-sortable" data-sort="ctr" style="cursor:pointer;width:50px;">CTR</th>
                     <th class="seom-sortable" data-sort="post_date" style="cursor:pointer;width:80px;">Published</th>
-                    <th class="seom-sortable" data-sort="last_refresh" style="cursor:pointer;width:80px;">Refreshed</th>
+                    <th class="seom-sortable" data-sort="last_refresh" style="cursor:pointer;width:80px;">Last Refreshed</th>
                     <th style="width:150px;">Actions</th>
                 </tr>
             </thead>
@@ -609,7 +747,7 @@ class SEOM_Dashboard {
 
         <script>
         jQuery(document).ready(function($) {
-            var currentType = 'product';
+            var currentType = 'all';
             var currentSort = 'clicks';
             var currentOrder = 'DESC';
             var currentFilter = 'all';
@@ -732,33 +870,70 @@ class SEOM_Dashboard {
                         var lastRefresh = r.last_refresh ? r.last_refresh.substring(0, 10) : '<span style="color:#999;">Never</span>';
 
                         var actions = '';
-                        var thirtyDaysAgo = new Date();
-                        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                        var refreshedRecently = r.last_refresh && (new Date(r.last_refresh) >= thirtyDaysAgo);
+                        var fullCooldownDays = d.cooldown_days || 90;
+                        var metaCooldownDays = 30;
+                        // Use meta cooldown (30d) for meta_only refreshes, full cooldown for everything else
+                        var isMetaOnly = (r.last_refresh_type === 'meta_only');
+                        var cooldownDays = isMetaOnly ? metaCooldownDays : fullCooldownDays;
+                        var cooldownDate = new Date();
+                        cooldownDate.setDate(cooldownDate.getDate() - cooldownDays);
+                        var refreshedRecently = r.last_refresh && (new Date(r.last_refresh) >= cooldownDate);
 
-                        if (currentType === 'page') {
-                            actions = '<span style="color:#94a3b8;font-size:11px;">Metrics only</span>';
+                        var isPage = (r.post_type === 'page');
+                        var isOther = (r.post_type === 'other');
+                        if (isOther) {
+                            // Other (untracked) URLs — no WordPress post to refresh, metrics only
+                            actions = '<span style="color:#94a3b8;font-size:11px;">Tracked (no WP post)</span>';
+                        } else if (isPage) {
+                            // Pages — allow meta-only refresh (title, description, keyword) but not full content
+                            actions = '<button class="button button-small seom-queue-btn" data-id="' + r.post_id + '" data-type="meta_only" title="Update meta description, focus keyword, and SEO title">Meta Only</button>';
                         } else if (r.in_queue) {
                             actions = '<span style="color:#b45309;font-size:12px;">In Queue</span>';
                         } else if (refreshedRecently) {
                             var daysAgo = Math.floor((new Date() - new Date(r.last_refresh)) / 86400000);
-                            actions = '<span style="color:#94a3b8;font-size:11px;">Cooldown (' + (30 - daysAgo) + 'd)</span>';
+                            var typeLabel = isMetaOnly ? 'Meta' : 'Full';
+                            actions = '<span class="seom-cooldown-label" data-id="' + r.post_id + '" style="color:#94a3b8;font-size:11px;cursor:pointer;border-bottom:1px dashed #cbd5e1;" title="' + typeLabel + ' refresh ' + daysAgo + 'd ago. Cooldown: ' + cooldownDays + 'd (' + typeLabel.toLowerCase() + '). Click to override.">Cooldown (' + (cooldownDays - daysAgo) + 'd)</span>'
+                                + '<span class="seom-cooldown-override" data-id="' + r.post_id + '" style="display:none;">'
+                                + '<button class="button button-small seom-queue-btn" data-id="' + r.post_id + '" data-type="full" title="Override cooldown — full refresh" style="color:#dc2626;">Refresh</button> '
+                                + '<button class="button button-small seom-queue-btn" data-id="' + r.post_id + '" data-type="meta_only" title="Override cooldown — meta only" style="color:#dc2626;">Meta</button> '
+                                + '<span class="seom-cooldown-cancel" style="color:#94a3b8;font-size:11px;cursor:pointer;margin-left:2px;" title="Cancel">&times;</span>'
+                                + '</span>';
                         } else {
                             actions = '<button class="button button-small seom-queue-btn" data-id="' + r.post_id + '" data-type="full" title="Full content refresh">Refresh</button> '
                                 + '<button class="button button-small seom-queue-btn" data-id="' + r.post_id + '" data-type="meta_only" title="Meta description + keyword only">Meta Only</button>';
                         }
 
-                        // Checkbox — only for pages eligible for refresh (not page type, not in queue, not on cooldown)
-                        var canSelect = (currentType !== 'page' && !r.in_queue && !refreshedRecently);
+                        // Research button (available for any WordPress post — not untracked URLs)
+                        if (!isOther) {
+                            if (r.research_date) {
+                                var rDate = r.research_date.substring(0, 10);
+                                actions += ' <button class="button button-small seom-view-research" data-id="' + r.post_id + '" title="View research collected ' + rDate + '. Click to view, right-click to refresh." style="color:#7c3aed;font-size:11px;">Research ' + rDate + '</button>';
+                            } else {
+                                actions += ' <button class="button button-small seom-research-btn" data-id="' + r.post_id + '" title="Collect competitive research via web search" style="color:#7c3aed;">Research</button>';
+                            }
+                        }
+
+                        // Checkbox — available for all WordPress posts including pages (not untracked URLs)
+                        var canSelect = (!isOther && !r.in_queue && !(refreshedRecently && !isPage));
                         var checkbox = canSelect
                             ? '<input type="checkbox" class="seom-idx-cb" value="' + r.post_id + '" />'
                             : '';
 
+                        // For "other" (untracked URLs): show URL as link + type badge instead of edit link
+                        var titleCell;
+                        if (isOther) {
+                            var shortUrl = (r.url || r.post_title || '').replace(/^https?:\/\//, '');
+                            var fullUrl = r.url || r.post_title || '';
+                            var typeBadge = r.url_type ? ' <span class="seom-badge" style="font-size:10px;">' + r.url_type + '</span>' : '';
+                            titleCell = '<a href="' + fullUrl + '" target="_blank" style="color:#1e293b;">' + shortUrl + '</a>' + typeBadge;
+                        } else {
+                            titleCell = '<a href="' + editUrl + '" target="_blank">' + r.post_title + '</a>'
+                                + '<br><small style="color:#94a3b8;"><a href="' + viewUrl + '" target="_blank" style="color:#94a3b8;">' + (viewUrl || '') + '</a></small>';
+                        }
+
                         tbody.append('<tr>' +
                             '<td>' + checkbox + '</td>' +
-                            '<td><a href="' + editUrl + '" target="_blank">' + r.post_title + '</a>' +
-                                '<br><small style="color:#94a3b8;"><a href="' + viewUrl + '" target="_blank" style="color:#94a3b8;">' + (viewUrl || '') + '</a></small>' +
-                            '</td>' +
+                            '<td>' + titleCell + '</td>' +
                             '<td>' + wasBadge + '</td>' +
                             '<td>' + nowBadge + '</td>' +
                             '<td>' + clicks.toLocaleString() + '</td>' +
@@ -767,7 +942,7 @@ class SEOM_Dashboard {
                             '<td style="font-size:12px;">' + impDelta + '</td>' +
                             '<td>' + (pos > 0 ? pos.toFixed(1) : '-') + '</td>' +
                             '<td style="font-size:12px;">' + posDelta + '</td>' +
-                            '<td>' + parseFloat(r.ctr).toFixed(1) + '%</td>' +
+                            '<td>' + parseFloat(r.ctr).toFixed(2) + '%</td>' +
                             '<td style="font-size:12px;">' + published + '</td>' +
                             '<td style="font-size:12px;">' + lastRefresh + '</td>' +
                             '<td>' + actions + '</td>' +
@@ -807,6 +982,7 @@ class SEOM_Dashboard {
                 currentSort = 'clicks';
                 currentOrder = 'DESC';
                 loadIndexed(1);
+                loadTrends();
             });
 
             // Sortable columns
@@ -831,6 +1007,8 @@ class SEOM_Dashboard {
                 low_ctr: 'CTR below 50% of the expected benchmark for the page\'s ranking position (e.g., Position 1 should be ~30% CTR, Position 5 should be ~7%). Title and meta description need improvement.',
                 page1: 'Ranking on page 1 (position 1–10) with impressions. Monitor for changes.',
                 limited: 'Has some visibility but not enough to matter: fewer than 100 impressions, or ranking position 30+ (page 3 and beyond).',
+                lost: 'Pages no longer in the index — they previously had 10+ impressions in an earlier collection but now have zero. Unlike ghosts (which may never have had visibility), these pages lost their search presence.',
+                stale_year: 'Pages with an outdated year in the title (e.g., "2025" when current year is ' + new Date().getFullYear() + '). These titles hurt CTR and signal stale content to Google. Years are automatically updated when a refresh runs.',
                 top_performers: 'Pages whose CTR meets at least 60% of the expected benchmark for their position. Position 1 needs 18%+ CTR, Position 5 needs 4.2%+, Position 10 needs 1.8%+. These are protected from automated refresh.',
                 stars: 'Your highest-traffic pages: 15+ clicks and 200+ impressions. These are the pages carrying your site — monitor closely and protect at all costs.'
             };
@@ -846,6 +1024,7 @@ class SEOM_Dashboard {
                 currentFilter = $(this).data('filter');
                 updateFilterDesc();
                 loadIndexed(1);
+                loadTrends();
             });
 
             // Date range change
@@ -871,6 +1050,78 @@ class SEOM_Dashboard {
                         alert(resp.data || 'Error');
                     }
                 });
+            });
+
+            // Cooldown override — click cooldown label to reveal override buttons
+            $(document).on('click', '.seom-cooldown-label', function() {
+                var id = $(this).data('id');
+                $(this).hide();
+                $('.seom-cooldown-override[data-id="' + id + '"]').show();
+            });
+            // Cancel override — hide buttons, show label again
+            $(document).on('click', '.seom-cooldown-cancel', function() {
+                var override = $(this).closest('.seom-cooldown-override');
+                var id = override.data('id');
+                override.hide();
+                $('.seom-cooldown-label[data-id="' + id + '"]').show();
+            });
+
+            // View existing research
+            $(document).on('click', '.seom-view-research', function() {
+                var btn = $(this);
+                var postId = btn.data('id');
+                $('#seom-research-modal-body').text('Loading...');
+                $('#seom-research-modal-title').text('Loading...');
+                $('#seom-research-modal-date').text('');
+                $('#seom-research-refresh-btn').data('id', postId);
+                $('#seom-research-modal').fadeIn(200);
+
+                $.post(ajaxurl, { action: 'seom_get_research', nonce: seom_nonce, post_id: postId }, function(resp) {
+                    if (resp.success) {
+                        $('#seom-research-modal-title').text(resp.data.title);
+                        $('#seom-research-modal-date').text('Research collected: ' + (resp.data.date || 'Unknown'));
+                        $('#seom-research-modal-body').text(resp.data.research);
+                    } else {
+                        $('#seom-research-modal-body').text(resp.data || 'No research available.');
+                    }
+                });
+            });
+
+            // Close research modal
+            $('#seom-research-modal-close, #seom-research-modal').click(function(e) {
+                if (e.target === this) $('#seom-research-modal').fadeOut(200);
+            });
+
+            // Collect new research (from "Research" button or modal refresh button)
+            $(document).on('click', '.seom-research-btn', function() {
+                var btn = $(this);
+                var postId = btn.data('id');
+                var origText = btn.text();
+                btn.prop('disabled', true).text('Researching...');
+                $.ajax({ url: ajaxurl, method: 'POST', timeout: 90000, data: {
+                    action: 'seom_collect_research', nonce: seom_nonce, post_id: postId
+                }, success: function(resp) {
+                    btn.prop('disabled', false);
+                    if (resp.success) {
+                        var newDate = (resp.data.date || '').substring(0, 10);
+                        // If this was the modal refresh button, update modal content
+                        if (btn.attr('id') === 'seom-research-refresh-btn') {
+                            btn.text('Refresh Research');
+                            $('#seom-research-modal-date').text('Research collected: ' + resp.data.date);
+                            $('#seom-research-modal-body').text(resp.data.research);
+                        } else {
+                            // Replace the button with a view button showing the new date
+                            btn.removeClass('seom-research-btn').addClass('seom-view-research')
+                                .text('Research ' + newDate).css('font-size', '11px');
+                        }
+                    } else {
+                        btn.text(origText);
+                        alert(resp.data || 'Research failed');
+                    }
+                }, error: function() {
+                    btn.prop('disabled', false).text(origText);
+                    alert('Research request timed out. Try again.');
+                }});
             });
 
             // Pagination
@@ -914,8 +1165,155 @@ class SEOM_Dashboard {
                 addNext(0);
             });
 
-            // Auto-load products
+            // ── Trend Chart ──
+            var trendChart = null;
+            var trendDays = 30;
+
+            function loadTrends(days) {
+                if (days) trendDays = days;
+                $('#seom-trend-chart').css('opacity', '0.3');
+                $('#seom-trend-summary').html('<div style="text-align:center;padding:12px;color:#94a3b8;"><span class="spinner is-active" style="float:none;margin:0 8px 0 0;"></span>Loading...</div>');
+                $.post(ajaxurl, { action: 'seom_get_trends', nonce: seom_nonce, days: trendDays, post_type: currentType, filter: currentFilter }, function(resp) {
+                    $('#seom-trend-chart').css('opacity', '1');
+                    if (!resp.success || !resp.data.length) return;
+
+                    var data = resp.data;
+                    var labels = data.map(function(r) { return r.date_collected; });
+
+                    // Use GSC totals when available, fall back to tracked totals
+                    var useGscChart = (currentType === 'all' && currentFilter === 'all');
+                    var clicks = data.map(function(r) { return parseInt(useGscChart ? (r.gsc_total_clicks || r.total_clicks) : r.total_clicks) || 0; });
+                    var impressions = data.map(function(r) { return parseInt(useGscChart ? (r.gsc_total_impressions || r.total_impressions) : r.total_impressions) || 0; });
+                    var position = data.map(function(r) { return parseFloat(useGscChart ? (r.gsc_avg_position || r.avg_position) : r.avg_position) || 0; });
+
+                    var ctx = document.getElementById('seom-trend-chart').getContext('2d');
+                    if (trendChart) trendChart.destroy();
+
+                    trendChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'Impressions',
+                                    data: impressions,
+                                    borderColor: '#3b82f6',
+                                    backgroundColor: 'rgba(59,130,246,0.05)',
+                                    borderWidth: 2,
+                                    fill: true,
+                                    tension: 0.3,
+                                    yAxisID: 'y',
+                                    pointRadius: data.length > 60 ? 0 : 2,
+                                },
+                                {
+                                    label: 'Clicks',
+                                    data: clicks,
+                                    borderColor: '#059669',
+                                    borderWidth: 2,
+                                    tension: 0.3,
+                                    yAxisID: 'y',
+                                    pointRadius: data.length > 60 ? 0 : 2,
+                                },
+                                {
+                                    label: 'Avg Position',
+                                    data: position,
+                                    borderColor: '#7c3aed',
+                                    borderWidth: 2,
+                                    tension: 0.3,
+                                    yAxisID: 'y2',
+                                    pointRadius: data.length > 60 ? 0 : 2,
+                                },
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: { mode: 'index', intersect: false },
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { usePointStyle: true, padding: 16, font: { size: 12 } }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(ctx) {
+                                            if (ctx.dataset.label === 'Avg Position') return 'Avg Position: ' + ctx.raw.toFixed(1);
+                                            return ctx.dataset.label + ': ' + ctx.raw.toLocaleString();
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { font: { size: 10 }, maxTicksLimit: 15 }
+                                },
+                                y: {
+                                    type: 'linear',
+                                    position: 'left',
+                                    title: { display: true, text: 'Clicks / Impressions', font: { size: 11 } },
+                                    grid: { color: 'rgba(0,0,0,0.04)' },
+                                    ticks: { font: { size: 10 } },
+                                },
+                                y2: {
+                                    type: 'linear',
+                                    position: 'right',
+                                    title: { display: true, text: 'Avg Position', font: { size: 11 } },
+                                    grid: { display: false },
+                                    reverse: true,
+                                    ticks: { font: { size: 10 } },
+                                },
+                            }
+                        }
+                    });
+
+                    // Summary bar — compare first vs last data point
+                    if (data.length >= 2) {
+                        var first = data[0], last = data[data.length - 1];
+                        // Use filtered per-page totals (total_clicks/total_impressions)
+                        // Only use GSC site-wide when unfiltered All view
+                        var useGsc = (currentType === 'all' && currentFilter === 'all');
+                        var impNow = parseInt(useGsc ? (last.gsc_total_impressions || last.total_impressions) : last.total_impressions) || 0;
+                        var impThen = parseInt(useGsc ? (first.gsc_total_impressions || first.total_impressions) : first.total_impressions) || 0;
+                        var clkNow = parseInt(useGsc ? (last.gsc_total_clicks || last.total_clicks) : last.total_clicks) || 0;
+                        var clkThen = parseInt(useGsc ? (first.gsc_total_clicks || first.total_clicks) : first.total_clicks) || 0;
+                        var posNow = parseFloat(useGsc ? (last.gsc_avg_position || last.avg_position) : last.avg_position) || 0;
+                        var posThen = parseFloat(useGsc ? (first.gsc_avg_position || first.avg_position) : first.avg_position) || 0;
+
+                        function fmtDelta(now, before, invert) {
+                            var d = now - before;
+                            if (typeof d === 'number' && d % 1 !== 0) d = parseFloat(d.toFixed(1));
+                            var good = invert ? (d < 0) : (d > 0);
+                            var c = d === 0 ? '#94a3b8' : (good ? '#059669' : '#dc2626');
+                            var s = d > 0 ? '+' : '';
+                            var formatted = typeof d === 'number' && d % 1 !== 0 ? d.toFixed(1) : d.toLocaleString();
+                            return '<span style="color:'+c+';font-weight:600;">('+s+formatted+')</span>';
+                        }
+
+                        $('#seom-trend-summary').html(
+                            '<div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:12px;padding:12px 16px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;">'
+                            + '<div>Impressions: <strong>' + impNow.toLocaleString() + '</strong> ' + fmtDelta(impNow, impThen, false) + '</div>'
+                            + '<div>Clicks: <strong>' + clkNow.toLocaleString() + '</strong> ' + fmtDelta(clkNow, clkThen, false) + '</div>'
+                            + '<div>Avg Position: <strong>' + posNow.toFixed(1) + '</strong> ' + fmtDelta(posNow, posThen, true) + '</div>'
+                            + '<div style="color:#94a3b8;">' + first.date_collected + ' &rarr; ' + last.date_collected + '</div>'
+                            + '</div>'
+                        );
+                    }
+
+                    $('#seom-trend-container').show();
+                });
+            }
+
+            // Trend range buttons
+            $(document).on('click', '.seom-trend-range', function() {
+                $('.seom-trend-range').removeClass('active');
+                $(this).addClass('active');
+                loadTrends(parseInt($(this).data('days')));
+            });
+
+            // Auto-load
             loadIndexed(1);
+            loadTrends(30);
         });
         </script>
         <?php
@@ -952,6 +1350,26 @@ class SEOM_Dashboard {
             <button type="button" class="button seom-tracker-trend" data-trend="ranking_down" style="color:#dc2626;">Ranking Down</button>
             <button type="button" class="button seom-tracker-trend" data-trend="too_early" style="color:#d97706;">Too Early</button>
             <button type="button" class="button seom-tracker-trend" data-trend="flat">Flat</button>
+        </div>
+
+        <!-- Trend Charts -->
+        <div id="seom-tracker-trend-container" style="display:none; margin-bottom:16px;">
+            <h4 style="margin:0 0 12px; font-size:14px; color:#334155;">Refresh Performance</h4>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div style="padding:16px; background:#fff; border:1px solid #e2e8f0; border-radius:10px;">
+                    <h5 style="margin:0 0 8px; font-size:13px; color:#64748b;">Refreshed Pages Performance</h5>
+                    <div style="position:relative; height:280px;">
+                        <canvas id="seom-tracker-trend-chart"></canvas>
+                    </div>
+                </div>
+                <div style="padding:16px; background:#fff; border:1px solid #e2e8f0; border-radius:10px;">
+                    <h5 style="margin:0 0 8px; font-size:13px; color:#64748b;">Refresh Activity</h5>
+                    <div style="position:relative; height:280px;">
+                        <canvas id="seom-tracker-activity-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div id="seom-tracker-refresh-summary"></div>
         </div>
 
         <div id="seom-tracker-loading">Loading...</div>
@@ -1186,29 +1604,31 @@ class SEOM_Dashboard {
                 pag.append('<span style="margin-left:12px;color:#64748b;font-size:13px;">' + totalFiltered + ' of ' + d.rows.length + ' refreshes</span>');
             }
 
-            // Period toggle
+            // Period toggle — reload both table and charts
             $('.seom-tracker-type').click(function() {
                 $('.seom-tracker-type').removeClass('active');
                 $(this).addClass('active');
                 trackerType = $(this).data('type');
-                trackerCache = null; // Invalidate — need fresh data
+                trackerCache = null;
                 loadTracker(1);
+                loadTrackerTrends();
             });
 
             $('.seom-tracker-days').click(function() {
                 $('.seom-tracker-days').removeClass('active');
                 $(this).addClass('active');
                 trackerDays = parseInt($(this).data('days'));
-                trackerCache = null; // Invalidate — need fresh data
+                trackerCache = null;
                 loadTracker(1);
+                loadTrackerTrends();
             });
 
             $('.seom-tracker-trend').click(function() {
                 $('.seom-tracker-trend').removeClass('active');
                 $(this).addClass('active');
                 trackerTrend = $(this).data('trend');
-                // No cache invalidation — reuses cached data, just re-filters
                 loadTracker(1);
+                loadTrackerTrends();
             });
 
             // Pagination
@@ -1216,7 +1636,101 @@ class SEOM_Dashboard {
                 loadTracker(parseInt($(this).data('page')));
             });
 
+            // ── Refresh Performance Trend Chart ──
+            var trackerTrendChart = null;
+            var trackerActivityChart = null;
+
+            function loadTrackerTrends() {
+                // Show loading overlay on charts
+                $('#seom-tracker-trend-chart, #seom-tracker-activity-chart').css('opacity', '0.3');
+                $('#seom-tracker-refresh-summary').html('<div style="text-align:center;padding:12px;color:#94a3b8;"><span class="spinner is-active" style="float:none;margin:0 8px 0 0;"></span>Loading...</div>');
+                $.post(ajaxurl, {
+                    action: 'seom_get_refresh_trends', nonce: seom_nonce,
+                    days: trackerDays, post_type: trackerType, trend: trackerTrend
+                }, function(resp) {
+                    $('#seom-tracker-trend-chart, #seom-tracker-activity-chart').css('opacity', '1');
+                    if (!resp.success) return;
+                    var d = resp.data;
+                    var perf = d.perf || [];
+                    var daily = d.daily || [];
+                    var s = d.summary || {};
+
+                    // === LEFT CHART: Performance trend ===
+                    if (perf.length) {
+                        var perfLabels = perf.map(function(r) { return r.day; });
+                        var clicks = perf.map(function(r) { return parseInt(r.total_clicks) || 0; });
+                        var impressions = perf.map(function(r) { return parseInt(r.total_impressions) || 0; });
+                        var position = perf.map(function(r) { return parseFloat(r.avg_position) || 0; });
+                        var baselineClicks = perfLabels.map(function() { return s.clicks_before || 0; });
+
+                        var ctx1 = document.getElementById('seom-tracker-trend-chart').getContext('2d');
+                        if (trackerTrendChart) trackerTrendChart.destroy();
+                        trackerTrendChart = new Chart(ctx1, {
+                            type: 'line',
+                            data: { labels: perfLabels, datasets: [
+                                { label: 'Impressions', data: impressions, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.05)', borderWidth: 2, fill: true, tension: 0.3, yAxisID: 'y', pointRadius: perf.length > 60 ? 0 : 2 },
+                                { label: 'Clicks', data: clicks, borderColor: '#059669', borderWidth: 2, tension: 0.3, yAxisID: 'y', pointRadius: perf.length > 60 ? 0 : 2 },
+                                { label: 'Clicks baseline', data: baselineClicks, borderColor: '#059669', borderWidth: 1, borderDash: [4,4], pointRadius: 0, yAxisID: 'y' },
+                                { label: 'Avg Position', data: position, borderColor: '#7c3aed', borderWidth: 2, tension: 0.3, yAxisID: 'y2', pointRadius: perf.length > 60 ? 0 : 2 },
+                            ]},
+                            options: {
+                                responsive: true, maintainAspectRatio: false,
+                                interaction: { mode: 'index', intersect: false },
+                                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } }, tooltip: { callbacks: { label: function(c) { return c.dataset.label.indexOf('Position') >= 0 ? c.dataset.label + ': ' + c.raw.toFixed(1) : c.dataset.label + ': ' + c.raw.toLocaleString(); } } } },
+                                scales: {
+                                    x: { grid: { display: false }, ticks: { font: { size: 9 }, maxTicksLimit: 10 } },
+                                    y: { type: 'linear', position: 'left', title: { display: true, text: 'Clicks / Impressions', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 9 } } },
+                                    y2: { type: 'linear', position: 'right', reverse: true, grid: { display: false }, display: false },
+                                }
+                            }
+                        });
+                    }
+
+                    // === RIGHT CHART: Daily activity ===
+                    if (daily.length) {
+                        var actLabels = daily.map(function(r) { return r.day; });
+                        var fullR = daily.map(function(r) { return parseInt(r.full_refreshes) || 0; });
+                        var metaR = daily.map(function(r) { return parseInt(r.meta_refreshes) || 0; });
+                        var ctx2 = document.getElementById('seom-tracker-activity-chart').getContext('2d');
+                        if (trackerActivityChart) trackerActivityChart.destroy();
+                        trackerActivityChart = new Chart(ctx2, {
+                            type: 'bar',
+                            data: { labels: actLabels, datasets: [
+                                { label: 'Full Refresh', data: fullR, backgroundColor: '#3b82f6', borderRadius: 3 },
+                                { label: 'Meta Only', data: metaR, backgroundColor: '#d97706', borderRadius: 3 },
+                            ]},
+                            options: {
+                                responsive: true, maintainAspectRatio: false,
+                                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } }, tooltip: { callbacks: { footer: function(items) { return 'Total: ' + items.reduce(function(a,i){return a+i.raw;},0); } } } },
+                                scales: { x: { stacked: true, grid: { display: false }, ticks: { font: { size: 9 }, maxTicksLimit: 10 } }, y: { stacked: true, title: { display: true, text: 'Pages Refreshed', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 9 }, stepSize: 1 } } }
+                            }
+                        });
+                    }
+
+                    // === SUMMARY BAR ===
+                    if (s.pages_refreshed !== undefined) {
+                        var clickChange = s.clicks_now - s.clicks_before;
+                        var impChange = s.impressions_now - s.impressions_before;
+                        var posChange = parseFloat((s.avg_position_now - s.avg_position_before).toFixed(1));
+                        function sd(v, inv) { var c = v === 0 ? '#94a3b8' : ((inv ? v < 0 : v > 0) ? '#059669' : '#dc2626'); return '<span style="color:'+c+';font-weight:600;">('+(v>0?'+':'')+v.toLocaleString()+')</span>'; }
+                        var trendLabel = trackerTrend !== 'all' ? ' (' + trackerTrend.replace(/_/g,' ') + ')' : ' refreshed';
+                        $('#seom-tracker-refresh-summary').html(
+                            '<div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:12px;padding:12px 16px;background:#f8fafc;border-radius:8px;font-size:13px;color:#475569;">'
+                            + '<div><strong>' + s.pages_refreshed + '</strong> pages' + trendLabel + '</div>'
+                            + '<div>Clicks: ' + s.clicks_before.toLocaleString() + ' &rarr; <strong>' + s.clicks_now.toLocaleString() + '</strong> ' + sd(clickChange, false) + '</div>'
+                            + '<div>Impressions: ' + s.impressions_before.toLocaleString() + ' &rarr; <strong>' + s.impressions_now.toLocaleString() + '</strong> ' + sd(impChange, false) + '</div>'
+                            + '<div>Position: ' + s.avg_position_before + ' &rarr; <strong>' + s.avg_position_now + '</strong> ' + sd(posChange, true) + '</div>'
+                            + '<div>Improving: <span style="color:#059669;font-weight:700;">' + s.improving + '</span> &middot; Declining: <span style="color:#dc2626;font-weight:700;">' + s.declining + '</span> &middot; Flat: ' + s.flat + '</div>'
+                            + '</div>'
+                        );
+                    }
+
+                    $('#seom-tracker-trend-container').show();
+                });
+            }
+
             loadTracker(1);
+            loadTrackerTrends();
         });
         </script>
         <?php
@@ -1257,7 +1771,7 @@ class SEOM_Dashboard {
                     <th class="seom-q-sort" data-col="ctr" style="cursor:pointer;width:60px;">CTR</th>
                     <th class="seom-q-sort" data-col="position" style="cursor:pointer;width:65px;">Pos</th>
                     <th style="width:100px;">Top Query</th>
-                    <th style="width:85px;">Refresh</th>
+                    <th style="width:85px;">Last Refreshed</th>
                     <th style="width:70px;">Content</th>
                     <th style="width:210px;">Actions</th>
                 </tr>
@@ -1354,7 +1868,7 @@ class SEOM_Dashboard {
                         '<td>' + parseFloat(item.priority_score).toFixed(1) + prioritized + '</td>' +
                         '<td>' + clicks.toLocaleString() + '</td>' +
                         '<td>' + impressions.toLocaleString() + '</td>' +
-                        '<td>' + ctr.toFixed(1) + '%</td>' +
+                        '<td>' + ctr.toFixed(2) + '%</td>' +
                         '<td class="' + posClass + '">' + (pos > 0 ? pos.toFixed(1) : '-') + '</td>' +
                         '<td style="font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + topQuery + '</td>' +
                         '<td style="font-size:12px;">' + lastRefresh + '</td>' +
@@ -1649,12 +2163,13 @@ class SEOM_Dashboard {
 
                     var tbody = $('#seom-history-body').empty();
                     resp.data.rows.forEach(function(r) {
-                        function fmtChange(before, after, invert) {
+                        function fmtChange(before, after, invert, decimals) {
                             if (after === null) return '<span style="color:#999;">Pending</span>';
+                            var dp = decimals !== undefined ? decimals : 1;
                             var diff = parseFloat(after) - parseFloat(before);
                             var cls = invert ? (diff < 0 ? 'seom-change-positive' : diff > 0 ? 'seom-change-negative' : '')
                                              : (diff > 0 ? 'seom-change-positive' : diff < 0 ? 'seom-change-negative' : '');
-                            return '<span class="' + cls + '">' + parseFloat(after).toFixed(1) + '</span>';
+                            return '<span class="' + cls + '">' + parseFloat(after).toFixed(dp) + '</span>';
                         }
 
                         tbody.append('<tr>' +
@@ -1666,8 +2181,8 @@ class SEOM_Dashboard {
                             '<td>' + fmtChange(r.clicks_before, r.clicks_after_30d, false) + '</td>' +
                             '<td>' + (parseFloat(r.position_before) || 0).toFixed(1) + '</td>' +
                             '<td>' + fmtChange(r.position_before, r.position_after_30d, true) + '</td>' +
-                            '<td>' + (parseFloat(r.ctr_before) || 0).toFixed(1) + '%</td>' +
-                            '<td>' + fmtChange(r.ctr_before, r.ctr_after_30d, false) + '</td>' +
+                            '<td>' + (parseFloat(r.ctr_before) || 0).toFixed(2) + '%</td>' +
+                            '<td>' + fmtChange(r.ctr_before, r.ctr_after_30d, false, 2) + '</td>' +
                             '<td>' +
                                 '<a href="<?php echo admin_url('post.php?action=edit&post='); ?>' + r.post_id + '" class="button button-small" target="_blank">Edit</a> ' +
                                 '<a href="' + (r.url || '/?p=' + r.post_id) + '" class="button button-small" target="_blank">View</a>' +
@@ -1845,7 +2360,7 @@ class SEOM_Dashboard {
                             '<td><strong>' + r.keyword + '</strong></td>' +
                             '<td>' + parseInt(r.impressions).toLocaleString() + '</td>' +
                             '<td>' + parseInt(r.clicks).toLocaleString() + '</td>' +
-                            '<td>' + parseFloat(r.ctr).toFixed(1) + '%</td>' +
+                            '<td>' + parseFloat(r.ctr).toFixed(2) + '%</td>' +
                             '<td class="' + posClass + '">' + (pos > 0 ? pos.toFixed(1) : '-') + '</td>' +
                             '<td class="' + trendClass + '">' + trendIcon + trend.toFixed(0) + '%</td>' +
                             '<td><span style="color:' + oppColor + ';font-weight:700;">' + opp.toFixed(0) + '</span></td>' +
@@ -2433,7 +2948,7 @@ class SEOM_Dashboard {
                                 <option value="pages_with_impressions">Pages With Impressions</option>
                             </optgroup>
                             <optgroup label="Content Production">
-                                <option value="new_content_30d">New Content Created (30d)</option>
+                                <option value="new_content_30d">Total Published Content</option>
                                 <option value="stale_pages">Stale Pages (not refreshed in 90+ days)</option>
                                 <option value="refreshed_this_month">Pages Refreshed This Month</option>
                             </optgroup>
@@ -2510,6 +3025,12 @@ class SEOM_Dashboard {
         <div id="seom-goals-loading" style="color:#64748b;">Loading goals...</div>
         <div id="seom-goals-list" style="margin-bottom:24px;"></div>
 
+        <!-- Capacity Analysis Panel -->
+        <div id="seom-capacity-panel" style="display:none;">
+            <div class="seom-section-header">Queue Capacity Analysis <a href="#" id="seom-capacity-refresh-btn" style="font-size:12px;">Refresh</a></div>
+            <div id="seom-capacity-content"></div>
+        </div>
+
         <script>
         jQuery(document).ready(function($) {
             var siteMetrics = null;
@@ -2536,7 +3057,7 @@ class SEOM_Dashboard {
                 page1_pages: 'Pages on Page 1',
                 page2_pages: 'Pages on Page 2',
                 pages_with_impressions: 'Pages With Impressions',
-                new_content_30d: 'New Content Created (30d)',
+                new_content_30d: 'Total Published Content',
                 stale_pages: 'Stale Pages (90+ days)',
                 refreshed_this_month: 'Pages Refreshed This Month'
             };
@@ -2548,6 +3069,26 @@ class SEOM_Dashboard {
                 page2_pages: 'reduce', pages_with_impressions: 'increase',
                 new_content_30d: 'increase', stale_pages: 'reduce', refreshed_this_month: 'increase'
             };
+
+            // Metrics where "reduce" means "improve" — natural language should say "Improve" not "Reduce"
+            // and for these, a decrease in value is always good regardless of direction field
+            var lowerIsBetter = { avg_position: true, ghost_pages: true, stale_pages: true, page2_pages: true };
+
+            // Get natural language verb for a goal
+            function goalVerb(metric, direction) {
+                if (lowerIsBetter[metric] && direction === 'reduce') return 'Improve';
+                if (direction === 'reduce') return 'Reduce';
+                return 'Increase';
+            }
+
+            // Is a change in value good for this metric+direction combo?
+            function isChangeGood(metric, direction, changeVal) {
+                if (changeVal === 0) return null; // no change
+                // For lower-is-better metrics, decrease is always good
+                if (lowerIsBetter[metric]) return changeVal < 0;
+                // For higher-is-better, increase is good if direction is increase
+                return direction === 'increase' ? changeVal > 0 : changeVal < 0;
+            }
 
             var availableDates = [];
 
@@ -2586,7 +3127,7 @@ class SEOM_Dashboard {
                         var metric = $('#seom-goal-metric').val();
                         if (metric) {
                             var val = parseFloat(siteMetrics.metrics[metric]) || 0;
-                            if (metric === 'avg_ctr') val = val.toFixed(2);
+                            if (metric === 'avg_ctr') val = val.toFixed(4);
                             else if (metric === 'avg_position') val = val.toFixed(1);
                             else val = Math.round(val);
                             $('#seom-goal-baseline').val(val);
@@ -2791,11 +3332,8 @@ class SEOM_Dashboard {
                         };
                         var sc = statusColors[g.status] || statusColors.active;
 
-                        var progressColor = progress >= 75 ? '#059669' : (progress >= 40 ? '#d97706' : '#dc2626');
-                        if (g.status === 'completed') progressColor = '#059669';
-                        if (g.status === 'missed') progressColor = '#dc2626';
-
-                        var dirLabel = g.direction === 'reduce' ? '&#9660;' : '&#9650;';
+                        var verb = goalVerb(g.metric, g.direction);
+                        var dirLabel = (verb === 'Reduce') ? '&#9660;' : '&#9650;';
                         var typeLabel = g.target_type === 'percent' ? target + '%' : target;
                         var metricName = metricLabels[g.metric] || g.metric;
                         var pri = parseInt(g.priority) || 3;
@@ -2807,11 +3345,16 @@ class SEOM_Dashboard {
                         var card = '<div style="background:#fff; border:1px solid #e2e8f0; border-left:4px solid ' + priColors[pri] + '; border-radius:10px; padding:20px; margin-bottom:16px;">';
                         card += '<div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">';
                         card += '<div>';
-                        card += '<h4 style="margin:0 0 4px; font-size:16px;">' + dirLabel + ' ' + (g.direction === 'reduce' ? 'Reduce' : 'Increase') + ' ' + metricName + ' by ' + typeLabel + '</h4>';
+                        card += '<h4 style="margin:0 0 4px; font-size:16px;">' + dirLabel + ' ' + verb + ' ' + metricName + ' by ' + typeLabel + '</h4>';
                         var startDate = g.start_date || g.created_at.substring(0, 10);
                         var totalDays = Math.ceil((new Date(deadline) - new Date(startDate)) / 86400000);
                         var daysElapsed = Math.ceil((new Date() - new Date(startDate)) / 86400000);
-                        card += '<div style="font-size:12px; color:#64748b;">Baseline: ' + baseline + ' &rarr; Target: ' + Math.round(targetNum * 10) / 10 + ' &bull; ' + startDate + ' to ' + deadline + ' (' + totalDays + ' days)';
+
+                        var timePct = totalDays > 0 ? Math.min(100, (daysElapsed / totalDays) * 100) : 100;
+                        var _pm = {avg_ctr:1, avg_position:1};
+                        var fmtBaseline = _pm[g.metric] ? parseFloat(baseline).toFixed(2) : baseline;
+                        var fmtTargetNum = _pm[g.metric] ? parseFloat(targetNum).toFixed(2) : Math.round(targetNum * 10) / 10;
+                        card += '<div style="font-size:12px; color:#64748b;">Baseline: ' + fmtBaseline + ' &rarr; Target: ' + fmtTargetNum + ' &bull; ' + startDate + ' to ' + deadline + ' (' + totalDays + ' days)';
                         if (g.status === 'active') card += ' &bull; <strong>' + (daysLeft > 0 ? daysLeft + ' days left' : 'Overdue') + '</strong>';
                         card += '</div>';
                         if (g.notes) card += '<div style="font-size:12px; color:#94a3b8; margin-top:4px; font-style:italic;">' + g.notes + '</div>';
@@ -2827,20 +3370,34 @@ class SEOM_Dashboard {
                         card += '</div></div>';
 
                         // Determine if moving in right or wrong direction
-                        var isMovingRight = (g.direction === 'reduce') ? (current < baseline) : (current > baseline);
-                        var isMovingWrong = (g.direction === 'reduce') ? (current > baseline) : (current < baseline);
                         var changeSinceBaseline = current - baseline;
-                        var changePct = baseline !== 0 ? Math.round(Math.abs(changeSinceBaseline) / baseline * 100) : 0;
+                        var changeGood = isChangeGood(g.metric, g.direction, changeSinceBaseline);
+                        var isMovingRight = changeGood === true;
+                        var isMovingWrong = changeGood === false;
+                        var changePct = baseline !== 0 ? parseFloat((Math.abs(changeSinceBaseline) / baseline * 100).toFixed(2)) : 0;
+
+                        // Progress bar color — compare progress to time elapsed, not absolute %
+                        var progressColor;
+                        if (g.status === 'completed') { progressColor = '#059669'; }
+                        else if (g.status === 'missed') { progressColor = '#dc2626'; }
+                        else if (progress >= 100) { progressColor = '#059669'; }
+                        else if (isMovingWrong) { progressColor = '#dc2626'; }
+                        else if (progress >= timePct - 10) { progressColor = '#059669'; } // on track or ahead
+                        else if (progress >= timePct - 30) { progressColor = '#d97706'; } // slightly behind
+                        else { progressColor = '#dc2626'; } // significantly behind
 
                         // Direction indicator
+                        // Describe what actually happened in plain English
+                        var changeWord = changeSinceBaseline < 0 ? 'decreased' : 'increased';
+                        var absChange = _pm[g.metric] ? Math.abs(parseFloat(changeSinceBaseline.toFixed(4))) : Math.abs(Math.round(changeSinceBaseline * 10) / 10);
+
                         var dirIndicator = '';
                         if (g.status === 'active') {
-                            if (isMovingWrong && Math.abs(changeSinceBaseline) > 0) {
+                            if (isMovingWrong) {
                                 dirIndicator = '<div style="background:#fee2e2; border:1px solid #fca5a5; border-radius:6px; padding:8px 14px; margin-bottom:10px; display:flex; align-items:center; gap:8px;">'
                                     + '<span style="font-size:18px;">&#9888;</span>'
                                     + '<span style="color:#991b1b; font-size:13px; font-weight:600;">Moving wrong direction — '
-                                    + (g.direction === 'reduce' ? 'increased' : 'decreased') + ' by ' + Math.abs(Math.round(changeSinceBaseline * 10) / 10)
-                                    + ' (' + changePct + '%) since baseline</span></div>';
+                                    + changeWord + ' by ' + absChange + ' (' + changePct + '%) since baseline</span></div>';
                             } else if (progress >= 100) {
                                 dirIndicator = '<div style="background:#dcfce7; border:1px solid #86efac; border-radius:6px; padding:8px 14px; margin-bottom:10px; display:flex; align-items:center; gap:8px;">'
                                     + '<span style="font-size:18px;">&#10003;</span>'
@@ -2849,8 +3406,7 @@ class SEOM_Dashboard {
                                 dirIndicator = '<div style="background:#ecfdf5; border:1px solid #6ee7b7; border-radius:6px; padding:8px 14px; margin-bottom:10px; display:flex; align-items:center; gap:8px;">'
                                     + '<span style="font-size:18px;">&#9650;</span>'
                                     + '<span style="color:#065f46; font-size:13px;">On track — '
-                                    + (g.direction === 'reduce' ? 'reduced' : 'increased') + ' by ' + Math.abs(Math.round(changeSinceBaseline * 10) / 10)
-                                    + ' (' + changePct + '%) so far</span></div>';
+                                    + changeWord + ' by ' + absChange + ' (' + changePct + '%) so far</span></div>';
                             }
                         }
                         card += dirIndicator;
@@ -2865,11 +3421,13 @@ class SEOM_Dashboard {
 
                         // Current value with change from baseline
                         card += '<div style="display:flex; justify-content:space-between; margin-top:8px; font-size:12px; color:#64748b;">';
+                        var fmtChangeSince = _pm[g.metric] ? parseFloat(changeSinceBaseline).toFixed(2) : Math.round(changeSinceBaseline * 10) / 10;
+                        var fmtCurrent = _pm[g.metric] ? parseFloat(current).toFixed(2) : Math.round(current * 10) / 10;
                         var changeLabel = changeSinceBaseline !== 0
-                            ? ' <span style="color:' + (isMovingRight ? '#059669' : '#dc2626') + ';">(' + (changeSinceBaseline > 0 ? '+' : '') + Math.round(changeSinceBaseline * 10) / 10 + ')</span>'
+                            ? ' <span style="color:' + (isMovingRight ? '#059669' : '#dc2626') + ';">(' + (changeSinceBaseline > 0 ? '+' : '') + fmtChangeSince + ')</span>'
                             : ' <span style="color:#94a3b8;">(no change)</span>';
-                        card += '<span>Current: <strong style="color:#1e293b;">' + (Math.round(current * 10) / 10) + '</strong>' + changeLabel + '</span>';
-                        card += '<span>Target: <strong style="color:#1e293b;">' + (Math.round(targetNum * 10) / 10) + '</strong></span>';
+                        card += '<span>Current: <strong style="color:#1e293b;">' + fmtCurrent + '</strong>' + changeLabel + '</span>';
+                        card += '<span>Target: <strong style="color:#1e293b;">' + fmtTargetNum + '</strong></span>';
                         card += '</div>';
 
                         // AI assessment (collapsed)
@@ -2982,7 +3540,7 @@ class SEOM_Dashboard {
                     ctx += '- Total Clicks (28d): ' + m.total_clicks + '\n';
                     ctx += '- Total Impressions (28d): ' + m.total_impressions + '\n';
                     ctx += '- Avg Position: ' + parseFloat(m.avg_position).toFixed(1) + '\n';
-                    ctx += '- Avg CTR: ' + parseFloat(m.avg_ctr).toFixed(2) + '%\n';
+                    ctx += '- Avg CTR: ' + parseFloat(m.avg_ctr).toFixed(4) + '%\n';
                     ctx += '- Pages on Page 1: ' + m.page1_pages + '\n';
                     ctx += '- Pages on Page 2: ' + m.page2_pages + '\n';
                     ctx += '- Pages With Impressions: ' + m.pages_with_impressions + '\n';
@@ -3042,8 +3600,100 @@ class SEOM_Dashboard {
                 }
             });
 
+            // Capacity analysis
+            function loadCapacity() {
+                $.post(ajaxurl, { action: 'seom_get_capacity', nonce: seom_nonce }, function(resp) {
+                    if (!resp.success || !resp.data.goals.length) {
+                        $('#seom-capacity-panel').hide();
+                        return;
+                    }
+                    var d = resp.data;
+                    var html = '';
+
+                    // Summary bar
+                    var statusColor = d.sufficient ? '#059669' : '#dc2626';
+                    var statusIcon = d.sufficient ? '&#10003;' : '&#9888;';
+                    var statusText = d.sufficient
+                        ? 'Current daily limit (' + d.current_limit + ') is sufficient for all goals.'
+                        : 'Goals require ~' + d.total_daily_needed + ' refreshes/day but limit is ' + d.current_limit + '. Recommend increasing to ' + d.recommended_limit + '.';
+
+                    html += '<div style="background:' + (d.sufficient ? '#ecfdf5' : '#fee2e2') + '; border:1px solid ' + (d.sufficient ? '#6ee7b7' : '#fca5a5') + '; border-radius:8px; padding:12px 18px; margin-bottom:16px; display:flex; align-items:center; gap:10px;">';
+                    html += '<span style="font-size:20px;">' + statusIcon + '</span>';
+                    html += '<div><strong style="color:' + statusColor + ';">' + statusText + '</strong></div>';
+                    html += '</div>';
+
+                    // Per-goal breakdown table
+                    html += '<table class="seom-table" style="font-size:13px;">';
+                    html += '<thead><tr>';
+                    html += '<th>Goal</th><th>Priority</th><th>Progress</th><th>Urgency</th>';
+                    html += '<th>Success Rate</th><th>Refreshes Needed</th><th>Daily Rate</th><th>Status</th>';
+                    html += '</tr></thead><tbody>';
+
+                    var goalLabels = {
+                        ghost_pages:'Ghost Pages', total_clicks:'Clicks', total_impressions:'Impressions',
+                        avg_position:'Avg Position', avg_ctr:'CTR', page1_pages:'Page 1',
+                        page2_pages:'Page 2', pages_with_impressions:'With Impressions',
+                        new_content_30d:'New Content', stale_pages:'Stale Pages', refreshed_this_month:'Refreshed'
+                    };
+                    var urgencyColors = {on_track:'#059669', slightly_behind:'#d97706', behind:'#dc2626', critical:'#991b1b', completed:'#2563eb'};
+                    var urgencyLabels = {on_track:'On Track', slightly_behind:'Slightly Behind', behind:'Behind', critical:'Critical', completed:'Met'};
+                    var priLabels = {1:'P1',2:'P2',3:'P3',4:'P4',5:'P5'};
+
+                    d.goals.forEach(function(g) {
+                        var label = goalLabels[g.metric] || g.metric;
+                        var dir = g.direction === 'reduce' ? '&#9660;' : '&#9650;';
+                        var urgColor = urgencyColors[g.urgency_label] || '#64748b';
+                        var urgLabel = urgencyLabels[g.urgency_label] || g.urgency_label;
+                        var feasible = g.feasible;
+
+                        html += '<tr>';
+                        html += '<td><strong>' + dir + ' ' + label + '</strong></td>';
+                        html += '<td><span class="seom-badge" style="background:#dbeafe;color:#1e40af;">' + (priLabels[g.priority] || 'P3') + '</span></td>';
+                        html += '<td>';
+                        html += '<div style="display:flex;align-items:center;gap:6px;">';
+                        html += '<div style="background:#e2e8f0;border-radius:3px;height:8px;width:80px;overflow:hidden;">';
+                        // Color based on urgency label (which already accounts for progress vs time)
+                        var progColor = (g.urgency_label === 'on_track' || g.urgency_label === 'completed') ? '#059669' : (g.urgency_label === 'slightly_behind' ? '#d97706' : '#dc2626');
+                        html += '<div style="width:' + Math.max(0, g.progress) + '%;background:' + progColor + ';height:100%;border-radius:3px;"></div></div>';
+                        html += '<span>' + Math.round(g.progress) + '%</span></div></td>';
+                        html += '<td><span style="color:' + urgColor + ';font-weight:600;">' + urgLabel + '</span></td>';
+                        html += '<td>' + Math.round(g.success_rate * 100) + '%</td>';
+                        html += '<td>' + g.refreshes_needed + '</td>';
+                        html += '<td><strong>' + g.daily_rate_needed + '/day</strong></td>';
+                        html += '<td>';
+                        if (g.urgency_label === 'completed') {
+                            html += '<span style="color:#059669;font-weight:600;">&#10003; Met</span>';
+                        } else if (feasible) {
+                            html += '<span style="color:#059669;">&#10003; Feasible</span>';
+                        } else {
+                            html += '<span style="color:#dc2626;font-weight:600;">&#9888; Needs more capacity</span>';
+                        }
+                        html += '</td></tr>';
+                    });
+
+                    html += '</tbody></table>';
+
+                    // Allocation summary
+                    html += '<div style="margin-top:16px; padding:14px 18px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-size:13px;">';
+                    html += '<strong>How the queue is allocated:</strong> Slots are distributed proportionally to goal priority and urgency. ';
+                    html += 'Higher-priority goals and goals falling behind schedule get more daily refresh slots. ';
+                    html += 'Each category always gets at least 1 slot if candidates exist.';
+                    if (!d.sufficient) {
+                        html += '<br><br><strong style="color:#dc2626;">Recommendation:</strong> Increase daily limit from ' + d.current_limit + ' to ' + d.recommended_limit;
+                        html += ' in <a href="?page=seo-ai-autopilot&tab=settings">Settings</a>, or enable Goal-Adaptive mode to auto-adjust.';
+                    }
+                    html += '</div>';
+
+                    $('#seom-capacity-content').html(html);
+                    $('#seom-capacity-panel').show();
+                });
+            }
+
+            $('#seom-capacity-refresh-btn').click(function(e) { e.preventDefault(); loadCapacity(); });
+
             loadMetrics();
             loadGoals();
+            loadCapacity();
         });
         </script>
         <?php
@@ -3053,187 +3703,448 @@ class SEOM_Dashboard {
 
     private static function render_settings($nonce, $settings) {
         ?>
+        <style>
+            .seom-form { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+            .seom-form-section { padding: 0; }
+            .seom-form-section-header { background: #1e293b; color: #fff; padding: 12px 24px; font-size: 15px; font-weight: 600; }
+            .seom-form-section-desc { padding: 8px 24px 0; font-size: 12px; color: #64748b; }
+            .seom-form-row { padding: 16px 24px; border-bottom: 1px solid #f1f5f9; display: flex; gap: 24px; align-items: flex-start; }
+            .seom-form-row:last-child { border-bottom: none; }
+            .seom-form-row:hover { background: #fafbfc; }
+            .seom-form-label { width: 220px; flex-shrink: 0; padding-top: 6px; }
+            .seom-form-label label { font-weight: 600; font-size: 14px; color: #1e293b; display: block; }
+            .seom-form-label .seom-field-desc { font-size: 12px; color: #94a3b8; margin-top: 2px; line-height: 1.4; }
+            .seom-form-field { flex: 1; }
+            .seom-form-field input[type="text"],
+            .seom-form-field input[type="email"],
+            .seom-form-field input[type="number"],
+            .seom-form-field textarea {
+                width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;
+                font-size: 14px; color: #1e293b; background: #fff; transition: border-color 0.15s;
+            }
+            .seom-form-field input:focus, .seom-form-field textarea:focus { border-color: #2563eb; outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+            .seom-form-field input[type="number"] { width: 100px; }
+            .seom-form-field .seom-field-help { font-size: 12px; color: #64748b; margin-top: 6px; line-height: 1.4; }
+            .seom-form-field .seom-field-inline { display: flex; align-items: center; gap: 8px; }
+            .seom-form-field .seom-field-inline span { font-size: 13px; color: #64748b; }
+            .seom-form-field .seom-checkbox-group label { display: block; padding: 4px 0; font-size: 14px; }
+            .seom-form-field .seom-status-ok { color: #059669; font-weight: 600; font-size: 13px; margin-top: 6px; }
+        </style>
+
         <h2>Settings</h2>
 
         <form id="seom-settings-form">
-            <table class="seom-form-table widefat" style="max-width:800px; padding:16px 20px;">
-                <tr>
-                    <th colspan="2"><h3 style="margin:0;">Google Search Console</h3></th>
-                </tr>
-                <tr>
-                    <th><label>Service Account JSON</label></th>
-                    <td>
-                        <textarea name="gsc_credentials_json" rows="6" style="width:100%;max-width:600px;font-family:monospace;font-size:12px;"><?php
-                            $json = $settings['gsc_credentials_json'];
-                            if ($json) {
-                                // Mask the private key for display
-                                $parsed = json_decode($json, true);
-                                if ($parsed && !empty($parsed['private_key'])) {
-                                    $parsed['private_key'] = '-----REDACTED-----';
-                                    echo esc_textarea(json_encode($parsed, JSON_PRETTY_PRINT));
-                                } else {
-                                    echo esc_textarea($json);
+            <div class="seom-form">
+                <!-- GSC Section -->
+                <div class="seom-form-section">
+                    <div class="seom-form-section-header">Google Search Console</div>
+                    <div class="seom-form-section-desc">Connect your Google Search Console service account to enable data collection and analysis.</div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Service Account JSON</label>
+                            <div class="seom-field-desc">Paste the full contents of your Google service account JSON key file.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <textarea name="gsc_credentials_json" rows="5" style="font-family:monospace;font-size:12px;"><?php
+                                $json = $settings['gsc_credentials_json'];
+                                if ($json) {
+                                    $parsed = json_decode($json, true);
+                                    if ($parsed && !empty($parsed['private_key'])) {
+                                        $parsed['private_key'] = '-----REDACTED-----';
+                                        echo esc_textarea(json_encode($parsed, JSON_PRETTY_PRINT));
+                                    } else { echo esc_textarea($json); }
                                 }
-                            }
-                        ?></textarea>
-                        <p class="description">Paste the full contents of your Google service account JSON key file. The private key is redacted after saving.</p>
-                        <?php if (!empty($settings['gsc_credentials_json'])) : ?>
-                            <p style="color:#16a34a;font-weight:600;margin-top:4px;">Credentials saved. Paste new JSON to replace.</p>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label>GSC Property URL</label></th>
-                    <td>
-                        <input type="text" name="gsc_property_url" value="<?php echo esc_attr($settings['gsc_property_url']); ?>" placeholder="https://www.example.com" style="min-width:350px;" />
-                        <p class="description">Exactly as it appears in Google Search Console.<br>URL-prefix property: <code>https://www.example.com</code> &nbsp;|&nbsp; Domain property: <code>sc-domain:example.com</code></p>
-                        <button type="button" class="button" id="seom-test-gsc" style="margin-top:8px;">Test Connection</button>
-                        <span id="seom-test-result" style="margin-left:8px;"></span>
-                    </td>
-                </tr>
+                            ?></textarea>
+                            <?php if (!empty($settings['gsc_credentials_json'])) : ?>
+                                <div class="seom-status-ok">&#10003; Credentials saved. Paste new JSON to replace.</div>
+                            <?php else : ?>
+                                <div class="seom-field-help">No credentials configured yet.</div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
 
-                <tr><th colspan="2"><h3 style="margin:0;">Processing</h3></th></tr>
-                <tr>
-                    <th><label>System Enabled</label></th>
-                    <td><label><input type="checkbox" name="enabled" value="1" <?php checked($settings['enabled']); ?> /> Enable automated processing</label></td>
-                </tr>
-                <tr>
-                    <th><label>Dry Run Mode</label></th>
-                    <td>
-                        <label><input type="checkbox" name="dry_run" value="1" <?php checked($settings['dry_run']); ?> /> Analysis only — no content changes</label>
-                        <p class="description">Recommended when first setting up. Builds queue without executing refreshes.</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label>Daily Limit</label></th>
-                    <td><input type="number" name="daily_limit" value="<?php echo intval($settings['daily_limit']); ?>" min="1" max="100" style="width:80px;" /></td>
-                </tr>
-                <tr>
-                    <th><label>Cooldown (days)</label></th>
-                    <td>
-                        <input type="number" name="cooldown_days" value="<?php echo intval($settings['cooldown_days']); ?>" min="14" max="365" style="width:80px;" />
-                        <p class="description">Days to wait after a refresh before re-evaluating a page.</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label>Post Types</label></th>
-                    <td>
-                        <label><input type="checkbox" name="process_post_types[]" value="product" <?php checked(in_array('product', $settings['process_post_types'])); ?> /> Products</label><br>
-                        <label><input type="checkbox" name="process_post_types[]" value="post" <?php checked(in_array('post', $settings['process_post_types'])); ?> /> Blog Posts</label>
-                        <?php if (!SEOM_Blog_Refresher::is_available()) : ?>
-                            <span style="color:#b45309;"> (Blog Writer API key not configured in <a href="<?php echo admin_url('admin.php?page=ai-blog-writer'); ?>">Settings</a>)</span>
-                        <?php endif; ?><br>
-                        <label><input type="checkbox" name="process_post_types[]" value="page" <?php checked(in_array('page', $settings['process_post_types'])); ?> /> Pages</label>
-                        <span style="color:#64748b; font-size:12px;"> (tracked for GSC metrics only — no automated refresh)</span>
-                    </td>
-                </tr>
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>GSC Property URL</label>
+                            <div class="seom-field-desc">Exactly as shown in Google Search Console.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <input type="text" name="gsc_property_url" value="<?php echo esc_attr($settings['gsc_property_url']); ?>" placeholder="https://www.example.com" />
+                            <div class="seom-field-help">URL-prefix: <code>https://www.example.com</code> &nbsp;|&nbsp; Domain: <code>sc-domain:example.com</code></div>
+                            <div style="margin-top:8px;">
+                                <button type="button" class="button" id="seom-test-gsc">Test Connection</button>
+                                <span id="seom-test-result" style="margin-left:8px; font-size:13px;"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                <tr><th colspan="2"><h3 style="margin:0;">Exclusions</h3></th></tr>
-                <tr>
-                    <th><label>Exclude Post IDs</label></th>
-                    <td>
-                        <input type="text" name="exclude_post_ids" value="<?php echo esc_attr($settings['exclude_post_ids']); ?>" placeholder="123, 456, 789" />
-                        <p class="description">Comma-separated list of post/product IDs that should never be refreshed.</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label>Exclude Categories</label></th>
-                    <td>
-                        <input type="text" name="exclude_categories" value="<?php echo esc_attr($settings['exclude_categories']); ?>" placeholder="practice-tests, free-courses" />
-                        <p class="description">Comma-separated category slugs (post categories and product categories). Pages in these categories are skipped.</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label>Auto-Exclude</label></th>
-                    <td>
-                        <p class="description" style="margin:0;">Posts containing shortcodes (other than <code>[itu_*]</code>) are automatically excluded to protect embedded functionality like practice tests, forms, etc.</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label>Notification Email</label></th>
-                    <td><input type="email" name="notify_email" value="<?php echo esc_attr($settings['notify_email']); ?>" /></td>
-                </tr>
+                <!-- Processing Section -->
+                <div class="seom-form-section">
+                    <div class="seom-form-section-header">Processing</div>
+                    <div class="seom-form-section-desc">Control how the automated refresh system operates.</div>
 
-                <tr><th colspan="2"><h3 style="margin:0;">Thresholds</h3></th></tr>
-                <tr>
-                    <th><label>Ghost Page: Max Impressions</label></th>
-                    <td>
-                        <input type="number" name="ghost_threshold" value="<?php echo intval($settings['ghost_threshold']); ?>" min="0" style="width:80px;" />
-                        <p class="description">Pages with impressions at or below this are flagged as "ghost pages" (Category A).</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label>CTR Fix: Min Impressions</label></th>
-                    <td><input type="number" name="ctr_fix_min_impressions" value="<?php echo intval($settings['ctr_fix_min_impressions']); ?>" min="0" style="width:80px;" /></td>
-                </tr>
-                <tr>
-                    <th><label>CTR Fix: Max CTR (%)</label></th>
-                    <td><input type="number" name="ctr_fix_max_ctr" value="<?php echo floatval($settings['ctr_fix_max_ctr']); ?>" step="0.1" min="0" style="width:80px;" /></td>
-                </tr>
-                <tr>
-                    <th><label>Near Win: Position Range</label></th>
-                    <td>
-                        <input type="number" name="near_win_min_pos" value="<?php echo floatval($settings['near_win_min_pos']); ?>" step="1" min="1" style="width:60px;" />
-                        to
-                        <input type="number" name="near_win_max_pos" value="<?php echo floatval($settings['near_win_max_pos']); ?>" step="1" min="1" style="width:60px;" />
-                    </td>
-                </tr>
-                <tr>
-                    <th><label>Near Win: Min Impressions</label></th>
-                    <td><input type="number" name="near_win_min_impressions" value="<?php echo intval($settings['near_win_min_impressions']); ?>" min="0" style="width:80px;" /></td>
-                </tr>
-                <tr>
-                    <th><label>Buried Potential: Min Impressions</label></th>
-                    <td>
-                        <input type="number" name="buried_min_impressions" value="<?php echo intval($settings['buried_min_impressions']); ?>" min="0" style="width:80px;" />
-                        <p class="description">Min impressions for page 3+ pages to qualify as "Buried Potential" (Category F).</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label>Decline Threshold (%)</label></th>
-                    <td>
-                        <input type="number" name="decline_threshold_pct" value="<?php echo floatval($settings['decline_threshold_pct']); ?>" step="1" min="0" style="width:80px;" />
-                        <p class="description">Click decrease percentage to flag as "declining" (Category D).</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label>Visible/Ignored: Min Impressions</label></th>
-                    <td><input type="number" name="visible_min_impressions" value="<?php echo intval($settings['visible_min_impressions']); ?>" min="0" style="width:80px;" /></td>
-                </tr>
-                <tr>
-                    <th><label>Visible/Ignored: Max Clicks</label></th>
-                    <td><input type="number" name="visible_max_clicks" value="<?php echo intval($settings['visible_max_clicks']); ?>" min="0" style="width:80px;" /></td>
-                </tr>
-            </table>
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>System Enabled</label>
+                            <div class="seom-field-desc">Master switch for all automated cron processing.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <label><input type="checkbox" name="enabled" value="1" <?php checked($settings['enabled']); ?> /> Enable automated processing</label>
+                        </div>
+                    </div>
 
-            <h2 style="margin-top:24px; padding-bottom:8px; border-bottom:2px solid #e2e8f0;">Keyword Gap Settings</h2>
-            <table class="form-table" style="max-width:800px;">
-                <tr>
-                    <th><label>Keyword Cooldown (days)</label></th>
-                    <td>
-                        <input type="number" name="gap_keyword_cooldown" value="<?php echo intval($settings['gap_keyword_cooldown']); ?>" min="1" style="width:80px;" />
-                        <p class="description">Days before a used keyword becomes available again for new content.</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th><label>Seed Categories</label></th>
-                    <td>
-                        <textarea name="gap_seed_categories" rows="10" style="width:100%;max-width:500px;font-family:monospace;font-size:12px;" placeholder="AWS Certifications&#10;Azure Certifications&#10;Cisco Networking&#10;CompTIA Security+&#10;Linux Administration&#10;..."><?php echo esc_textarea($settings['gap_seed_categories']); ?></textarea>
-                        <p class="description">One category per line. These are the foundation categories for auto-tagging. AI will use these first and only create new categories if a keyword doesn't fit any existing one.</p>
-                    </td>
-                </tr>
-            </table>
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Dry Run Mode</label>
+                            <div class="seom-field-desc">Safe mode for testing. Scores and queues pages but does not modify any content.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <label><input type="checkbox" name="dry_run" value="1" <?php checked($settings['dry_run']); ?> /> Analysis only — no content changes</label>
+                            <div class="seom-field-help">Recommended when first setting up. Disable once you're confident in the queue results.</div>
+                        </div>
+                    </div>
 
-            <p style="margin-top:16px;">
-                <button type="submit" class="button button-primary">Save Settings</button>
-                <span id="seom-save-status" style="margin-left:12px;"></span>
-            </p>
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Daily Refresh Limit</label>
+                            <div class="seom-field-desc">Base number of pages to refresh per day.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <input type="number" name="daily_limit" value="<?php echo intval($settings['daily_limit']); ?>" min="1" max="100" />
+                            <div class="seom-field-help">This is the baseline daily limit. In adaptive/burst modes, the system may increase this up to the maximum below.</div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Limit Mode</label>
+                            <div class="seom-field-desc">How the daily limit interacts with your goals.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <?php $limit_mode = $settings['limit_mode'] ?? 'fixed'; ?>
+                            <label style="display:block; padding:6px 0;"><input type="radio" name="limit_mode" value="fixed" <?php checked($limit_mode, 'fixed'); ?> /> <strong>Fixed</strong> — Always use the daily limit above. Goals show warnings if capacity is insufficient.</label>
+                            <label style="display:block; padding:6px 0;"><input type="radio" name="limit_mode" value="adaptive" <?php checked($limit_mode, 'adaptive'); ?> /> <strong>Goal-Adaptive</strong> — Auto-increase the daily limit (up to the max) when goals need more capacity. Decreases back to base when goals are on track.</label>
+                            <label style="display:block; padding:6px 0;"><input type="radio" name="limit_mode" value="burst" <?php checked($limit_mode, 'burst'); ?> /> <strong>Burst on Demand</strong> — Use the base limit normally, but burst to 1.5x (up to the max) when any goal falls behind schedule.</label>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Maximum Daily Limit</label>
+                            <div class="seom-field-desc">Hard ceiling for adaptive/burst modes.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <input type="number" name="limit_max" value="<?php echo intval($settings['limit_max'] ?? $settings['daily_limit']); ?>" min="1" max="200" />
+                            <div class="seom-field-help">The system will never exceed this number regardless of goal urgency. Factor in API cost — each full refresh uses ~5 API calls. 50 max = ~250 API calls/day.</div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Cooldown Period (days)</label>
+                            <div class="seom-field-desc">Minimum days between refreshes for the same page.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <input type="number" name="cooldown_days" value="<?php echo intval($settings['cooldown_days']); ?>" min="14" max="365" />
+                            <div class="seom-field-help">Prevents refreshing the same page too frequently. 60-90 days gives Google time to re-evaluate after changes.</div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Monitored Post Types</label>
+                            <div class="seom-field-desc">Which content types to track and refresh.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <div class="seom-checkbox-group">
+                                <label><input type="checkbox" name="process_post_types[]" value="product" <?php checked(in_array('product', $settings['process_post_types'])); ?> /> Products</label>
+                                <label><input type="checkbox" name="process_post_types[]" value="post" <?php checked(in_array('post', $settings['process_post_types'])); ?> /> Blog Posts
+                                    <?php if (!SEOM_Blog_Refresher::is_available()) : ?><span style="color:#b45309;"> — Blog Writer API key not configured</span><?php endif; ?>
+                                </label>
+                                <label><input type="checkbox" name="process_post_types[]" value="page" <?php checked(in_array('page', $settings['process_post_types'])); ?> /> Pages <span style="color:#94a3b8;">(GSC metrics only — no automated refresh)</span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Notification Email</label>
+                            <div class="seom-field-desc">Receives daily summaries and per-refresh notifications.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <input type="email" name="notify_email" value="<?php echo esc_attr($settings['notify_email']); ?>" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Exclusions Section -->
+                <div class="seom-form-section">
+                    <div class="seom-form-section-header">Exclusions</div>
+                    <div class="seom-form-section-desc">Pages matching these rules are tracked in GSC but never auto-refreshed. New content (&lt;90 days old) is also excluded automatically.</div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Exclude Post IDs</label>
+                            <div class="seom-field-desc">Individual posts/products to never refresh.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <input type="text" name="exclude_post_ids" value="<?php echo esc_attr($settings['exclude_post_ids']); ?>" placeholder="123, 456, 789" />
+                            <div class="seom-field-help">Comma-separated WordPress post IDs.</div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Exclude Categories</label>
+                            <div class="seom-field-desc">Entire categories to skip.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <input type="text" name="exclude_categories" value="<?php echo esc_attr($settings['exclude_categories']); ?>" placeholder="practice-tests, free-courses" />
+                            <div class="seom-field-help">Comma-separated category slugs. Works for both post categories and WooCommerce product categories.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category Thresholds Section -->
+                <div class="seom-form-section">
+                    <div class="seom-form-section-header">Category Thresholds</div>
+                    <div class="seom-form-section-desc">These values control how pages are classified into performance categories during daily analysis. Categories are evaluated in order: A &rarr; B &rarr; C &rarr; F &rarr; D &rarr; E. First match wins.</div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Cat A — Ghost Pages</label>
+                            <div class="seom-field-desc">Max impressions to be classified as a ghost page. Pages with zero visibility in search results.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <div class="seom-field-inline">
+                                <span>Max impressions:</span>
+                                <input type="number" name="ghost_threshold" value="<?php echo intval($settings['ghost_threshold']); ?>" min="0" />
+                            </div>
+                            <div class="seom-field-help">Default: 0. Set to 1-2 to also catch pages with negligible impressions. Refresh type: Full.</div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Cat B — CTR Fix</label>
+                            <div class="seom-field-desc">Pages ranking well but with CTR below 50% of the position benchmark. Needs better title/meta.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <div class="seom-field-inline">
+                                <span>Min impressions:</span>
+                                <input type="number" name="ctr_fix_min_impressions" value="<?php echo intval($settings['ctr_fix_min_impressions']); ?>" min="0" />
+                            </div>
+                            <div class="seom-field-help">Pages must have at least this many impressions AND position &le;15 AND CTR below 50% of expected for their position. Refresh type: Meta-only (escalates to Full if meta fix didn't help).</div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Cat C — Near Wins</label>
+                            <div class="seom-field-desc">Page 2 rankings close to breaking into page 1. Highest ROI for content refresh.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <div class="seom-field-inline">
+                                <span>Position range:</span>
+                                <input type="number" name="near_win_min_pos" value="<?php echo floatval($settings['near_win_min_pos']); ?>" step="1" min="1" style="width:70px;" />
+                                <span>to</span>
+                                <input type="number" name="near_win_max_pos" value="<?php echo floatval($settings['near_win_max_pos']); ?>" step="1" min="1" style="width:70px;" />
+                            </div>
+                            <div class="seom-field-inline" style="margin-top:8px;">
+                                <span>Min impressions:</span>
+                                <input type="number" name="near_win_min_impressions" value="<?php echo intval($settings['near_win_min_impressions']); ?>" min="0" />
+                            </div>
+                            <div class="seom-field-help">Default: position 11-20 with 50+ impressions. Refresh type: Full.</div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Cat F — Buried Potential</label>
+                            <div class="seom-field-desc">Page 3+ with meaningful impressions. Google considers it relevant but ranks it poorly.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <div class="seom-field-inline">
+                                <span>Min impressions:</span>
+                                <input type="number" name="buried_min_impressions" value="<?php echo intval($settings['buried_min_impressions']); ?>" min="0" />
+                            </div>
+                            <div class="seom-field-help">Pages with position &gt;20 and at least this many impressions. Refresh type: Full.</div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Cat D — Declining</label>
+                            <div class="seom-field-desc">Pages that have lost significant traffic compared to the prior period.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <div class="seom-field-inline">
+                                <span>Click decline threshold:</span>
+                                <input type="number" name="decline_threshold_pct" value="<?php echo floatval($settings['decline_threshold_pct']); ?>" step="1" min="0" />
+                                <span>%</span>
+                            </div>
+                            <div class="seom-field-help">If clicks dropped by this percentage vs. prior 28 days, flag as declining. Default: 30%. Refresh type: Full.</div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Cat E — Visible but Ignored</label>
+                            <div class="seom-field-desc">High impressions but almost no clicks. People see it but don't click.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <div class="seom-field-inline">
+                                <span>Min impressions:</span>
+                                <input type="number" name="visible_min_impressions" value="<?php echo intval($settings['visible_min_impressions']); ?>" min="0" />
+                            </div>
+                            <div class="seom-field-inline" style="margin-top:8px;">
+                                <span>Max clicks:</span>
+                                <input type="number" name="visible_max_clicks" value="<?php echo intval($settings['visible_max_clicks']); ?>" min="0" />
+                            </div>
+                            <div class="seom-field-help">Pages with high visibility but near-zero engagement. Default: 500+ impressions, &le;10 clicks. Refresh type: Meta-only (escalates to Full).</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Keyword Gap Section -->
+                <div class="seom-form-section">
+                    <div class="seom-form-section-header">Keyword Gap Settings</div>
+                    <div class="seom-form-section-desc">Controls for competitive keyword import, cooldown tracking, and AI auto-tagging.</div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Keyword Cooldown (days)</label>
+                            <div class="seom-field-desc">How long before a used keyword becomes available again.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <input type="number" name="gap_keyword_cooldown" value="<?php echo intval($settings['gap_keyword_cooldown']); ?>" min="1" />
+                            <div class="seom-field-help">Prevents the same keyword from being targeted in multiple blog posts too close together. Default: 90 days.</div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Seed Categories</label>
+                            <div class="seom-field-desc">Foundation categories for AI auto-tagging of imported keywords.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <textarea name="gap_seed_categories" rows="8" style="font-family:monospace;font-size:12px;" placeholder="AWS Certifications&#10;Azure Certifications&#10;Cisco Networking&#10;CompTIA Security+&#10;Linux Administration"><?php echo esc_textarea($settings['gap_seed_categories']); ?></textarea>
+                            <div class="seom-field-help">One category per line. AI will use these first and only create new categories if a keyword doesn't fit any existing one.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Competitive Research Section -->
+                <div class="seom-form-section">
+                    <div class="seom-form-section-header">Competitive Research (AI Web Search)</div>
+                    <div class="seom-form-section-desc">When enabled, the refresh pipeline performs a web search step before content generation — analyzing what top-ranking competitors cover for the target keywords. This produces more strategically targeted content at minimal additional cost (~$0.01/refresh).</div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Enable Research</label>
+                            <div class="seom-field-desc">Add competitive intelligence to content refreshes.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <label><input type="checkbox" name="research_enabled" value="1" <?php checked($settings['research_enabled']); ?> /> Enable competitive research before content generation</label>
+                            <div class="seom-field-help">Adds a "Step 0" to the refresh pipeline that researches what competitors rank for your target queries. Results are fed into the content, outline, and meta prompts. If disabled or if the API call fails, the pipeline works normally without research.</div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Research Provider</label>
+                            <div class="seom-field-desc">Which API to use for web search.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <select name="research_provider">
+                                <option value="openai" <?php selected($settings['research_provider'], 'openai'); ?>>OpenAI (gpt-4.1-mini with web search) &mdash; uses your existing API key</option>
+                                <option value="perplexity" <?php selected($settings['research_provider'], 'perplexity'); ?>>Perplexity Sonar &mdash; purpose-built for search, best quality/cost ratio</option>
+                            </select>
+                            <div class="seom-field-help">
+                                <strong>OpenAI:</strong> Uses gpt-4.1-mini with the Responses API web_search tool. ~$0.03/search. Uses your existing OpenAI API key.<br>
+                                <strong>Perplexity:</strong> Purpose-built search AI. ~$0.006/search. Better factuality benchmarks. Requires separate API key from <a href="https://www.perplexity.ai/account/api/keys" target="_blank">perplexity.ai</a>.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Perplexity API Key</label>
+                            <div class="seom-field-desc">Required only if using Perplexity as research provider.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <input type="password" name="perplexity_api_key" value="<?php echo esc_attr($settings['perplexity_api_key']); ?>" placeholder="pplx-..." style="font-family:monospace;" />
+                            <div class="seom-field-help">Get your API key at <a href="https://www.perplexity.ai/account/api/keys" target="_blank">perplexity.ai/account/api/keys</a>. No subscription required &mdash; just add credits ($5-10 lasts months at this usage level).</div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Research Model</label>
+                            <div class="seom-field-desc">Override the default model for research calls.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <input type="text" name="research_model" value="<?php echo esc_attr($settings['research_model']); ?>" placeholder="Leave blank for default (recommended)" />
+                            <div class="seom-field-help">Defaults: OpenAI = gpt-4.1-mini, Perplexity = sonar. Only change if you know what you're doing.</div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Research Categories</label>
+                            <div class="seom-field-desc">Which page categories trigger research.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <?php
+                            $enabled_cats = array_map('trim', explode(',', $settings['research_categories']));
+                            $all_cats = ['A' => 'Ghost Pages', 'B' => 'CTR Fix', 'C' => 'Near Wins', 'D' => 'Declining', 'E' => 'Visible/Ignored', 'F' => 'Buried Potential'];
+                            ?>
+                            <div class="seom-checkbox-group">
+                                <?php foreach ($all_cats as $cat_key => $cat_label) : ?>
+                                <label><input type="checkbox" class="seom-research-cat" value="<?php echo $cat_key; ?>" <?php checked(in_array($cat_key, $enabled_cats)); ?> /> <?php echo $cat_key; ?> &mdash; <?php echo $cat_label; ?></label>
+                                <?php endforeach; ?>
+                            </div>
+                            <input type="hidden" name="research_categories" id="seom-research-categories" value="<?php echo esc_attr($settings['research_categories']); ?>" />
+                            <div class="seom-field-help">Research costs ~$0.01-0.03 per call. Skip categories where competitive research adds less value (e.g., Ghost pages have no ranking data to research against). Default: B, C, D, E, F.</div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Minimum Impressions</label>
+                            <div class="seom-field-desc">Only research pages with at least this many impressions.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <input type="number" name="research_min_impressions" value="<?php echo intval($settings['research_min_impressions']); ?>" min="0" />
+                            <div class="seom-field-help">0 = research all pages in enabled categories. Set to 50+ to skip low-visibility pages where competitive data is sparse. Pages with more impressions have more search query data for better research.</div>
+                        </div>
+                    </div>
+
+                    <div class="seom-form-row">
+                        <div class="seom-form-label">
+                            <label>Minimum Position</label>
+                            <div class="seom-field-desc">Only research pages ranking at this position or worse.</div>
+                        </div>
+                        <div class="seom-form-field">
+                            <input type="number" name="research_min_position" value="<?php echo intval($settings['research_min_position']); ?>" min="0" />
+                            <div class="seom-field-help">0 = research at any position. Set to 5 to only research pages ranking 5th or lower (skip pages already dominating). Research is most valuable for pages that need to understand what competitors are doing better.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:20px; padding:16px 24px; background:#fff; border:1px solid #e2e8f0; border-radius:10px; display:flex; align-items:center; gap:12px;">
+                <button type="submit" class="button button-primary" style="padding:6px 24px;">Save Settings</button>
+                <span id="seom-save-status" style="font-size:13px;"></span>
+            </div>
         </form>
 
-        <h2 style="margin-top:32px;">Scheduled Tasks (Cron)</h2>
-        <p style="color:#64748b; font-size:13px;">These tasks run automatically via WordPress cron. Times shown are when the next run is scheduled.</p>
+        <div class="seom-section-header" style="margin-top:24px;">Scheduled Tasks (Cron)</div>
+        <p style="color:#64748b; font-size:13px; margin-bottom:12px;">These tasks run automatically via WordPress cron. Times shown are when the next run is scheduled.</p>
 
-        <table class="seom-table" style="max-width:800px;" id="seom-cron-table">
+        <table class="seom-table" id="seom-cron-table">
             <thead>
                 <tr>
                     <th>Task</th>
@@ -3323,6 +4234,12 @@ class SEOM_Dashboard {
                 // Handle unchecked checkboxes
                 if (!$('input[name="enabled"]').is(':checked')) data.push({ name: 'enabled', value: '0' });
                 if (!$('input[name="dry_run"]').is(':checked')) data.push({ name: 'dry_run', value: '0' });
+                if (!$('input[name="research_enabled"]').is(':checked')) data.push({ name: 'research_enabled', value: '0' });
+
+                // Sync research category checkboxes to hidden field
+                var cats = [];
+                $('.seom-research-cat:checked').each(function() { cats.push($(this).val()); });
+                $('#seom-research-categories').val(cats.join(','));
 
                 $('#seom-save-status').text('Saving...');
                 $.post(ajaxurl, data, function(resp) {

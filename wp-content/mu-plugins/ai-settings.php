@@ -75,6 +75,8 @@ function itu_ai_defaults() {
         'model_keyword_research'      => 'gpt-4.1-nano',
         'model_topic_generation'      => 'gpt-4.1-nano',
         'model_practice_test'         => 'gpt-4o-mini',
+        'model_research'              => '',
+        'api_key_perplexity'          => '',
     ];
 }
 
@@ -110,6 +112,20 @@ add_action('wp_ajax_itu_ai_save_settings', function () {
     }
     if (!empty($new['api_key_blog_writer'])) {
         update_option('ai_post_api_key', $new['api_key_blog_writer']);
+    }
+
+    // Sync Perplexity key to SEO Monitor settings
+    if (isset($new['api_key_perplexity'])) {
+        $seom = get_option('seom_settings', []);
+        $seom['perplexity_api_key'] = $new['api_key_perplexity'];
+        update_option('seom_settings', $seom);
+    }
+
+    // Sync research model to SEO Monitor settings
+    if (isset($new['model_research']) && !empty($new['model_research'])) {
+        $seom = get_option('seom_settings', []);
+        $seom['research_model'] = $new['model_research'];
+        update_option('seom_settings', $seom);
     }
 
     wp_send_json_success('Settings saved.');
@@ -172,6 +188,7 @@ function itu_ai_render_settings() {
             'api_key_blog_writer' => ['label' => 'OpenAI API Key (Blog/SEO)', 'type' => 'key'],
             'api_key_anthropic'   => ['label' => 'Anthropic API Key (Claude)', 'type' => 'key', 'desc' => 'Get from console.anthropic.com'],
             'api_key_gemini'      => ['label' => 'Google Gemini API Key', 'type' => 'key', 'desc' => 'Get from aistudio.google.com'],
+            'api_key_perplexity'  => ['label' => 'Perplexity API Key', 'type' => 'key', 'desc' => 'For competitive research. Get from perplexity.ai/account/api/keys'],
             'custom_models'       => ['label' => 'Custom Models', 'type' => 'models_textarea', 'desc' => 'Add custom model IDs, one per line (e.g., gpt-5, claude-5-sonnet). Prefix determines provider: claude- → Anthropic, gemini- → Google, others → OpenAI.'],
         ],
         'Default' => [
@@ -198,6 +215,7 @@ function itu_ai_render_settings() {
             'model_keyword_research' => ['label' => 'Keyword Research'],
             'model_topic_generation' => ['label' => 'Topic Generation'],
             'model_practice_test'    => ['label' => 'Practice Test Q&A'],
+            'model_research'         => ['label' => 'Competitive Research', 'desc' => 'Web search for competitor analysis. Blank = use SEO Monitor setting. For Perplexity, use "sonar" or "sonar-pro".'],
         ],
     ];
 
@@ -224,14 +242,20 @@ function itu_ai_render_settings() {
                                         style="width:400px; padding:6px 10px; border:1px solid #e2e8f0; border-radius:6px; font-family:monospace; font-size:13px;"
                                         placeholder="gpt-5&#10;claude-sonnet-4-20250514&#10;claude-haiku-4-5-20251001"><?php echo esc_textarea($custom_models_raw); ?></textarea>
                                 <?php else : ?>
-                                    <select id="<?php echo esc_attr($key); ?>" name="<?php echo esc_attr($key); ?>"
+                                    <select id="<?php echo esc_attr($key); ?>" name="<?php echo esc_attr($key); ?>" class="itu-model-select"
                                         style="width:300px; padding:6px 10px; border:1px solid #e2e8f0; border-radius:6px;">
-                                        <?php foreach ($models as $model_id => $model_label) : ?>
-                                            <option value="<?php echo esc_attr($model_id); ?>" <?php selected($s[$key], $model_id); ?>>
+                                        <?php foreach ($models as $model_id => $model_label) :
+                                            $provider = 'openai';
+                                            if (str_starts_with($model_id, 'claude-')) $provider = 'anthropic';
+                                            elseif (str_starts_with($model_id, 'gemini-')) $provider = 'gemini';
+                                            elseif (str_starts_with($model_id, 'sonar')) $provider = 'perplexity';
+                                        ?>
+                                            <option value="<?php echo esc_attr($model_id); ?>" data-provider="<?php echo $provider; ?>" <?php selected($s[$key], $model_id); ?>>
                                                 <?php echo esc_html($model_label); ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <span class="itu-key-warning" style="display:none; color:#dc2626; font-size:12px; margin-left:8px;">&#9888; No API key for this provider</span>
                                 <?php endif; ?>
                                 <?php if (!empty($field['desc'])) : ?>
                                     <p class="description"><?php echo esc_html($field['desc']); ?></p>
@@ -252,8 +276,60 @@ function itu_ai_render_settings() {
 
     <script>
     jQuery(document).ready(function($) {
+        // Map providers to their API key field IDs
+        var providerKeyMap = {
+            openai: ['api_key_openai', 'api_key_blog_writer'],
+            anthropic: ['api_key_anthropic'],
+            gemini: ['api_key_gemini'],
+            perplexity: ['api_key_perplexity']
+        };
+
+        function hasKeyForProvider(provider) {
+            var keys = providerKeyMap[provider] || providerKeyMap['openai'];
+            for (var i = 0; i < keys.length; i++) {
+                if ($('#' + keys[i]).val().trim()) return true;
+            }
+            return false;
+        }
+
+        function checkModelSelect(select) {
+            var $sel = $(select);
+            var provider = $sel.find('option:selected').data('provider') || 'openai';
+            var $warn = $sel.siblings('.itu-key-warning');
+            if (!hasKeyForProvider(provider)) {
+                $warn.show();
+                $sel.css('border-color', '#dc2626');
+            } else {
+                $warn.hide();
+                $sel.css('border-color', '#e2e8f0');
+            }
+        }
+
+        // Check all selects on load and on change
+        $('.itu-model-select').each(function() { checkModelSelect(this); });
+        $(document).on('change', '.itu-model-select', function() { checkModelSelect(this); });
+        // Re-check when API key fields change
+        $('input[id^="api_key_"]').on('input', function() {
+            $('.itu-model-select').each(function() { checkModelSelect(this); });
+        });
+
         $('#itu-ai-form').submit(function(e) {
             e.preventDefault();
+
+            // Block save if any model uses a provider without a key
+            var blocked = [];
+            $('.itu-model-select').each(function() {
+                var provider = $(this).find('option:selected').data('provider') || 'openai';
+                if (!hasKeyForProvider(provider)) {
+                    var label = $(this).closest('tr').find('th label').text();
+                    blocked.push(label + ' → ' + provider);
+                }
+            });
+            if (blocked.length) {
+                alert('Cannot save — the following processes use models without an API key:\n\n' + blocked.join('\n') + '\n\nAdd the API key or change the model.');
+                return;
+            }
+
             var data = $(this).serializeArray();
             data.push({ name: 'action', value: 'itu_ai_save_settings' });
             data.push({ name: 'nonce', value: '<?php echo $nonce; ?>' });

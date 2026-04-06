@@ -33,6 +33,31 @@ class SEOM_Collector {
             $metrics = $client->get_all_page_metrics(28);
             if (is_wp_error($metrics)) return $metrics;
 
+            // Fetch true site-wide totals from GSC (no page dimension = full aggregate)
+            $site_totals = $client->get_site_totals(28);
+            if (!is_wp_error($site_totals)) {
+                $totals_record = [
+                    'clicks'      => $site_totals['clicks'],
+                    'impressions' => $site_totals['impressions'],
+                    'ctr'         => $site_totals['ctr'],
+                    'position'    => $site_totals['position'],
+                    'date'        => $today,
+                ];
+                update_option('seom_site_totals', $totals_record);
+
+                // Also store historical totals for trend comparison
+                $history = get_option('seom_site_totals_history', []);
+                $history[$today] = $totals_record;
+                // Keep last 90 days of history
+                $cutoff = date('Y-m-d', strtotime('-90 days'));
+                $history = array_filter($history, function($v) use ($cutoff) { return $v['date'] >= $cutoff; });
+                update_option('seom_site_totals_history', $history);
+            }
+
+            // Also sum per-page data to track matched vs unmatched
+            $gsc_page_impressions = array_sum(array_column($metrics, 'impressions'));
+            $gsc_page_clicks = array_sum(array_column($metrics, 'clicks'));
+
             set_transient('seom_gsc_metrics_cache', $metrics, 3600);
 
             $post_types = $settings['process_post_types'];
@@ -47,6 +72,9 @@ class SEOM_Collector {
                 'pages_in_gsc' => count($metrics),
                 'total_posts'  => $total_posts,
                 'total_batches'=> ceil($total_posts / $batch_size),
+                'site_totals'  => $site_totals,
+                'gsc_page_impressions' => $gsc_page_impressions,
+                'gsc_page_clicks'      => $gsc_page_clicks,
             ];
         }
 
@@ -79,13 +107,41 @@ class SEOM_Collector {
             ...$post_ids_in_batch
         ), OBJECT_K);
 
+        // Build a normalized lookup index from GSC URLs for reliable matching
+        // Strips scheme, trailing slashes, and query parameters
+        $normalized_metrics = [];
+        $norm_to_gsc_url = []; // normalized => original GSC URL (for tracking matches)
+        foreach ($metrics as $gsc_url => $gsc_data) {
+            $norm = self::normalize_url($gsc_url);
+            $normalized_metrics[$norm] = $gsc_data;
+            $norm_to_gsc_url[$norm] = $gsc_url;
+        }
+
+        // Load matched URLs tracker (accumulated across batches)
+        $matched_urls = get_transient('seom_matched_gsc_urls') ?: [];
+
         $saved = 0;
         foreach ($posts as $post) {
             // Use stored URL if available, only call get_permalink for new posts
             $url = isset($stored_urls[$post->ID]) ? $stored_urls[$post->ID]->url : get_permalink($post->ID);
             if (!$url) continue;
 
-            $data = $metrics[$url] ?? $metrics[rtrim($url, '/')] ?? $metrics[$url . '/'] ?? null;
+            // Try exact match first, then normalized match
+            $matched_gsc_url = null;
+            $data = $metrics[$url] ?? null;
+            if ($data) { $matched_gsc_url = $url; }
+            if (!$data) { $data = $metrics[rtrim($url, '/')] ?? null; if ($data) $matched_gsc_url = rtrim($url, '/'); }
+            if (!$data) { $data = $metrics[$url . '/'] ?? null; if ($data) $matched_gsc_url = $url . '/'; }
+            if (!$data) {
+                $norm_url = self::normalize_url($url);
+                $data = $normalized_metrics[$norm_url] ?? null;
+                if ($data) $matched_gsc_url = $norm_to_gsc_url[$norm_url] ?? null;
+            }
+
+            // Track which GSC URLs we matched
+            if ($matched_gsc_url) {
+                $matched_urls[$matched_gsc_url] = true;
+            }
 
             $clicks      = $data['clicks'] ?? 0;
             $impressions = $data['impressions'] ?? 0;
@@ -134,18 +190,27 @@ class SEOM_Collector {
         $processed_so_far = $offset + count($posts);
         $has_more = $processed_so_far < $total_posts;
 
+        // Save matched URLs tracker for next batch
+        set_transient('seom_matched_gsc_urls', $matched_urls, 3600);
+
+        $untracked_saved = 0;
         if (!$has_more) {
+            // Final batch — save unmatched GSC URLs as untracked metrics
+            $untracked_saved = self::save_untracked_urls($metrics, $matched_urls, $today);
+
             update_option('seom_last_collect', current_time('mysql'));
             delete_transient('seom_gsc_metrics_cache');
+            delete_transient('seom_matched_gsc_urls');
         }
 
         return [
-            'phase'         => 'saving',
-            'batch'         => $batch_page,
-            'saved'         => $saved,
-            'processed'     => $processed_so_far,
-            'total_posts'   => $total_posts,
-            'has_more'      => $has_more,
+            'phase'          => 'saving',
+            'batch'          => $batch_page,
+            'saved'          => $saved,
+            'processed'      => $processed_so_far,
+            'total_posts'    => $total_posts,
+            'has_more'       => $has_more,
+            'untracked_saved'=> $untracked_saved,
         ];
     }
 
@@ -200,7 +265,7 @@ class SEOM_Collector {
                 'clicks_after_30d'      => $row['clicks'] ?? 0,
                 'impressions_after_30d' => $row['impressions'] ?? 0,
                 'position_after_30d'    => round($row['position'] ?? 0, 1),
-                'ctr_after_30d'         => round(($row['ctr'] ?? 0) * 100, 2),
+                'ctr_after_30d'         => round(($row['ctr'] ?? 0) * 100, 4),
             ], ['id' => $entry->id]);
         }
 
@@ -221,8 +286,102 @@ class SEOM_Collector {
                 'clicks_after_60d'      => $row['clicks'] ?? 0,
                 'impressions_after_60d' => $row['impressions'] ?? 0,
                 'position_after_60d'    => round($row['position'] ?? 0, 1),
-                'ctr_after_60d'         => round(($row['ctr'] ?? 0) * 100, 2),
+                'ctr_after_60d'         => round(($row['ctr'] ?? 0) * 100, 4),
             ], ['id' => $entry->id]);
         }
+    }
+
+    /**
+     * Normalize a URL for comparison: strip scheme, query params, trailing slash.
+     */
+    public static function normalize_url($url) {
+        $norm = preg_replace('#^https?://#', '', $url);
+        $norm = strtok($norm, '?');
+        return rtrim($norm, '/');
+    }
+
+    /**
+     * Classify an untracked URL by its path pattern.
+     */
+    private static function classify_url($url) {
+        $path = parse_url($url, PHP_URL_PATH) ?: $url;
+        if (preg_match('#/category/#i', $path))    return 'category';
+        if (preg_match('#/tag/#i', $path))          return 'tag';
+        if (preg_match('#/page/\d+#i', $path))      return 'pagination';
+        if (preg_match('#/author/#i', $path))        return 'author';
+        if (preg_match('#/feed#i', $path))           return 'feed';
+        if (strpos($url, '?s=') !== false)           return 'search';
+        if (preg_match('#/product-category/#i', $path)) return 'product_cat';
+        if (preg_match('#/product-tag/#i', $path))   return 'product_tag';
+        return 'other';
+    }
+
+    /**
+     * Save unmatched GSC URLs to the untracked metrics table.
+     *
+     * @param array  $all_metrics   Full GSC metrics [url => data]
+     * @param array  $matched_urls  GSC URLs that matched WordPress posts [url => true]
+     * @param string $today         Collection date (Y-m-d)
+     * @return int   Number of untracked URLs saved
+     */
+    private static function save_untracked_urls($all_metrics, $matched_urls, $today) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'seom_untracked_metrics';
+
+        // Build normalized matched set for comparison
+        $matched_normalized = [];
+        foreach ($matched_urls as $url => $v) {
+            $matched_normalized[self::normalize_url($url)] = true;
+        }
+
+        $untracked = [];
+        foreach ($all_metrics as $gsc_url => $data) {
+            // Skip if this URL was matched to a WordPress post
+            if (isset($matched_urls[$gsc_url])) continue;
+            if (isset($matched_normalized[self::normalize_url($gsc_url)])) continue;
+
+            // Skip URLs with zero impressions
+            if (($data['impressions'] ?? 0) <= 0) continue;
+
+            $untracked[] = [
+                'url'          => $gsc_url,
+                'clicks'       => $data['clicks'] ?? 0,
+                'impressions'  => $data['impressions'] ?? 0,
+                'ctr'          => $data['ctr'] ?? 0,
+                'avg_position' => $data['position'] ?? 0,
+                'url_type'     => self::classify_url($gsc_url),
+            ];
+        }
+
+        if (empty($untracked)) return 0;
+
+        // Clear today's untracked data (full replace for the day)
+        $wpdb->delete($table, ['date_collected' => $today]);
+
+        // Bulk insert in batches of 100
+        $saved = 0;
+        foreach (array_chunk($untracked, 100) as $batch) {
+            $values = [];
+            $placeholders = [];
+            foreach ($batch as $row) {
+                $placeholders[] = '(%s, %s, %d, %d, %f, %f, %s)';
+                $values[] = $row['url'];
+                $values[] = $today;
+                $values[] = $row['clicks'];
+                $values[] = $row['impressions'];
+                $values[] = $row['ctr'];
+                $values[] = $row['avg_position'];
+                $values[] = $row['url_type'];
+            }
+            $sql = "INSERT INTO {$table} (url, date_collected, clicks, impressions, ctr, avg_position, url_type) VALUES "
+                 . implode(', ', $placeholders);
+            $wpdb->query($wpdb->prepare($sql, ...$values));
+            $saved += count($batch);
+        }
+
+        // Cleanup old data (older than 90 days)
+        $wpdb->query("DELETE FROM {$table} WHERE date_collected < DATE_SUB(CURDATE(), INTERVAL 90 DAY)");
+
+        return $saved;
     }
 }

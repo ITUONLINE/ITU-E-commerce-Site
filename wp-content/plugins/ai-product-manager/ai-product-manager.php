@@ -77,6 +77,42 @@ function aipm_call_openai($instruction, $user_prompt, $model = '', $temperature 
     $api_key = function_exists('itu_ai_key') ? itu_ai_key('openai') : get_option('aicg_api_key');
     if (!$api_key) return new WP_Error('no_key', 'OpenAI API key not configured.');
 
+    // GPT-5.x and o-series models require Responses API (no temperature support)
+    $use_responses = (bool) preg_match('/^(gpt-5|o[1-9])/', $model);
+
+    if ($use_responses) {
+        $body = ['model' => $model];
+        if (!empty($instruction)) $body['instructions'] = $instruction;
+        if (!empty($user_prompt)) {
+            $body['input'] = [['role' => 'user', 'content' => $user_prompt]];
+        } else {
+            $body['input'] = $instruction;
+            unset($body['instructions']);
+        }
+
+        $response = wp_remote_post('https://api.openai.com/v1/responses', [
+            'headers' => ['Authorization' => 'Bearer ' . $api_key, 'Content-Type' => 'application/json'],
+            'body'    => json_encode($body),
+            'timeout' => 240,
+        ]);
+
+        if (is_wp_error($response)) return $response;
+        $code = wp_remote_retrieve_response_code($response);
+        $data = json_decode(wp_remote_retrieve_body($response), true);
+        if ($code !== 200) return new WP_Error('api_error', 'Responses API: ' . ($data['error']['message'] ?? "HTTP {$code}"));
+
+        $content = '';
+        foreach (($data['output'] ?? []) as $block) {
+            if (($block['type'] ?? '') === 'message') {
+                foreach (($block['content'] ?? []) as $part) {
+                    if (($part['type'] ?? '') === 'output_text') $content .= $part['text'] ?? '';
+                }
+            }
+        }
+        return !empty(trim($content)) ? aipm_strip_quotes(trim($content)) : new WP_Error('empty', 'No content returned from Responses API.');
+    }
+
+    // Chat Completions API (gpt-4.1 family)
     $messages = [['role' => 'system', 'content' => $instruction]];
     if ($user_prompt) {
         $messages[] = ['role' => 'user', 'content' => $user_prompt];
@@ -110,52 +146,63 @@ function aipm_call_openai($instruction, $user_prompt, $model = '', $temperature 
 function aipm_get_description_instruction() {
     $site_name = get_bloginfo('name');
     $rules = [
-        "You are a senior course content writer at {$site_name}, an IT training company. You write the way a knowledgeable instructor would describe their course to a prospective student. Your tone is direct, confident, and practical. You never sound like a marketing bot or AI.",
+        "You are an experienced IT instructor writing a course description for {$site_name}. Write as if YOU built this course and are personally explaining it to a prospective student sitting across from you. Your voice is that of a teacher who knows the subject deeply — direct, confident, specific, occasionally opinionated about what matters most. Every description you write should feel unique to THIS course, not like a template applied to different topics. Never sound like a marketing department or an AI.",
         '',
-        'Write a product description for the course described in the user prompt. Write completely fresh copy. Do NOT reuse or paraphrase existing content.',
+        '=== OUTPUT FORMAT — READ THIS FIRST ===',
+        'Return ONLY valid HTML. ABSOLUTELY NO MARKDOWN.',
+        '- Do NOT use **bold** — use <strong>text</strong>',
+        '- Do NOT use ## or ### — use <h2> and <h3>',
+        '- Do NOT use - or * for lists — use <ul><li>',
+        '- Tags allowed: p, h2, h3, ul, li, ol, strong, em, blockquote. No classes. No h1.',
         '',
-        'IMPORTANT: Not all courses lead to a certification exam. If the course title does not reference a specific certification or exam code, do NOT invent one. Instead, focus on the practical skills and career value the training provides. Only mention a certification and exam code if the course title clearly indicates one.',
+        '=== TRADEMARK & COPYRIGHT ===',
+        'When you mention a vendor or certification name, use the proper symbol on FIRST mention only:',
+        '- Vendor names: CompTIA&reg;, Cisco&reg;, Microsoft&reg;, AWS&reg;, EC-Council&reg;, ISC2&reg;, ISACA&reg;, PMI&reg;',
+        '- Cert names: CEH&trade;, C|EH&trade;, CISSP&reg;, Security+&trade;, A+&trade;, CCNA&trade;, PMP&reg;',
+        '- After first mention, symbols may be omitted.',
+        '- If you mention EC-Council or CEH, use "EC-Council&reg; Certified Ethical Hacker (C|EH&trade;)" on first mention.',
+        '- ONLY include a trademark disclaimer if you actually mention trademarked vendor/cert names in the content.',
+        '  If included, place at end: <p><em>[Vendor]&reg; and [Cert]&trade; are trademarks of [Owner]. This content is for educational purposes.</em></p>',
+        '- Do NOT add a blanket disclaimer for vendors not mentioned in the content.',
+        '- Do NOT invent exam codes not in the title or content.',
         '',
-        'BANNED PHRASES - Do NOT use any of these openings or cliches:',
-        '- In today\'s rapidly evolving...',
-        '- In an ever-changing landscape...',
-        '- In the fast-paced world of...',
-        '- As technology continues to...',
-        '- In today\'s digital age...',
-        '- With the growing importance of...',
-        '- As organizations increasingly...',
-        '- In the modern IT landscape...',
-        '- Any variation of these patterns',
-        'Instead, open with something specific: a concrete problem this skill solves, a real scenario a professional would face, or a direct statement about what this course delivers.',
+        '=== YOUR TASK ===',
+        "Write a comprehensive product description for an on-demand IT training course sold on {$site_name}.",
+        'This is an ON-DEMAND course — students purchase it and access self-paced video training immediately.',
+        'Write completely fresh copy. Do NOT reuse or rephrase the existing content.',
         '',
-        'STRUCTURE (use plain HTML tags only, no classes):',
+        '=== CONTENT REQUIREMENTS ===',
+        'TARGET: 1,500-2,500 words. Competing pages average 2,000-3,000 words with 8-15 sections.',
+        'Do NOT stop at 500 words. Write a thorough, in-depth description that competes with top-ranking pages.',
         '',
-        'SECTION 1 - Opening (2-3 paragraphs wrapped in p tags):',
-        '- First paragraph: Lead with a specific, concrete statement. Example approaches: pose a real workplace scenario, state a hard fact about the technology, or describe what someone can do after completing this training. Do NOT open with sweeping trend statements.',
-        '- Second paragraph: Describe what this course covers. If a certification exists, name it and its exam code here. Wrap the primary keyword in strong tags once only.',
-        '- Third paragraph (optional): What sets this training apart. Be specific, not generic.',
+        'You decide the structure. Choose sections and headings that make sense for THIS specific course.',
+        'Write what a prospective student needs to know to decide whether to enroll.',
+        'Cover topics like: what the course teaches, who benefits from it, what skills they gain,',
+        'career impact, exam preparation (if certification-related), industry context, prerequisites.',
+        'If a course outline is provided, use it to write about specific modules and skills in detail.',
+        'If competitive research is provided, address the content gaps and topics it identifies.',
         '',
-        'SECTION 2 - h2 tag: What You Will Learn',
-        '- Write 2-3 introductory sentences, then a ul list of 8-10 specific learning outcomes. Each list item should be a full sentence describing a concrete skill the student will walk away with, not just a topic name. Draw from the course outline if provided.',
-        '',
-        'SECTION 3 - h2 tag: Who This Course Is For',
-        '- Write 2-3 sentences describing the ideal student. Name 4-5 specific job titles. State the experience level clearly. If prerequisites are apparent from the content, mention them.',
-        '',
-        'SECTION 4 - h2 tag: Why These Skills Matter',
-        '- If the course leads to a certification: explain the career impact of that credential, employer demand, and what doors it opens.',
-        '- If the course does NOT lead to a certification: explain why mastering these skills gives professionals a competitive edge, how they apply on the job, and what career outcomes they support.',
-        '- Do NOT list course features like video hours, practice questions, or tools since those are shown elsewhere on the page.',
+        'DEPTH REQUIREMENTS:',
+        '- Each h2 section: 150-300 words minimum. Go deep. Explain the "why" and "how."',
+        '- Include specific details: exam domains, job titles, salary ranges, tools, frameworks, real scenarios.',
+        '- Reference authoritative sources where relevant: BLS salary data, vendor documentation, industry standards.',
+        '- Use format variety: paragraphs, bullet lists, numbered lists, blockquotes for key insights.',
         '',
         'CONTENT RULES:',
-        '- Total length: 500-700 words',
-        '- Write in clear, short sentences. Vary sentence structure.',
-        '- Use the course topic, vendor name, technologies, and related job titles naturally throughout',
-        '- Use strong tags only once for the primary keyword in the opening',
-        '- Use plain p, h2, ul, li tags only. No custom classes.',
-        '- Do NOT include an h1 tag since the page already has one',
-        '- Do NOT mention specific course stats like hours, video count, or question count',
-        '- Write like a real person. Vary paragraph length. Mix short punchy sentences with longer explanatory ones.',
-        '- Use active voice and second person throughout',
+        '- BANNED OPENINGS AND PHRASES — Do NOT use ANY of these patterns anywhere in the content:',
+        '  "In today\'s rapidly evolving..." / "In an ever-changing landscape..." / "In the fast-paced world of..."',
+        '  "As technology continues to..." / "In today\'s digital age..." / "With the growing importance of..."',
+        '  "As organizations increasingly..." / "In the modern IT landscape..." / "In today\'s ever-changing IT environment..."',
+        '  "As cyber threats continue to grow..." / "In an increasingly connected world..."',
+        '  "The demand for skilled professionals..." / "As businesses face mounting..."',
+        '  Or ANY variation that starts with a sweeping generalization about technology, the industry, or the modern world.',
+        '  Instead, open with something SPECIFIC: a concrete problem this skill solves, a real workplace scenario, a direct statement about what the student will be able to do, or a hard fact.',
+        '- Do NOT include a FAQ section in the description. FAQs are generated separately with proper schema markup in a dedicated step. Including FAQs here creates duplicates.',
+        '- Do NOT mention course stats like video hours, lesson counts, or platform features.',
+        '- Do NOT invent certifications, exam codes, or credentials not referenced in the course title or content.',
+        '- Write in second person ("you"), active voice, varied sentence length.',
+        '- Bold the primary keyword with <strong> once in the opening.',
+        '- If you mentioned any trademarked vendor or certification names, end with a specific disclaimer naming only the trademarks you actually used. Do NOT include a generic blanket disclaimer if no trademarks were mentioned.',
     ];
     return implode("\n", $rules);
 }
@@ -190,24 +237,83 @@ function aipm_get_keyword_instruction() {
 // ─── Pipeline Steps ─────────────────────────────────────────────────────────
 
 function aipm_step_description($post_id) {
+    // Update stale years in title before generating content
+    if (class_exists('SEOM_Blog_Refresher')) {
+        SEOM_Blog_Refresher::update_title_year($post_id);
+    }
+
     $title   = get_the_title($post_id);
     $content = wp_strip_all_tags(get_post_field('post_content', $post_id));
 
-    // If no existing description, enrich with course outline for context
-    if (empty(trim($content))) {
-        $sku = get_post_meta($post_id, '_sku', true);
-        if ($sku && function_exists('get_course_outline_from_sku')) {
-            $outline = get_course_outline_from_sku($sku);
-            if (is_array($outline) && count($outline)) {
-                $csv_lines = array_map(function($row) {
-                    return "{$row['module_title']},{$row['lesson_title']}";
-                }, $outline);
-                $content = "Course Outline:\n" . implode("\n", $csv_lines);
-            }
+    // Always inject course outline when available — gives AI real module/lesson structure
+    // to write from, whether this is a new product or a refresh of existing content
+    $outline_text = '';
+    $sku = get_post_meta($post_id, '_sku', true);
+    if ($sku && function_exists('get_course_outline_from_sku')) {
+        $outline = get_course_outline_from_sku($sku);
+        if (is_array($outline) && count($outline)) {
+            $csv_lines = array_map(function($row) {
+                return "{$row['module_title']},{$row['lesson_title']}";
+            }, $outline);
+            $outline_text = "Course Outline:\n" . implode("\n", $csv_lines);
         }
     }
 
-    $prompt = trim($title . "\n\n" . $content);
+    // Cap outline to first 50 modules to avoid token overflow
+    if (!empty($outline_text) && substr_count($outline_text, "\n") > 50) {
+        $ol_lines = explode("\n", $outline_text);
+        $outline_text = implode("\n", array_slice($ol_lines, 0, 51)) . "\n... (additional modules omitted)";
+    }
+
+    // For refreshes: send ONLY the course outline (not the old description).
+    // Sending old content causes the AI to mimic/paraphrase the existing structure
+    // instead of writing genuinely fresh copy.
+    // For new products with no outline: fall back to existing content as context.
+    if (!empty($outline_text)) {
+        $prompt_content = $outline_text;
+    } elseif (!empty(trim($content))) {
+        $prompt_content = mb_substr($content, 0, 3000);
+    } else {
+        $prompt_content = '(No existing content or outline available. Write based on the course title.)';
+    }
+
+    // Detect vendor/cert names in the title to build specific trademark reminders
+    $tm_reminders = [];
+    $title_lower = strtolower($title);
+    $tm_map = [
+        'ceh'        => 'Use "EC-Council&reg; Certified Ethical Hacker (C|EH&trade;)" on first mention. Add disclaimer: "CEH&trade; and Certified Ethical Hacker&trade; are trademarks of EC-Council&reg;."',
+        'ec-council' => 'Use "EC-Council&reg;" with &reg; on first mention.',
+        'ethical hacker' => 'Use "EC-Council&reg; Certified Ethical Hacker (C|EH&trade;)" on first mention. Add disclaimer: "CEH&trade; and Certified Ethical Hacker&trade; are trademarks of EC-Council&reg;."',
+        'comptia'    => 'Use "CompTIA&reg;" with &reg; on first mention.',
+        'security+'  => 'Use "CompTIA&reg; Security+&trade;" with symbols on first mention.',
+        'network+'   => 'Use "CompTIA&reg; Network+&trade;" with symbols on first mention.',
+        'a+'         => 'Use "CompTIA&reg; A+&trade;" with symbols on first mention.',
+        'cisco'      => 'Use "Cisco&reg;" with &reg; on first mention.',
+        'ccna'       => 'Use "Cisco&reg; CCNA&trade;" with symbols on first mention.',
+        'ccnp'       => 'Use "Cisco&reg; CCNP&trade;" with symbols on first mention.',
+        'aws'        => 'Use "AWS&reg;" (Amazon Web Services) with &reg; on first mention.',
+        'microsoft'  => 'Use "Microsoft&reg;" with &reg; on first mention.',
+        'azure'      => 'Use "Microsoft&reg; Azure&trade;" with symbols on first mention.',
+        'cissp'      => 'Use "ISC2&reg; CISSP&reg;" with symbols on first mention.',
+        'pmp'        => 'Use "PMI&reg; PMP&reg;" with symbols on first mention.',
+        'isaca'      => 'Use "ISACA&reg;" with &reg; on first mention.',
+        'cisa'       => 'Use "ISACA&reg; CISA&reg;" with symbols on first mention.',
+        'cism'       => 'Use "ISACA&reg; CISM&reg;" with symbols on first mention.',
+    ];
+    foreach ($tm_map as $keyword => $reminder) {
+        if (strpos($title_lower, $keyword) !== false) {
+            $tm_reminders[] = $reminder;
+        }
+    }
+    $tm_reminders = array_unique($tm_reminders);
+
+    $tm_block = '';
+    if (!empty($tm_reminders)) {
+        $tm_block = "\n\nTRADEMARK REQUIREMENTS FOR THIS COURSE (legal — do not skip):\n- " . implode("\n- ", $tm_reminders)
+            . "\n- End with a disclaimer naming ONLY the trademarks listed above — not a generic blanket disclaimer.";
+    }
+
+    $prompt = trim($title . $tm_block . "\n\n" . $prompt_content);
 
     // Inject data-driven target keywords from GSC if available
     $instruction = aipm_get_description_instruction();
@@ -226,8 +332,27 @@ function aipm_step_description($post_id) {
         }
     }
 
-    $result = aipm_call_openai($instruction, $prompt);
+    // Inject SEO performance context and competitive research into the USER PROMPT
+    // (not the system instruction — research in long system prompts gets deprioritized)
+    if (class_exists('SEOM_Blog_Refresher')) {
+        $seo_context = SEOM_Blog_Refresher::get_seo_context($post_id);
+        if ($seo_context) {
+            $prompt .= "\n\n" . $seo_context;
+        }
+    }
+
+    $desc_model = function_exists('itu_ai_model') ? itu_ai_model('product_description') : '';
+    $result = aipm_call_openai($instruction, $prompt, $desc_model);
     if (is_wp_error($result)) return $result;
+    if (empty(trim($result))) return new WP_Error('empty_result', 'AI returned empty description. The prompt may be too large — try again.');
+
+    // Fix markdown that slipped through — convert to proper HTML
+    $result = preg_replace('/^####\s+(.+)$/m', '<h4>$1</h4>', $result);
+    $result = preg_replace('/^###\s+(.+)$/m', '<h3>$1</h3>', $result);
+    $result = preg_replace('/^##\s+(.+)$/m', '<h2>$1</h2>', $result);
+    $result = preg_replace('/^#\s+(.+)$/m', '<h1>$1</h1>', $result);
+    $result = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $result);
+    $result = preg_replace('/(?<![<\/\w])\*([^*\n]+)\*(?![>])/', '<em>$1</em>', $result);
 
     // Clear old RankMath FAQ/schema meta before replacing content
     global $wpdb;
@@ -248,7 +373,20 @@ function aipm_step_short_description($post_id, $description = '') {
     }
     $prompt = $title . "\n\n" . wp_strip_all_tags($description);
 
-    $result = aipm_call_openai(aipm_get_short_desc_instruction(), $prompt);
+    $instruction = aipm_get_short_desc_instruction();
+    // Add CTR context for meta description
+    if (class_exists('SEOM_Blog_Refresher')) {
+        $ctx = get_transient('seom_refresh_context_' . $post_id);
+        if ($ctx && in_array($ctx['category'] ?? '', ['B', 'E'])) {
+            $instruction .= "\n\nIMPORTANT: This course page has a click-through rate problem — people see it in search results but don't click. Make the meta description significantly more compelling with a specific benefit or outcome.";
+        }
+        if ($ctx && !empty($ctx['top_queries'][0]['query'])) {
+            $instruction .= "\nThe #1 search query for this page is: \"" . $ctx['top_queries'][0]['query'] . "\" — address this directly.";
+        }
+    }
+
+    $short_model = function_exists('itu_ai_model') ? itu_ai_model('product_short_desc') : '';
+    $result = aipm_call_openai($instruction, $prompt, $short_model);
     if (is_wp_error($result)) return $result;
 
     $clean = wp_strip_all_tags($result);
@@ -261,7 +399,18 @@ function aipm_step_faq_html($post_id) {
     $content = wp_strip_all_tags(get_post_field('post_content', $post_id));
     $prompt  = trim($title . "\n\n" . $content);
 
-    $result = aipm_call_openai(aipm_get_faq_instruction($post_id), $prompt, function_exists('itu_ai_model') ? itu_ai_model('product_faq') : 'gpt-4o-mini');
+    $instruction = aipm_get_faq_instruction($post_id);
+    // Use search queries to inform FAQ questions
+    if (class_exists('SEOM_Blog_Refresher')) {
+        $ctx = get_transient('seom_refresh_context_' . $post_id);
+        if ($ctx && !empty($ctx['top_queries'])) {
+            $query_list = array_map(function($q) { return '"' . ($q['query'] ?? '') . '"'; }, array_slice($ctx['top_queries'], 0, 5));
+            $instruction .= "\n\nREAL SEARCH QUERIES from Google for this course page: " . implode(', ', $query_list)
+                . "\nBase at least 2-3 of your FAQ questions on these actual search queries — they represent what real prospective students are searching for.";
+        }
+    }
+
+    $result = aipm_call_openai($instruction, $prompt, function_exists('itu_ai_model') ? itu_ai_model('product_faq') : 'gpt-4o-mini');
     if (is_wp_error($result)) return $result;
 
     // Fix FAQ answers missing <p> tags
@@ -321,7 +470,8 @@ function aipm_step_rankmath($post_id) {
 
     // Fall back to AI keyword extraction
     $kw_prompt = "Course Title: " . $title . "\n\nCourse Description:\n" . mb_substr($content, 0, 1500);
-    $keyword = aipm_call_openai(aipm_get_keyword_instruction(), $kw_prompt, 'gpt-4', 0.3);
+    $seo_model = function_exists('itu_ai_model') ? itu_ai_model('product_seo') : '';
+    $keyword = aipm_call_openai(aipm_get_keyword_instruction(), $kw_prompt, $seo_model, 0.3);
 
     if (is_wp_error($keyword)) {
         $keyword = sanitize_text_field($title);
@@ -360,9 +510,25 @@ function aipm_step_seo_title($post_id) {
         . "- IT Asset Management Course - {$site_name} (too generic)\n"
         . "- Learn Everything About ITAM and Become an Expert Today - {$site_name} (too long, salesy)";
 
+    // Add CTR context for title optimization
+    if (class_exists('SEOM_Blog_Refresher')) {
+        $ctx = get_transient('seom_refresh_context_' . $post_id);
+        if ($ctx) {
+            $pos = $ctx['position'] ?? 0;
+            $ctr_val = round($ctx['ctr'] ?? 0, 2);
+            if (in_array($ctx['category'] ?? '', ['B', 'E'])) {
+                $instruction .= "\n\nCRITICAL: This course page has a CTR problem — position " . round($pos, 1) . " with {$ctr_val}% CTR. The current title is not compelling enough.";
+            }
+            if (!empty($ctx['top_queries'][0]['query'])) {
+                $instruction .= "\nTop search query: \"" . $ctx['top_queries'][0]['query'] . "\" — title should resonate with this intent.";
+            }
+        }
+    }
+
     $prompt = "Current Title: {$title}\nFocus Keyword: {$keyword}\n\nDescription:\n{$snippet}";
 
-    $result = aipm_call_openai($instruction, $prompt, 'gpt-4', 0.5);
+    $title_model = function_exists('itu_ai_model') ? itu_ai_model('product_seo_title') : '';
+    $result = aipm_call_openai($instruction, $prompt, $title_model, 0.5);
     if (is_wp_error($result)) return $result;
 
     $seo_title = sanitize_text_field(trim($result));

@@ -698,6 +698,12 @@ function bq_process_queue($force = false) {
     global $wpdb;
     $table = $wpdb->prefix . 'bq_queue';
     $history = $wpdb->prefix . 'bq_history';
+
+    // Reset stuck and failed items back to pending for retry
+    $wpdb->query("UPDATE {$table} SET status = 'pending', error_message = NULL WHERE status IN ('processing', 'failed')");
+    // Clean up completed items older than 24 hours
+    $wpdb->query("DELETE FROM {$table} WHERE status = 'completed' AND processed_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+
     $today_key = 'bq_daily_count_' . date('Y-m-d');
     $count = (int) get_option($today_key, 0);
     $limit = $settings['daily_limit'];
@@ -872,6 +878,145 @@ function bq_send_summary_email($to, $created, $failed) {
 // ─── Cron Hooks ──────────────────────────────────────────────────────────────
 
 add_action('bq_daily_process', 'bq_process_queue');
+add_action('bq_process_next', 'bq_process_one_from_queue');
+
+/**
+ * Process one item from the queue (for chained background processing).
+ */
+function bq_process_one_from_queue() {
+    // Check stop flag
+    if (get_option('bq_queue_stop', false)) {
+        delete_option('bq_queue_stop');
+        return;
+    }
+
+    $settings = bq_get_settings();
+    global $wpdb;
+    $table = $wpdb->prefix . 'bq_queue';
+    $history = $wpdb->prefix . 'bq_history';
+
+    // Reset stuck and failed items back to pending for retry
+    $wpdb->query("UPDATE {$table} SET status = 'pending', error_message = NULL WHERE status IN ('processing', 'failed')");
+
+    // Clean up completed items older than 24 hours
+    $wpdb->query("DELETE FROM {$table} WHERE status = 'completed' AND processed_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+
+    // Check daily limit
+    $today_key = 'bq_daily_count_' . date('Y-m-d');
+    $count = (int) get_option($today_key, 0);
+    if ($count >= $settings['daily_limit']) return;
+
+    // Pick next pending item
+    $item = $wpdb->get_row("SELECT * FROM {$table} WHERE status = 'pending' ORDER BY RAND() LIMIT 1");
+    if (!$item) return;
+
+    $wpdb->update($table, ['status' => 'processing'], ['id' => $item->id]);
+
+    @set_time_limit(300);
+    if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
+
+    $result = bq_create_blog($item->title, $item->gap_category ?? '', $item->target_keywords ?? '');
+
+    $settings = bq_get_settings();
+    if (is_wp_error($result)) {
+        $error_msg = $result->get_error_message();
+        $wpdb->update($table, ['status' => 'failed', 'processed_at' => current_time('mysql'), 'error_message' => $error_msg], ['id' => $item->id]);
+        $wpdb->insert($history, ['title' => $item->title, 'status' => 'failed', 'processed_at' => current_time('mysql'), 'error_message' => $error_msg]);
+        if ($settings['notify_email']) {
+            bq_send_notification($settings['notify_email'], $item->title, 'failed', 0, '', $error_msg);
+        }
+    } else {
+        $wpdb->update($table, ['status' => 'completed', 'post_id' => $result, 'processed_at' => current_time('mysql')], ['id' => $item->id]);
+        $wpdb->insert($history, ['title' => $item->title, 'post_id' => $result, 'status' => 'completed', 'processed_at' => current_time('mysql')]);
+        update_option($today_key, $count + 1);
+        if ($settings['notify_email']) {
+            bq_send_notification($settings['notify_email'], $item->title, 'created', $result, get_permalink($result));
+        }
+    }
+
+    // Schedule next if more pending and under limit
+    $remaining = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status = 'pending'");
+    if ($remaining > 0 && ($count + 1) < $settings['daily_limit'] && !get_option('bq_queue_stop', false)) {
+        wp_schedule_single_event(time() + 30, 'bq_process_next');
+        spawn_cron();
+        wp_remote_get(site_url('/wp-cron.php?doing_wp_cron=' . microtime(true)), [
+            'timeout' => 0.01, 'blocking' => false, 'sslverify' => false,
+        ]);
+    } else {
+        // Done or limit reached — clean up manual flag
+        delete_option('bq_queue_manual');
+    }
+}
+
+// Manual start/stop/status endpoints for background queue processing
+add_action('wp_ajax_bq_start_queue_processing', function () {
+    check_ajax_referer('bq_nonce', 'nonce');
+    if (!current_user_can('manage_options')) wp_send_json_error('Permission denied.');
+
+    global $wpdb;
+    $pending = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->prefix}bq_queue WHERE status = 'pending'");
+    if (!$pending) wp_send_json_error('No pending items.');
+
+    delete_option('bq_queue_stop');
+    update_option('bq_queue_manual', true);
+
+    // Trigger cron chain — same mechanism as nightly processing
+    wp_clear_scheduled_hook('bq_process_next');
+    wp_schedule_single_event(time(), 'bq_process_next');
+    spawn_cron();
+    wp_remote_get(site_url('/wp-cron.php?doing_wp_cron=' . microtime(true)), [
+        'timeout' => 0.01, 'blocking' => false, 'sslverify' => false,
+    ]);
+
+    wp_send_json_success(['pending' => $pending]);
+});
+
+add_action('wp_ajax_bq_queue_status', function () {
+    check_ajax_referer('bq_nonce', 'nonce');
+    if (!current_user_can('manage_options')) wp_send_json_error('Permission denied.');
+
+    global $wpdb;
+    $table = $wpdb->prefix . 'bq_queue';
+    $pending = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status = 'pending'");
+    $processing = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status = 'processing'");
+    $today_done = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status = 'completed' AND DATE(processed_at) = CURDATE()");
+    $today_failed = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status = 'failed' AND DATE(processed_at) = CURDATE()");
+    $stopped = get_option('bq_queue_stop', false);
+    $manual = get_option('bq_queue_manual', false);
+    $next_scheduled = wp_next_scheduled('bq_process_next');
+
+    $remaining = $pending + $processing;
+    $is_running = ($processing > 0) || $next_scheduled || ($manual && !$stopped);
+
+    // Clean up when done
+    if ($manual && $pending === 0 && !$processing) {
+        delete_option('bq_queue_manual');
+        $is_running = false;
+    }
+
+    // Currently processing
+    $current = $wpdb->get_row("SELECT id, title, gap_category FROM {$table} WHERE status = 'processing' LIMIT 1");
+
+    $last = $wpdb->get_row("SELECT title, status, processed_at FROM {$table} WHERE status IN ('completed','failed') ORDER BY processed_at DESC LIMIT 1");
+
+    $settings = bq_get_settings();
+    wp_send_json_success([
+        'remaining' => $remaining, 'pending' => $pending, 'processing' => $processing,
+        'completed' => $today_done, 'failed' => $today_failed,
+        'is_running' => $is_running && !$stopped, 'stopped' => (bool) $stopped,
+        'current' => $current, 'last_done' => $last, 'daily_limit' => $settings['daily_limit'],
+    ]);
+});
+
+add_action('wp_ajax_bq_stop_queue', function () {
+    check_ajax_referer('bq_nonce', 'nonce');
+    if (!current_user_can('manage_options')) wp_send_json_error('Permission denied.');
+
+    update_option('bq_queue_stop', true);
+    delete_option('bq_queue_manual');
+    wp_clear_scheduled_hook('bq_process_next');
+    wp_send_json_success('Stopped.');
+});
 
 // ─── Admin Menu ──────────────────────────────────────────────────────────────
 
@@ -1004,7 +1149,9 @@ add_action('wp_ajax_bq_get_queue_distributed', function () {
 
     global $wpdb;
     $table = $wpdb->prefix . 'bq_queue';
-    $limit = min(50, max(1, intval($_POST['limit'] ?? 25)));
+    $bq_settings = get_option('bq_settings', ['daily_limit' => 5]);
+    $daily_limit = max(1, intval($bq_settings['daily_limit'] ?? 5));
+    $limit = min(50, max(1, intval($_POST['limit'] ?? $daily_limit)));
     $all = $wpdb->get_results("SELECT id, title, gap_category, target_keywords FROM {$table} WHERE status = 'pending' ORDER BY RAND()");
     if (empty($all)) { wp_send_json_success(['rows' => []]); return; }
 
@@ -1031,7 +1178,7 @@ add_action('wp_ajax_bq_get_queue_distributed', function () {
         }
     }
 
-    wp_send_json_success(['rows' => $distributed, 'total' => count($distributed)]);
+    wp_send_json_success(['rows' => $distributed, 'total' => count($distributed), 'daily_limit' => $daily_limit]);
 });
 
 add_action('wp_ajax_bq_get_history', function () {
@@ -1899,7 +2046,7 @@ add_action('wp_ajax_bq_get_all_blogs', function () {
     $query = new WP_Query($args);
     $all_items = [];
 
-    // Pre-fetch full refresh post IDs from SEO Monitor history (excludes meta_only)
+    // Pre-fetch full refresh post IDs from SEO AI AutoPilot history (excludes meta_only)
     $full_refreshed_ids = [];
     if (in_array($filter, ['seo_full_refreshed', 'seo_not_full_refreshed'])) {
         global $wpdb;
@@ -2005,7 +2152,7 @@ add_action('wp_ajax_bq_refresh_blog', function () {
         wp_send_json_error('Invalid post ID.');
     }
 
-    // Use SEO Monitor's Blog Refresher if available
+    // Use SEO AI AutoPilot's Blog Refresher if available
     if (class_exists('SEOM_Blog_Refresher') && SEOM_Blog_Refresher::is_available()) {
         // Get "before" metrics for history
         global $wpdb;
@@ -2041,7 +2188,7 @@ add_action('wp_ajax_bq_refresh_blog', function () {
 
         $error = is_wp_error($result) ? $result->get_error_message() : null;
 
-        // Record in SEO Monitor history
+        // Record in SEO AI AutoPilot history
         $history_table = $wpdb->prefix . 'seom_refresh_history';
         if ($wpdb->get_var("SHOW TABLES LIKE '{$history_table}'") === $history_table) {
             $wpdb->insert($history_table, [
@@ -2082,7 +2229,7 @@ add_action('wp_ajax_bq_refresh_blog', function () {
     }
 
     ob_end_clean();
-    wp_send_json_error('SEO Monitor Blog Refresher not available. Activate the SEO Monitor plugin.');
+    wp_send_json_error('SEO AI AutoPilot Blog Refresher not available. Activate the SEO AI AutoPilot plugin.');
 });
 
 // ─── Admin Page ──────────────────────────────────────────────────────────────
@@ -2169,8 +2316,10 @@ function bq_render_admin() {
                 <h2 style="margin:0;">Pending Queue</h2>
                 <div style="display:flex;gap:8px;align-items:center;">
                     <span id="bq-today-info" style="color:#64748b;font-size:13px;"></span>
-                    <button type="button" class="button button-primary" id="bq-run-queue">Process Queue Now</button>
+                    <button type="button" class="button button-primary" id="bq-run-queue">Process Queue (Background)</button>
+                    <button type="button" class="button" id="bq-stop-queue-bg" style="color:#dc2626; display:none;">Stop Processing</button>
                 </div>
+                <div id="bq-queue-progress" style="display:none; margin-top:10px; padding:12px 16px; background:#fff; border:1px solid #e2e8f0; border-left:4px solid #2563eb; border-radius:0 8px 8px 0; font-size:13px;"></div>
             </div>
             <div id="bq-queue-bulk-bar" style="display:none;margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                 <select id="bq-queue-bulk-action" style="padding:4px 8px;border-radius:6px;border:1px solid #e2e8f0;">
@@ -2204,8 +2353,8 @@ function bq_render_admin() {
                         <option value="missing_image">Missing Image</option>
                         <option value="missing_meta">Missing Meta Desc</option>
                         <option value="missing_keyword">Missing Focus Keyword</option>
-                        <option value="seo_full_refreshed">SEO Monitor: Full Refreshed</option>
-                        <option value="seo_not_full_refreshed">SEO Monitor: Not Full Refreshed</option>
+                        <option value="seo_full_refreshed">SEO AI AutoPilot: Full Refreshed</option>
+                        <option value="seo_not_full_refreshed">SEO AI AutoPilot: Not Full Refreshed</option>
                     </select>
                 </div>
             </div>
@@ -2568,62 +2717,93 @@ function bq_render_admin() {
             });
         });
 
+        var bqPollTimer = null;
+        var bqRunning = false;
+
+        // Start background processing — triggers server-side cron chain
         $('#bq-run-queue').click(function() {
-            if (!confirm('Process the daily queue now? Blogs will be created one at a time.')) return;
-            var btn = $(this).prop('disabled', true).text('Processing...');
-
-            if (!$('#bq-run-status').length) {
-                btn.after('<div style="margin-top:12px;padding:14px 18px;background:#fff;border:1px solid #e2e8f0;border-left:4px solid #2563eb;border-radius:0 8px 8px 0;" id="bq-run-status"></div>');
-            }
-
-            // Get ALL pending items distributed across categories (round-robin)
-            $.post(ajaxurl, { action: 'bq_get_queue_distributed', nonce: nonce }, function(resp) {
-                if (!resp.success || !resp.data.rows.length) {
-                    btn.prop('disabled', false).text('Process Queue Now');
-                    $('#bq-run-status').html('<strong style="color:#d97706;">No pending topics in queue.</strong>').css('border-left-color', '#d97706');
-                    return;
+            if (bqRunning) return;
+            if (!confirm('Start processing the blog queue in the background? Processing continues even if you leave this page.')) return;
+            $(this).prop('disabled', true).text('Starting...');
+            $.post(ajaxurl, { action: 'bq_start_queue_processing', nonce: nonce }, function(resp) {
+                if (resp.success) {
+                    startBqPolling();
+                } else {
+                    $('#bq-run-queue').prop('disabled', false).text('Process Queue (Background)');
+                    alert(resp.data || 'Error starting queue.');
                 }
-
-                // Items are already round-robin distributed by the server
-                var items = resp.data.rows;
-
-                var completed = 0, failed = 0, total = items.length;
-
-                function processNext(idx) {
-                    if (idx >= items.length) {
-                        btn.prop('disabled', false).text('Process Queue Now');
-                        $('#bq-run-status').html('<strong style="color:#059669;">' + completed + ' blog(s) created, ' + failed + ' failed.</strong> Check the History tab.').css('border-left-color', '#059669');
-                        loadQueue(1); loadQueueCount();
-                        return;
-                    }
-
-                    var item = items[idx];
-                    var row = $('tr[data-id="' + item.id + '"]');
-                    var statusEl = row.find('.bq-queue-status');
-                    row.css('opacity', '0.7');
-                    statusEl.html('<span style="color:#b45309;">Creating blog... this may take 1-2 minutes</span>');
-
-                    $('#bq-run-status').html(
-                        '<strong>Creating ' + (idx + 1) + ' of ' + total + '...</strong><br>' +
-                        '<span style="color:#64748b;font-size:13px;">' + item.title + '</span><br>' +
-                        '<span style="color:#94a3b8;font-size:12px;">' + completed + ' created, ' + failed + ' failed so far</span>'
-                    ).css('border-left-color', '#2563eb');
-
-                    runBlogSteps(item.id, statusEl, function(success, data) {
-                        if (success) {
-                            completed++;
-                            row.css('opacity', '0.4');
-                            statusEl.html('<span style="color:#059669;">&#10003; Created</span> <a href="' + data.url + '" target="_blank" style="font-size:12px;">View</a> | <a href="' + data.edit_url + '" target="_blank" style="font-size:12px;">Edit</a>');
-                        } else {
-                            failed++;
-                            row.css('opacity', '1');
-                        }
-                        processNext(idx + 1);
-                    });
-                }
-
-                processNext(0);
             });
+        });
+
+        // Stop background processing
+        $('#bq-stop-queue-bg').click(function() {
+            $(this).prop('disabled', true).text('Stopping...');
+            $.post(ajaxurl, { action: 'bq_stop_queue', nonce: nonce }, function() {
+                bqRunning = false;
+                if (bqPollTimer) clearTimeout(bqPollTimer);
+                $('#bq-run-queue').prop('disabled', false).text('Process Queue (Background)');
+                $('#bq-stop-queue-bg').hide();
+                $('#bq-queue-progress').css('border-left-color', '#d97706').html('Processing stopped. Remaining items stay in queue.');
+                loadQueue(1); loadQueueCount();
+            });
+        });
+
+        function startBqPolling() {
+            bqRunning = true;
+            $('#bq-run-queue').prop('disabled', true).text('Processing...');
+            $('#bq-stop-queue-bg').show().prop('disabled', false).text('Stop Processing');
+            $('#bq-queue-progress').show();
+            pollBqStatus();
+        }
+
+        function pollBqStatus() {
+            $.post(ajaxurl, { action: 'bq_queue_status', nonce: nonce }, function(resp) {
+                if (!resp.success) return;
+                var s = resp.data;
+
+                var html = '<strong>' + s.completed + ' created</strong>';
+                if (s.failed > 0) html += ', <span style="color:#dc2626;">' + s.failed + ' failed</span>';
+                html += ', <span style="color:#64748b;">' + s.remaining + ' remaining</span>';
+                html += ' (daily limit: ' + s.daily_limit + ')';
+
+                if (s.current && s.current.title) {
+                    html += '<br><span style="font-size:12px;color:#2563eb;"><span class="spinner is-active" style="float:none;margin:0 4px 0 0;"></span>Now: <strong>' + s.current.title + '</strong></span>';
+                }
+
+                if (s.last_done && s.last_done.title) {
+                    var doneColor = s.last_done.status === 'completed' ? '#059669' : '#dc2626';
+                    var doneIcon = s.last_done.status === 'completed' ? '&#10003;' : '&#10007;';
+                    html += '<br><span style="font-size:12px;color:' + doneColor + ';">' + doneIcon + ' ' + s.last_done.title + '</span>';
+                }
+
+                if (s.is_running && s.remaining > 0) {
+                    html += '<br><span style="font-size:11px;color:#94a3b8;">Processing in background — you can leave this page.</span>';
+                    $('#bq-queue-progress').css('border-left-color', '#2563eb').html(html);
+                    loadQueueCount();
+                    bqPollTimer = setTimeout(pollBqStatus, 15000);
+                } else if (s.stopped) {
+                    html += '<br><span style="font-size:12px;color:#d97706;">Processing stopped.</span>';
+                    $('#bq-queue-progress').css('border-left-color', '#d97706').html(html);
+                    bqRunning = false;
+                    $('#bq-run-queue').prop('disabled', false).text('Process Queue (Background)');
+                    $('#bq-stop-queue-bg').hide();
+                    loadQueue(1); loadQueueCount();
+                } else {
+                    html += '<br><span style="font-size:12px;color:#059669;">Queue processing complete.</span>';
+                    $('#bq-queue-progress').css('border-left-color', '#059669').html(html);
+                    bqRunning = false;
+                    $('#bq-run-queue').prop('disabled', false).text('Process Queue (Background)');
+                    $('#bq-stop-queue-bg').hide();
+                    loadQueue(1); loadQueueCount();
+                }
+            });
+        }
+
+        // On page load, check if processing is active
+        $.post(ajaxurl, { action: 'bq_queue_status', nonce: nonce }, function(resp) {
+            if (resp.success && resp.data.is_running) {
+                startBqPolling();
+            }
         });
 
         // ─── All Blogs ──────────────────────────────────────────────────────
