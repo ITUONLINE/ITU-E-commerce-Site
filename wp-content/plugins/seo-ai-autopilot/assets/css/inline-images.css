@@ -1,0 +1,188 @@
+/* ─── Inline Image Editor (admin-only) ───────────────────────────────────
+ *
+ * Three visual layers:
+ *   1. The floating "Edit images" toggle (bottom-right, always visible
+ *      to logged-in admins on single posts).
+ *   2. The "+ Add image" buttons between blocks (only visible while in
+ *      edit mode).
+ *   3. The hover overlay on existing inline images (replace / alt / remove),
+ *      also only visible while in edit mode.
+ *
+ * Everything is scoped under `body.itu-image-editor-active` so toggling off
+ * cleanly returns the page to its normal reader-facing layout.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/* Figure styling — rendered for all visitors, not just admins */
+.itu-inline-image {
+    margin: 24px auto;
+    text-align: center;
+    max-width: 100%;
+}
+.itu-inline-image img {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+}
+.itu-inline-image figcaption {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #64748b;
+    font-style: italic;
+}
+
+/* Floating toggle — always visible to admins on single posts */
+.itu-editor-toggle {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    background: #1d2327;
+    color: #fff;
+    border: 0;
+    border-radius: 999px;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    transition: background 120ms ease;
+}
+.itu-editor-toggle:hover { background: #2c3338; }
+.itu-editor-toggle.is-active {
+    background: #2563eb;
+}
+
+/* + Add image buttons between blocks */
+.itu-image-insert-btn {
+    display: none;
+    margin: 6px auto;
+    padding: 6px 14px;
+    border: 1px dashed #94a3b8;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    width: fit-content;
+    transition: all 120ms ease;
+}
+.itu-image-insert-btn:hover {
+    border-color: #2563eb;
+    border-style: solid;
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+body.itu-image-editor-active .itu-image-insert-btn {
+    display: block;
+}
+
+/* Hover controls on existing inline images */
+.itu-inline-image {
+    position: relative;
+}
+.itu-image-controls {
+    display: none;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    background: rgba(15, 23, 42, 0.92);
+    color: #fff;
+    border-radius: 6px;
+    padding: 6px;
+    gap: 4px;
+    align-items: center;
+}
+body.itu-image-editor-active .itu-inline-image:hover .itu-image-controls,
+body.itu-image-editor-active .itu-image-controls.is-pinned {
+    display: inline-flex;
+}
+body.itu-image-editor-active .itu-inline-image {
+    outline: 2px dashed #94a3b8;
+    outline-offset: 4px;
+}
+body.itu-image-editor-active .itu-inline-image:hover {
+    outline-color: #2563eb;
+}
+.itu-image-control-btn {
+    background: transparent;
+    border: 0;
+    color: #fff;
+    font-size: 11px;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 3px;
+    font-weight: 500;
+}
+.itu-image-control-btn:hover { background: rgba(255, 255, 255, 0.15); }
+.itu-image-control-btn.is-danger { color: #fca5a5; }
+.itu-image-control-btn.is-danger:hover { background: rgba(220, 38, 38, 0.35); color: #fff; }
+
+/* Inline alt-text editor */
+.itu-image-alt-editor {
+    margin-top: 6px;
+    padding: 8px 10px;
+    background: #f1f5f9;
+    border-radius: 4px;
+    display: none;
+}
+.itu-image-alt-editor.is-open { display: block; }
+.itu-image-alt-editor label {
+    display: block;
+    font-size: 11px;
+    color: #475569;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.itu-image-alt-editor input {
+    width: 100%;
+    padding: 6px 10px;
+    font-size: 13px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    margin-bottom: 6px;
+}
+.itu-image-alt-editor .itu-image-alt-save {
+    padding: 4px 12px;
+    background: #2563eb;
+    color: #fff;
+    border: 0;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.itu-image-alt-editor .itu-image-alt-cancel {
+    margin-left: 4px;
+    padding: 4px 12px;
+    background: transparent;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+/* Status indicator (top-left, transient) */
+.itu-editor-status {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    background: #1d2327;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease;
+}
+.itu-editor-status.is-visible { opacity: 1; }
+.itu-editor-status.is-error { background: #b91c1c; }
+.itu-editor-status.is-success { background: #047857; }

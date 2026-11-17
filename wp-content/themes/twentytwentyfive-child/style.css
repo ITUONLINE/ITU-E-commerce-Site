@@ -311,6 +311,47 @@ p1, .p1 {
 }
 
 
+/* SEO intro — RankMath SEO title + meta description rendered below the post hero */
+.itu-seo-intro {
+	margin: 0 0 var(--wp--preset--spacing--40) 0;
+	padding: 18px 22px;
+	background: #f8fafc;
+	border-left: 4px solid #C026D3;
+	border-radius: 6px;
+}
+
+.itu-seo-intro__title {
+	margin: 0 0 8px 0 !important;
+	font-size: 1.15rem;
+	font-weight: 600;
+	line-height: 1.35;
+	color: #1f2937;
+}
+
+.itu-seo-intro__desc {
+	margin: 0 !important;
+	font-size: 0.95rem;
+	line-height: 1.55;
+	color: #475569;
+}
+
+/* When the SEO title is hidden (matches post title), the description sits alone */
+.itu-seo-intro__title + .itu-seo-intro__desc {
+	margin-top: 0 !important;
+}
+
+@media (max-width: 768px) {
+	.itu-seo-intro {
+		padding: 14px 16px;
+	}
+	.itu-seo-intro__title {
+		font-size: 1.05rem;
+	}
+	.itu-seo-intro__desc {
+		font-size: 0.9rem;
+	}
+}
+
 /* Plans bar inside single post — no extra padding since article handles it */
 .itu-single-article .itu-plans-bar {
 	padding: 0;
@@ -3466,6 +3507,59 @@ details.itu-faq-item a {
 	}
 }
 
+/* Homepage announce banner — same dashed magenta language as the plans bar.
+   Whole panel is the link; eyebrow + body + CTA on a single row. */
+.itu-home-announce {
+	display: flex;
+	align-items: center;
+	gap: 20px;
+	border: 1px dashed #C026D3;
+	background: rgba(192, 38, 211, 0.03);
+	padding: 16px 22px;
+	text-decoration: none;
+	font-family: var(--wp--preset--font-family--fira-code, 'Fira Code', monospace);
+	transition: background var(--itu-transition);
+}
+
+.itu-home-announce:hover {
+	background: rgba(192, 38, 211, 0.07);
+}
+
+.itu-home-announce__eyebrow {
+	color: #C026D3;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	font-size: 0.8rem;
+	white-space: nowrap;
+}
+
+.itu-home-announce__text {
+	flex: 1;
+	color: var(--itu-black, #111);
+	font-size: 0.95rem;
+	font-weight: 500;
+	line-height: 1.5;
+}
+
+.itu-home-announce__cta {
+	color: #C026D3;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+	.itu-home-announce {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 10px;
+	}
+}
+
+/* Featured Product styles are now emitted inline by the
+   [itu_featured_product] shortcode in seo-ai-autopilot.
+   Edit the template via SEO AI AutoPilot → Settings → Featured Product Template. */
+
 /* ==========================================================================
    PROMO CARDS (injected into carousels and grids)
    ========================================================================== */
@@ -4144,6 +4238,40 @@ input.is-search-input,
 	color: var(--itu-white, #fff);
 }
 
+/* Hero CTA row — Enroll + optional "Buy on Udemy" side by side */
+.itu-product-hero__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+	margin-top: 16px;
+}
+
+.itu-product-hero__actions .itu-hero-enroll-btn {
+	margin-top: 0;
+}
+
+.itu-hero-udemy-btn {
+	display: inline-block;
+	padding: 0.875rem 2rem;
+	background: #C026D3;
+	color: var(--itu-white, #fff);
+	font-size: var(--wp--preset--font-size--small, 0.85rem);
+	font-weight: 600;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+	text-decoration: none;
+	border: none;
+	border-top-right-radius: 12px;
+	cursor: pointer;
+	transition: background 0.2s ease;
+}
+
+.itu-hero-udemy-btn:hover {
+	background: #a21caf;
+	color: var(--itu-white, #fff);
+}
+
 
 .itu-product-stats {
 	display: flex;
@@ -4332,6 +4460,31 @@ input.is-search-input,
 	font-size: var(--wp--preset--font-size--small);
 	font-weight: 600;
 	color: #C026D3;
+}
+
+/* Stretched-link pattern: the .itu-resource-card--linked variant uses a
+   pseudo-element on the inner anchor to make the entire card clickable,
+   without wrapping the card in <a> (which wpautop mangles for shortcode
+   output). The card itself is the positioning context. */
+.itu-resource-card--linked {
+	position: relative;
+}
+
+.itu-resource-card__link--stretched {
+	text-decoration: none;
+}
+
+.itu-resource-card__link--stretched::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+}
+
+.itu-resource-card--linked:hover {
+	border-color: #C026D3;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+	cursor: pointer;
 }
 
 @media (max-width: 960px) {
@@ -5088,8 +5241,17 @@ article blockquote p:last-child {
 	margin-bottom: 0 !important;
 }
 
-.wp-block-post-content .itu-callout strong:first-child,
-.itu-callout strong:first-child {
+/* Callout label — only the FIRST <strong> inside the FIRST <p> of the
+   callout becomes the block heading. Inline <strong> usage anywhere
+   else (including embedded "Pro Tip" labels mid-paragraph or any
+   <strong> in body paragraphs) stays inline so words don't wrap onto
+   a new line. The previous selector ".itu-callout strong:first-child"
+   matched any <strong> that happened to be its parent's first child,
+   which caught inline emphasis whenever it landed at the start of a
+   nested element. */
+.wp-block-post-content .itu-callout > p:first-child > strong:only-child,
+.entry-content .itu-callout > p:first-child > strong:only-child,
+.itu-callout > p:first-child > strong:only-child {
 	display: block;
 	margin-bottom: 6px;
 	font-size: 0.9rem;
@@ -5188,6 +5350,23 @@ article blockquote p:last-child {
 
 .glossary-accordion__area strong {
 	color: #C026D3;
+}
+
+.glossary-accordion__read-more {
+	margin: 10px 0 0;
+	font-size: 0.9rem;
+}
+
+.glossary-accordion__read-more-link {
+	color: #2563eb;
+	font-weight: 600;
+	text-decoration: none;
+	border-bottom: 1px solid transparent;
+	transition: border-color 120ms ease;
+}
+
+.glossary-accordion__read-more-link:hover {
+	border-bottom-color: #2563eb;
 }
 
 /* Glossary pagination */
@@ -5305,4 +5484,383 @@ article blockquote p:last-child {
 
 .itu-practice-test .ptm-next-btn:hover {
 	background-color: var(--itu-accent) !important;
+}
+
+/* ─── Glossary Term Page (/it-glossary/{slug}/) ─────────────────────────── */
+/*
+ * Per-term permalink page. Visual chrome matches single.html blog
+ * posts; the type system uses the same .itu-section__inner /
+ * .itu-single-article wrappers so width / spacing / typography all
+ * inherit from the blog template.
+ */
+.itu-glossary-term-main {
+	padding-block: 24px 48px;
+}
+
+.itu-glossary-term-hero {
+	margin-block: 16px 32px;
+	text-align: left;
+}
+
+.itu-glossary-term-title {
+	font-size: clamp(2rem, 3.5vw, 2.75rem);
+	font-weight: 800;
+	color: #1e293b;
+	margin: 0 0 6px;
+	line-height: 1.15;
+}
+
+.itu-glossary-term-area {
+	font-size: 0.95rem;
+	color: #64748b;
+	margin: 0;
+}
+
+.itu-glossary-term-area strong {
+	color: #C026D3;
+}
+
+.itu-glossary-tldr {
+	background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+	color: #ffffff;
+	border-radius: 10px;
+	padding: 20px 24px;
+	margin-block: 24px 20px;
+	box-shadow: 0 4px 12px rgba(30, 58, 138, 0.18);
+}
+
+.itu-glossary-tldr-label {
+	display: inline-block;
+	font-size: 0.72rem;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+	font-weight: 700;
+	background: rgba(255, 255, 255, 0.18);
+	color: #ffffff;
+	padding: 4px 10px;
+	border-radius: 999px;
+	margin-bottom: 10px;
+}
+
+.itu-glossary-tldr-body {
+	margin: 0;
+	font-size: 1.1rem;
+	line-height: 1.55;
+	color: #ffffff;
+}
+
+.itu-glossary-inline-link {
+	color: #2563eb;
+	border-bottom: 1px dotted #93c5fd;
+	text-decoration: none;
+	transition: border-color 120ms ease, color 120ms ease;
+}
+
+.itu-glossary-inline-link:hover {
+	color: #1d4ed8;
+	border-bottom-color: #2563eb;
+	border-bottom-style: solid;
+}
+
+.itu-glossary-faq {
+	margin-top: 48px;
+}
+
+.itu-glossary-quick-def {
+	background: #f8fafc;
+	border-left: 4px solid #2563eb;
+	border-radius: 6px;
+	padding: 16px 20px;
+	margin-block: 24px 28px;
+}
+
+.itu-glossary-quick-def-label {
+	font-size: 0.72rem;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: #2563eb;
+	margin: 0 0 6px;
+	font-weight: 700;
+}
+
+.itu-glossary-quick-def-body {
+	margin: 0;
+	font-size: 1.05rem;
+	color: #1e293b;
+	line-height: 1.55;
+}
+
+.itu-glossary-term-body {
+	font-size: 1.05rem;
+	color: #1e293b;
+	line-height: 1.7;
+	margin-block: 8px 40px;
+}
+
+.itu-glossary-term-body h3 {
+	font-size: 1.35rem;
+	color: #1e293b;
+	margin-block: 32px 12px;
+	font-weight: 700;
+}
+
+.itu-glossary-term-body p {
+	margin-block: 0 14px;
+}
+
+.itu-glossary-term-body ul {
+	margin-block: 8px 18px;
+	padding-left: 24px;
+}
+
+.itu-glossary-term-body li {
+	margin-block: 6px;
+}
+
+.itu-glossary-related-blogs {
+	margin-block: 40px;
+	padding: 24px;
+	background: #fff;
+	border: 1px solid #e2e8f0;
+	border-radius: 10px;
+}
+
+.itu-glossary-related-blogs-title {
+	font-size: 1.5rem;
+	margin: 0 0 6px;
+	color: #1e293b;
+	font-weight: 700;
+}
+
+.itu-glossary-related-blogs-intro {
+	color: #64748b;
+	margin: 0 0 18px;
+	font-size: 0.95rem;
+}
+
+.itu-glossary-related-blogs-intro strong {
+	color: #1e293b;
+}
+
+.itu-glossary-related-blogs-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: 12px;
+}
+
+.itu-glossary-related-blog-link {
+	display: block;
+	padding: 14px 16px;
+	background: #f8fafc;
+	border: 1px solid #e2e8f0;
+	border-radius: 8px;
+	text-decoration: none;
+	transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.itu-glossary-related-blog-link:hover {
+	border-color: #2563eb;
+	box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+.itu-glossary-related-blog-title {
+	display: block;
+	font-weight: 600;
+	color: #1e293b;
+	font-size: 1.05rem;
+	margin-bottom: 4px;
+}
+
+.itu-glossary-related-blog-excerpt {
+	display: block;
+	color: #64748b;
+	font-size: 0.9rem;
+	line-height: 1.45;
+}
+
+.itu-glossary-term-nav {
+	margin-block: 32px 8px;
+	padding-block: 16px;
+	border-top: 1px solid #e2e8f0;
+}
+
+.itu-glossary-term-back {
+	color: #2563eb;
+	text-decoration: none;
+	font-weight: 600;
+	font-size: 0.95rem;
+}
+
+.itu-glossary-term-back:hover {
+	text-decoration: underline;
+}
+
+/* ─── Practice Test Study Guide ─────────────────────────────────────────── */
+.itu-pt-study-guide-main {
+	padding-block: 24px 48px;
+}
+
+.itu-pt-study-guide-hero {
+	margin-block: 16px 36px;
+	display: block;
+	width: 100%;
+}
+
+.itu-pt-study-guide-actions {
+	margin: 0 0 18px;
+}
+
+.itu-pt-study-guide-back-btn {
+	display: inline-flex;
+	align-items: center;
+	padding: 7px 14px;
+	background: #f1f5f9;
+	color: #2563eb;
+	border: 1px solid #e2e8f0;
+	border-radius: 999px;
+	font-size: 0.88rem;
+	font-weight: 600;
+	text-decoration: none;
+	transition: background 120ms ease, border-color 120ms ease;
+}
+
+.itu-pt-study-guide-back-btn:hover {
+	background: #eff6ff;
+	border-color: #bfdbfe;
+	color: #1d4ed8;
+	text-decoration: none;
+}
+
+.itu-pt-study-guide-title {
+	font-size: clamp(2rem, 3.4vw, 2.75rem);
+	font-weight: 800;
+	color: #1e293b;
+	margin: 0 0 10px;
+	line-height: 1.15;
+	width: 100%;
+	max-width: none;
+}
+
+.itu-pt-study-guide-sub {
+	color: #64748b;
+	font-size: 1.05rem;
+	margin: 0;
+}
+
+.itu-pt-study-guide-back-link {
+	color: #2563eb;
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.itu-pt-study-guide-back-link:hover {
+	text-decoration: underline;
+}
+
+.itu-pt-study-guide-questions {
+	display: grid;
+	gap: 12px;
+	margin-block: 24px;
+}
+
+.itu-pt-question {
+	background: #ffffff;
+	border: 1px solid #e2e8f0;
+	border-radius: 8px;
+	padding: 0;
+	transition: border-color 120ms ease;
+}
+
+.itu-pt-question[open] {
+	border-color: #2563eb;
+	box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+.itu-pt-question-summary {
+	padding: 14px 18px;
+	cursor: pointer;
+	font-weight: 500;
+	color: #1e293b;
+	line-height: 1.5;
+	display: flex;
+	gap: 10px;
+}
+
+.itu-pt-question-summary:hover {
+	background: #f8fafc;
+}
+
+.itu-pt-question-num {
+	color: #2563eb;
+	font-weight: 700;
+	flex-shrink: 0;
+}
+
+.itu-pt-question-text {
+	flex: 1;
+}
+
+.itu-pt-question-body {
+	padding: 8px 18px 18px;
+	border-top: 1px solid #f1f5f9;
+}
+
+.itu-pt-answer-heading {
+	font-size: 0.78rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	font-weight: 700;
+	color: #64748b;
+	margin: 14px 0 8px;
+}
+
+.itu-pt-answer-list {
+	list-style: none;
+	margin: 0 0 6px;
+	padding: 0;
+}
+
+.itu-pt-answer-list li {
+	padding: 8px 12px;
+	margin: 4px 0;
+	border-radius: 6px;
+	font-size: 0.98rem;
+}
+
+.itu-pt-answer-list--correct li {
+	background: #dcfce7;
+	color: #14532d;
+	border-left: 3px solid #16a34a;
+}
+
+.itu-pt-answer-list--wrong li {
+	background: #f8fafc;
+	color: #64748b;
+	border-left: 3px solid #cbd5e1;
+}
+
+.itu-pt-answer-text {
+	display: block;
+	font-weight: 600;
+}
+
+.itu-pt-answer-list--wrong .itu-pt-answer-text {
+	font-weight: 500;
+}
+
+.itu-pt-answer-explanation {
+	margin: 6px 0 0;
+	font-size: 0.9rem;
+	font-weight: 400;
+	color: inherit;
+	opacity: 0.85;
+	line-height: 1.5;
+}
+
+.itu-pt-study-guide-nav {
+	margin-block: 32px 8px;
+	padding-block: 16px;
+	border-top: 1px solid #e2e8f0;
 }

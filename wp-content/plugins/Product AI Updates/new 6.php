@@ -15,6 +15,51 @@ function aicg_release_session_lock() {
     }
 }
 
+/**
+ * Send a prompt through the central AI router (mu-plugins/ai-provider.php) using
+ * the model configured in Settings > AI Settings for $process. Falls back to a
+ * direct OpenAI call. Always returns a string or WP_Error — never a silent empty.
+ */
+function aicg_ai_request($instruction, $user_prompt, $process, $temperature = 0.7, $max_tokens = 0) {
+    $model = function_exists('itu_ai_model') ? itu_ai_model($process) : '';
+    if (!$model) $model = 'gpt-4o-mini';
+
+    if (function_exists('itu_ai_call')) {
+        $args = ['key_name' => 'openai', 'timeout' => 240];
+        // Claude defaults to 4096 output tokens, which can cut off a long description.
+        // Only pass it for Claude — OpenAI's newer models reject 'max_tokens'.
+        if ($max_tokens && strpos($model, 'claude-') === 0) {
+            $args['max_tokens'] = $max_tokens;
+        }
+        return itu_ai_call($instruction, $user_prompt, $model, $temperature, $args);
+    }
+
+    $api_key = get_option('aicg_api_key');
+    if (!$api_key) return new WP_Error('no_key', 'OpenAI API key not configured.');
+
+    $response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
+        'headers' => ['Authorization' => 'Bearer ' . $api_key, 'Content-Type' => 'application/json'],
+        'body'    => json_encode([
+            'model'       => $model,
+            'messages'    => [
+                ['role' => 'system', 'content' => $instruction],
+                ['role' => 'user', 'content' => $user_prompt],
+            ],
+            'temperature' => $temperature,
+        ]),
+        'timeout' => 240,
+    ]);
+    if (is_wp_error($response)) return $response;
+
+    $code = wp_remote_retrieve_response_code($response);
+    $data = json_decode(wp_remote_retrieve_body($response), true);
+    if ($code >= 400) {
+        return new WP_Error('openai_error', 'OpenAI error: ' . ($data['error']['message'] ?? "HTTP {$code}"));
+    }
+    $content = trim($data['choices'][0]['message']['content'] ?? '');
+    return $content !== '' ? $content : new WP_Error('empty', 'No content returned from OpenAI.');
+}
+
 // remove quotes from content.
 function aicg_strip_surrounding_quotes($text) {
     return preg_replace('/^(["\'])(.*)\1$/s', '$2', trim($text));
@@ -99,6 +144,59 @@ function aicg_render_meta_box($post) {
 <script>
 jQuery(document).ready(function($) {
 
+// Helper: write HTML into a WP editor field (content / excerpt) in every form it
+// may be in — TinyMCE visual tab, raw textarea (Text tab), and Gutenberg.
+function setEditorField(id, html) {
+    var filled = false;
+    if (typeof tinymce !== 'undefined' && tinymce.get(id)) {
+        var ed = tinymce.get(id);
+        ed.setContent(html);
+        ed.save(); // sync back to the textarea
+        ed.fire('change');
+        filled = true;
+    }
+    var $ta = $('#' + id);
+    if ($ta.length) {
+        $ta.val(html).trigger('input').trigger('change');
+        filled = true;
+    }
+    if (window.wp && wp.data && wp.data.select('core/editor')) {
+        try {
+            if (id === 'content') {
+                wp.data.dispatch('core/editor').resetBlocks(wp.blocks.rawHandler({ HTML: html }));
+            } else if (id === 'excerpt') {
+                wp.data.dispatch('core/editor').editPost({ excerpt: html });
+            }
+            filled = true;
+        } catch (e) { console.warn('Gutenberg update failed', e); }
+    }
+    if (!filled) console.warn('aicg: could not find editor field #' + id);
+    return filled;
+}
+
+// Read the current description as plain text from whichever editor is active.
+function getDescriptionText() {
+    if (typeof tinymce !== 'undefined' && tinymce.get('content') && !tinymce.get('content').isHidden()) {
+        return tinymce.get('content').getContent({ format: 'text' });
+    }
+    if ($('#content').length) {
+        return $('#content').val().replace(/<[^>]*>/g, '');
+    }
+    return '';
+}
+
+// Surface server errors (timeouts, 500s, fatal errors) from any aicg AJAX call,
+// which the $.post success callbacks below would otherwise swallow silently.
+$(document).ajaxError(function (event, xhr, settings) {
+    if (!settings || typeof settings.data !== 'string' || settings.data.indexOf('action=aicg_') === -1) return;
+    var action = (settings.data.match(/action=(aicg_[a-z_]+)/) || [])[1] || 'request';
+    var msg = '❌ Server error during ' + action + ' (HTTP ' + xhr.status + ')';
+    if (xhr.responseText) msg += ': ' + $('<div>').html(xhr.responseText).text().substring(0, 200);
+    $('#aicg_status').text(msg);
+    $('#aicg_process_all').prop('disabled', false);
+    console.error(action, xhr);
+});
+
 // Helper: push keyword + description into RankMath's Gutenberg data store
 function updateRankMathUI(keyword, description) {
     // Update via RankMath's data store (Gutenberg)
@@ -150,27 +248,18 @@ $('#aicg_process_all').click(function () {
         post_id: postId
     }, function (descResp) {
         if (!descResp.success) {
-            $('#aicg_status').text('❌ Failed at Step 1: Description.');
+            $('#aicg_status').text('❌ Failed at Step 1: Description — ' + (descResp.data || 'unknown error'));
             $('#aicg_process_all').prop('disabled', false);
             console.error(descResp.data);
             return;
         }
 
         const fullDesc = descResp.data.content;
-        if (typeof tinymce !== 'undefined' && tinymce.get('content')) {
-            tinymce.get('content').setContent(fullDesc);
-        } else {
-            $('#content').val(fullDesc);
-        }
+        setEditorField('content', fullDesc);
 
         $('#aicg_status').text('Step 2 - Generating Short Description...');
-        // Step 2: Generate Short Description using the current WP description
-        var currentDesc = '';
-        if (typeof tinymce !== 'undefined' && tinymce.get('content') && !tinymce.get('content').isHidden()) {
-            currentDesc = tinymce.get('content').getContent({ format: 'text' });
-        } else if ($('#content').length) {
-            currentDesc = $('#content').val().replace(/<[^>]*>/g, '');
-        }
+        // Step 2: Generate Short Description from the description just generated
+        var currentDesc = $('<div>').html(fullDesc).text() || getDescriptionText();
         var shortPrompt = $('#aicg_prompt').val().split("\n")[0] + "\n\n" + currentDesc;
         $.post(ajaxurl, {
             action: 'aicg_generate_content',
@@ -179,18 +268,14 @@ $('#aicg_process_all').click(function () {
             post_id: postId
         }, function (shortResp) {
             if (!shortResp.success) {
-                $('#aicg_status').text('❌ Failed at Step 2: Short Description.');
+                $('#aicg_status').text('❌ Failed at Step 2: Short Description — ' + (shortResp.data || 'unknown error'));
                 $('#aicg_process_all').prop('disabled', false);
                 console.error(shortResp.data);
                 return;
             }
 
             const shortDesc = shortResp.data.content;
-            if (typeof tinymce !== 'undefined' && tinymce.get('excerpt')) {
-                tinymce.get('excerpt').setContent(shortDesc);
-            } else {
-                $('#excerpt').val(shortDesc);
-            }
+            setEditorField('excerpt', shortDesc);
 
             $('#aicg_status').text('Step 3 - Generating FAQ HTML...');
             // Step 3: Generate FAQ HTML
@@ -282,20 +367,14 @@ $('#aicg_generate_audience').click(function () {
             console.error(response.data);
         }
     });
-});$
+});
 
     function callAIContent(type) {
         var prompt = $('#aicg_prompt').val();
 
         // For short descriptions, always use the current WP description as context
         if (type === 'short') {
-            var currentDesc = '';
-            if (typeof tinymce !== 'undefined' && tinymce.get('content') && !tinymce.get('content').isHidden()) {
-                currentDesc = tinymce.get('content').getContent({ format: 'text' });
-            } else if ($('#content').length) {
-                currentDesc = $('#content').val().replace(/<[^>]*>/g, '');
-            }
-            prompt = prompt.split("\n")[0] + "\n\n" + currentDesc;
+            prompt = prompt.split("\n")[0] + "\n\n" + getDescriptionText();
         }
 
         $('#aicg_status').text('Generating ' + type + '...');
@@ -325,30 +404,9 @@ $('#aicg_generate_audience').click(function () {
                 if (typeof faqJSON === 'object') faqJSON = JSON.stringify(faqJSON, null, 2);
 
                 if (type === 'description') {
-                    // Try Gutenberg first
-                    if (window.wp && wp.data && wp.data.dispatch('core/editor')) {
-                        try {
-                            var blocks = wp.blocks.rawHandler({ HTML: content });
-                            wp.data.dispatch('core/editor').resetBlocks(blocks);
-                        } catch(e) {
-                            console.log('Gutenberg insert failed, trying classic editor', e);
-                        }
-                    }
-                    // Try TinyMCE (Classic Editor visual tab)
-                    if (typeof tinymce !== 'undefined' && tinymce.get('content')) {
-                        tinymce.get('content').setContent(content);
-                    }
-                    // Always update the raw textarea (Classic Editor text tab)
-                    if ($('#content').length) {
-                        $('#content').val(content);
-                    }
+                    setEditorField('content', content);
                 } else if (type === 'short') {
-                    if (typeof tinymce !== 'undefined' && tinymce.get('excerpt')) {
-                        tinymce.get('excerpt').setContent(content);
-                    }
-                    if ($('#excerpt').length) {
-                        $('#excerpt').val(content);
-                    }
+                    setEditorField('excerpt', content);
                 } else if (type === 'faq') {
                     $('textarea[name="acf[field_6816a44480234]"]').val(content);
                     $('textarea[name="acf[field_6816d54e3951d]"]').val(faqJSON);
@@ -481,25 +539,11 @@ function aicg_update_rankmath_seo() {
         $kw_instruction = "You are an SEO expert. Given the course title and description below, return a single primary focus keyword (2-4 words) that best represents what this course is about. The keyword should be something people would actually search for. Return ONLY the keyword, nothing else — no quotes, no explanation.";
         $kw_prompt = "Course Title: " . $title . "\n\nCourse Description:\n" . mb_substr($plain_content, 0, 1500);
 
-        $kw_response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $api_key,
-                'Content-Type' => 'application/json'
-            ],
-            'body' => json_encode([
-                'model' => 'gpt-4',
-                'messages' => [
-                    ['role' => 'system', 'content' => $kw_instruction],
-                    ['role' => 'user', 'content' => $kw_prompt]
-                ],
-                'temperature' => 0.3
-            ]),
-            'timeout' => 60
-        ]);
-
-        if (!is_wp_error($kw_response)) {
-            $kw_data = json_decode(wp_remote_retrieve_body($kw_response), true);
-            $primary_keyword = sanitize_text_field(trim($kw_data['choices'][0]['message']['content'] ?? ''));
+        $kw_result = aicg_ai_request($kw_instruction, $kw_prompt, 'product_seo', 0.3);
+        if (!is_wp_error($kw_result)) {
+            $primary_keyword = sanitize_text_field(aicg_strip_surrounding_quotes($kw_result));
+        } else {
+            error_log('[AICG] RankMath keyword AI error: ' . $kw_result->get_error_message());
         }
     }
 
@@ -624,35 +668,25 @@ default:
     break;
     }
 
-    aicg_log('building request JSON');
-    $request = json_encode([
-        'model' => 'gpt-4',
-        'messages' => [
-            ['role' => 'system', 'content' => $instruction],
-            ['role' => 'user', 'content' => $prompt]
-        ],
-        'temperature' => 0.7
-    ]);
-    aicg_log('request built, calling OpenAI, request_length=' . strlen($request));
+    $process_map = ['description' => 'product_description', 'short' => 'product_short_desc', 'faq' => 'product_faq'];
+    $process = $process_map[$type] ?? 'product_description';
+    $max_tokens = ($type === 'description') ? 8000 : 0;
 
-    $response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
-        'headers' => [
-            'Authorization' => 'Bearer ' . $api_key,
-            'Content-Type' => 'application/json'
-        ],
-        'body'    => $request,
-        'timeout' => 180
-    ]);
-    aicg_log('OpenAI response received');
+    aicg_log('calling AI, process=' . $process);
+    $result = aicg_ai_request($instruction, $prompt, $process, 0.7, $max_tokens);
 
-    if (is_wp_error($response)) {
-        aicg_log('OpenAI WP_Error: ' . $response->get_error_message());
-        wp_send_json_error('OpenAI Error: ' . $response->get_error_message());
+    if (is_wp_error($result)) {
+        aicg_log('AI error: ' . $result->get_error_message());
+        wp_send_json_error('AI Error (' . $type . '): ' . $result->get_error_message());
     }
 
-    $data = json_decode(wp_remote_retrieve_body($response), true);
-    $full_faq = aicg_strip_surrounding_quotes($data['choices'][0]['message']['content'] ?? '');
+    $full_faq = aicg_strip_surrounding_quotes($result);
     aicg_log('content extracted, length=' . strlen($full_faq));
+
+    if (trim(wp_strip_all_tags($full_faq)) === '') {
+        aicg_log('AI returned empty content — not saving.');
+        wp_send_json_error('AI returned empty content for ' . $type . '. Nothing was saved.');
+    }
     $faq_html = '';
     $faq_json = '';
 

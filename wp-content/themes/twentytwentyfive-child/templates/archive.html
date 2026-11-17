@@ -11,43 +11,9 @@
 	[itu_plans_bar]
 	<!-- /wp:shortcode -->
 
-	<!-- wp:query {"queryId":1,"query":{"perPage":10,"pages":0,"offset":0,"postType":"post","order":"desc","orderBy":"modified","inherit":true},"className":"itu-blog-query"} -->
-	<div class="wp-block-query itu-blog-query">
-
-		<!-- wp:html -->
-		<div class="itu-archive-header">
-		<!-- /wp:html -->
-
-		<!-- wp:query-title {"type":"archive","className":"itu-archive-title"} /-->
-
-		<!-- wp:shortcode -->
-		[ivory-search id="1004565" title="AJAX Search Form"]
-		<!-- /wp:shortcode -->
-
-		<!-- wp:html -->
-		</div>
-		<!-- /wp:html -->
-
-		<!-- wp:post-template {"layout":{"type":"grid","columnCount":3},"className":"itu-blog-grid"} -->
-
-			<!-- wp:group {"className":"itu-blog-card","layout":{"type":"default"}} -->
-			<div class="wp-block-group itu-blog-card">
-				<!-- wp:post-title {"level":3,"isLink":true,"className":"itu-blog-card__title"} /-->
-				<!-- wp:post-excerpt {"excerptLength":20,"className":"itu-blog-card__excerpt"} /-->
-				<!-- wp:read-more {"content":"Read Article →","className":"itu-blog-card__link"} /-->
-			</div>
-			<!-- /wp:group -->
-
-		<!-- /wp:post-template -->
-
-		<!-- wp:query-pagination {"className":"itu-blog-pagination","layout":{"type":"flex","justifyContent":"center"}} -->
-			<!-- wp:query-pagination-previous /-->
-			<!-- wp:query-pagination-numbers /-->
-			<!-- wp:query-pagination-next /-->
-		<!-- /wp:query-pagination -->
-
-	</div>
-	<!-- /wp:query -->
+	<!-- wp:shortcode -->
+	[itu_blog_archive]
+	<!-- /wp:shortcode -->
 
 </main>
 <!-- /wp:group -->

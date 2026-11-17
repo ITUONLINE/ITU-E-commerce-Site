@@ -141,409 +141,316 @@ function aipm_call_openai($instruction, $user_prompt, $model = '', $temperature 
     return aipm_strip_quotes($content);
 }
 
-// ─── AI Prompts (mirrored from existing plugin) ─────────────────────────────
+// ─── AI Step Shims ──────────────────────────────────────────────────────────
+//
+// REFACTORED 2026-04: All product AI rewrite logic now lives in the SEO AI
+// AutoPilot plugin (SEOM_Blog_Refresher). The functions below are kept as
+// thin back-compat shims that delegate to the canonical implementation, so
+// any external caller using aipm_step_* (including this plugin's own admin
+// page bulk processor) keeps working without changes.
+//
+// New code should call SEOM_Blog_Refresher::* directly instead.
+//
 
-function aipm_get_description_instruction() {
-    $site_name = get_bloginfo('name');
-    $rules = [
-        "You are an experienced IT instructor writing a course description for {$site_name}. Write as if YOU built this course and are personally explaining it to a prospective student sitting across from you. Your voice is that of a teacher who knows the subject deeply — direct, confident, specific, occasionally opinionated about what matters most. Every description you write should feel unique to THIS course, not like a template applied to different topics. Never sound like a marketing department or an AI.",
-        '',
-        '=== OUTPUT FORMAT — READ THIS FIRST ===',
-        'Return ONLY valid HTML. ABSOLUTELY NO MARKDOWN.',
-        '- Do NOT use **bold** — use <strong>text</strong>',
-        '- Do NOT use ## or ### — use <h2> and <h3>',
-        '- Do NOT use - or * for lists — use <ul><li>',
-        '- Tags allowed: p, h2, h3, ul, li, ol, strong, em, blockquote. No classes. No h1.',
-        '',
-        '=== TRADEMARK & COPYRIGHT ===',
-        'When you mention a vendor or certification name, use the proper symbol on FIRST mention only:',
-        '- Vendor names: CompTIA&reg;, Cisco&reg;, Microsoft&reg;, AWS&reg;, EC-Council&reg;, ISC2&reg;, ISACA&reg;, PMI&reg;',
-        '- Cert names: CEH&trade;, C|EH&trade;, CISSP&reg;, Security+&trade;, A+&trade;, CCNA&trade;, PMP&reg;',
-        '- After first mention, symbols may be omitted.',
-        '- If you mention EC-Council or CEH, use "EC-Council&reg; Certified Ethical Hacker (C|EH&trade;)" on first mention.',
-        '- ONLY include a trademark disclaimer if you actually mention trademarked vendor/cert names in the content.',
-        '  If included, place at end: <p><em>[Vendor]&reg; and [Cert]&trade; are trademarks of [Owner]. This content is for educational purposes.</em></p>',
-        '- Do NOT add a blanket disclaimer for vendors not mentioned in the content.',
-        '- Do NOT invent exam codes not in the title or content.',
-        '',
-        '=== YOUR TASK ===',
-        "Write a comprehensive product description for an on-demand IT training course sold on {$site_name}.",
-        'This is an ON-DEMAND course — students purchase it and access self-paced video training immediately.',
-        'Write completely fresh copy. Do NOT reuse or rephrase the existing content.',
-        '',
-        '=== CONTENT REQUIREMENTS ===',
-        'TARGET: 1,500-2,500 words. Competing pages average 2,000-3,000 words with 8-15 sections.',
-        'Do NOT stop at 500 words. Write a thorough, in-depth description that competes with top-ranking pages.',
-        '',
-        'You decide the structure. Choose sections and headings that make sense for THIS specific course.',
-        'Write what a prospective student needs to know to decide whether to enroll.',
-        'Cover topics like: what the course teaches, who benefits from it, what skills they gain,',
-        'career impact, exam preparation (if certification-related), industry context, prerequisites.',
-        'If a course outline is provided, use it to write about specific modules and skills in detail.',
-        'If competitive research is provided, address the content gaps and topics it identifies.',
-        '',
-        'DEPTH REQUIREMENTS:',
-        '- Each h2 section: 150-300 words minimum. Go deep. Explain the "why" and "how."',
-        '- Include specific details: exam domains, job titles, salary ranges, tools, frameworks, real scenarios.',
-        '- Reference authoritative sources where relevant: BLS salary data, vendor documentation, industry standards.',
-        '- Use format variety: paragraphs, bullet lists, numbered lists, blockquotes for key insights.',
-        '',
-        'CONTENT RULES:',
-        '- BANNED OPENINGS AND PHRASES — Do NOT use ANY of these patterns anywhere in the content:',
-        '  "In today\'s rapidly evolving..." / "In an ever-changing landscape..." / "In the fast-paced world of..."',
-        '  "As technology continues to..." / "In today\'s digital age..." / "With the growing importance of..."',
-        '  "As organizations increasingly..." / "In the modern IT landscape..." / "In today\'s ever-changing IT environment..."',
-        '  "As cyber threats continue to grow..." / "In an increasingly connected world..."',
-        '  "The demand for skilled professionals..." / "As businesses face mounting..."',
-        '  Or ANY variation that starts with a sweeping generalization about technology, the industry, or the modern world.',
-        '  Instead, open with something SPECIFIC: a concrete problem this skill solves, a real workplace scenario, a direct statement about what the student will be able to do, or a hard fact.',
-        '- Do NOT include a FAQ section in the description. FAQs are generated separately with proper schema markup in a dedicated step. Including FAQs here creates duplicates.',
-        '- Do NOT mention course stats like video hours, lesson counts, or platform features.',
-        '- Do NOT invent certifications, exam codes, or credentials not referenced in the course title or content.',
-        '- Write in second person ("you"), active voice, varied sentence length.',
-        '- Bold the primary keyword with <strong> once in the opening.',
-        '- If you mentioned any trademarked vendor or certification names, end with a specific disclaimer naming only the trademarks you actually used. Do NOT include a generic blanket disclaimer if no trademarks were mentioned.',
-    ];
-    return implode("\n", $rules);
+if (!function_exists('aipm_step_description')) {
+    function aipm_step_description($post_id) {
+        if (!class_exists('SEOM_Blog_Refresher')) {
+            return new WP_Error('missing_seom', 'SEO AI AutoPilot plugin is required for AI content generation.');
+        }
+        return SEOM_Blog_Refresher::step_long_content($post_id);
+    }
 }
 
-function aipm_get_short_desc_instruction() {
-    return "Write a meta description for this IT training course. Rules: exactly 1-2 sentences, 140-155 characters total, start with an action verb (Master, Prepare, Learn, Build), mention the target audience or career outcome, do not use quotes or special characters. IMPORTANT: Only mention a certification name or exam code if one is explicitly stated in the course content provided. Do NOT invent or assume any certification or exam code. Many courses are general skill-building courses with no associated certification. This will be displayed in Google search results.";
+if (!function_exists('aipm_step_short_description')) {
+    function aipm_step_short_description($post_id, $description = '') {
+        if (!class_exists('SEOM_Blog_Refresher')) {
+            return new WP_Error('missing_seom', 'SEO AI AutoPilot plugin is required for AI content generation.');
+        }
+        // SEOM_Blog_Refresher::step_meta_description() ignores the second arg
+        // (it always reads post_content); the optional $description param here
+        // is preserved only for back-compat with old AIPM callers.
+        return SEOM_Blog_Refresher::step_meta_description($post_id);
+    }
 }
 
-function aipm_get_faq_instruction($post_id = 0) {
-    $instruction = "You are an IT certification training expert. Generate 5 FAQ entries for the course below. Each FAQ must follow this exact HTML format:\n\n<details><summary>Question here?</summary><div class=\"faq-content\">\n<p>First paragraph of the answer.</p>\n<p>Second paragraph with more detail.</p>\n</div></details>\n\nCRITICAL FORMATTING:\n- Every answer MUST wrap ALL text in <p> tags. Do NOT put raw text inside faq-content without <p> tags\n- Break each answer into 2-4 separate paragraphs using <p> tags\n- Do NOT write one long unbroken paragraph\n\nQUESTION RULES:\n- Ask questions a student would search before enrolling\n- Include the certification name or exam code in at least 3 of the 5 questions if the course has one\n- Do NOT ask generic questions about the website, pricing, or account access\n- Do NOT invent certification names or exam codes not present in the course content\n\nANSWER RULES:\n- Each answer: 150-250 words\n- Use <p> tags for paragraphs and <ul><li> for lists where appropriate\n- Include the certification name, exam code, vendor name, and related technologies naturally\n- Cover: exam scope, key domains/topics, career benefits, preparation strategies\n- Write authoritatively — demonstrate subject matter expertise\n- Do NOT number the FAQs or add any text outside the <details> blocks";
-
-    if ($post_id) {
-        $sku = get_post_meta($post_id, '_sku', true);
-        if ($sku && function_exists('get_course_outline_from_sku')) {
-            $outline = get_course_outline_from_sku($sku);
-            if (is_array($outline) && count($outline)) {
-                $csv_lines = array_map(function($row) {
-                    return "{$row['module_title']},{$row['lesson_title']}";
-                }, $outline);
-                $instruction .= "\n\nCourse Outline:\n" . implode("\n", $csv_lines);
-            }
+if (!function_exists('aipm_step_faq_html')) {
+    function aipm_step_faq_html($post_id) {
+        if (!class_exists('SEOM_Blog_Refresher')) {
+            return new WP_Error('missing_seom', 'SEO AI AutoPilot plugin is required for AI content generation.');
         }
+        return SEOM_Blog_Refresher::step_faq_html($post_id);
     }
-
-    return $instruction;
 }
 
-function aipm_get_keyword_instruction() {
-    return "You are an SEO expert. Given the course title and description below, return a single primary focus keyword (2-4 words) that best represents what this course is about. The keyword should be something people would actually search for. Return ONLY the keyword, nothing else — no quotes, no explanation.";
+if (!function_exists('aipm_step_faq_json')) {
+    function aipm_step_faq_json($post_id, $faq_html = '') {
+        if (!class_exists('SEOM_Blog_Refresher')) {
+            return new WP_Error('missing_seom', 'SEO AI AutoPilot plugin is required for AI content generation.');
+        }
+        return SEOM_Blog_Refresher::step_faq_json($post_id, $faq_html);
+    }
 }
 
-// ─── Pipeline Steps ─────────────────────────────────────────────────────────
-
-function aipm_step_description($post_id) {
-    // Update stale years in title before generating content
-    if (class_exists('SEOM_Blog_Refresher')) {
-        SEOM_Blog_Refresher::update_title_year($post_id);
-    }
-
-    $title   = get_the_title($post_id);
-    $content = wp_strip_all_tags(get_post_field('post_content', $post_id));
-
-    // Always inject course outline when available — gives AI real module/lesson structure
-    // to write from, whether this is a new product or a refresh of existing content
-    $outline_text = '';
-    $sku = get_post_meta($post_id, '_sku', true);
-    if ($sku && function_exists('get_course_outline_from_sku')) {
-        $outline = get_course_outline_from_sku($sku);
-        if (is_array($outline) && count($outline)) {
-            $csv_lines = array_map(function($row) {
-                return "{$row['module_title']},{$row['lesson_title']}";
-            }, $outline);
-            $outline_text = "Course Outline:\n" . implode("\n", $csv_lines);
+if (!function_exists('aipm_step_rankmath')) {
+    function aipm_step_rankmath($post_id) {
+        if (!class_exists('SEOM_Blog_Refresher')) {
+            return new WP_Error('missing_seom', 'SEO AI AutoPilot plugin is required for AI content generation.');
         }
+        return SEOM_Blog_Refresher::step_rankmath($post_id);
     }
+}
 
-    // Cap outline to first 50 modules to avoid token overflow
-    if (!empty($outline_text) && substr_count($outline_text, "\n") > 50) {
-        $ol_lines = explode("\n", $outline_text);
-        $outline_text = implode("\n", array_slice($ol_lines, 0, 51)) . "\n... (additional modules omitted)";
-    }
-
-    // For refreshes: send ONLY the course outline (not the old description).
-    // Sending old content causes the AI to mimic/paraphrase the existing structure
-    // instead of writing genuinely fresh copy.
-    // For new products with no outline: fall back to existing content as context.
-    if (!empty($outline_text)) {
-        $prompt_content = $outline_text;
-    } elseif (!empty(trim($content))) {
-        $prompt_content = mb_substr($content, 0, 3000);
-    } else {
-        $prompt_content = '(No existing content or outline available. Write based on the course title.)';
-    }
-
-    // Detect vendor/cert names in the title to build specific trademark reminders
-    $tm_reminders = [];
-    $title_lower = strtolower($title);
-    $tm_map = [
-        'ceh'        => 'Use "EC-Council&reg; Certified Ethical Hacker (C|EH&trade;)" on first mention. Add disclaimer: "CEH&trade; and Certified Ethical Hacker&trade; are trademarks of EC-Council&reg;."',
-        'ec-council' => 'Use "EC-Council&reg;" with &reg; on first mention.',
-        'ethical hacker' => 'Use "EC-Council&reg; Certified Ethical Hacker (C|EH&trade;)" on first mention. Add disclaimer: "CEH&trade; and Certified Ethical Hacker&trade; are trademarks of EC-Council&reg;."',
-        'comptia'    => 'Use "CompTIA&reg;" with &reg; on first mention.',
-        'security+'  => 'Use "CompTIA&reg; Security+&trade;" with symbols on first mention.',
-        'network+'   => 'Use "CompTIA&reg; Network+&trade;" with symbols on first mention.',
-        'a+'         => 'Use "CompTIA&reg; A+&trade;" with symbols on first mention.',
-        'cisco'      => 'Use "Cisco&reg;" with &reg; on first mention.',
-        'ccna'       => 'Use "Cisco&reg; CCNA&trade;" with symbols on first mention.',
-        'ccnp'       => 'Use "Cisco&reg; CCNP&trade;" with symbols on first mention.',
-        'aws'        => 'Use "AWS&reg;" (Amazon Web Services) with &reg; on first mention.',
-        'microsoft'  => 'Use "Microsoft&reg;" with &reg; on first mention.',
-        'azure'      => 'Use "Microsoft&reg; Azure&trade;" with symbols on first mention.',
-        'cissp'      => 'Use "ISC2&reg; CISSP&reg;" with symbols on first mention.',
-        'pmp'        => 'Use "PMI&reg; PMP&reg;" with symbols on first mention.',
-        'isaca'      => 'Use "ISACA&reg;" with &reg; on first mention.',
-        'cisa'       => 'Use "ISACA&reg; CISA&reg;" with symbols on first mention.',
-        'cism'       => 'Use "ISACA&reg; CISM&reg;" with symbols on first mention.',
-    ];
-    foreach ($tm_map as $keyword => $reminder) {
-        if (strpos($title_lower, $keyword) !== false) {
-            $tm_reminders[] = $reminder;
+if (!function_exists('aipm_step_seo_title')) {
+    function aipm_step_seo_title($post_id) {
+        if (!class_exists('SEOM_Blog_Refresher')) {
+            return new WP_Error('missing_seom', 'SEO AI AutoPilot plugin is required for AI content generation.');
         }
+        return SEOM_Blog_Refresher::step_seo_title($post_id);
     }
-    $tm_reminders = array_unique($tm_reminders);
+}
 
-    $tm_block = '';
-    if (!empty($tm_reminders)) {
-        $tm_block = "\n\nTRADEMARK REQUIREMENTS FOR THIS COURSE (legal — do not skip):\n- " . implode("\n- ", $tm_reminders)
-            . "\n- End with a disclaimer naming ONLY the trademarks listed above — not a generic blanket disclaimer.";
-    }
-
-    $prompt = trim($title . $tm_block . "\n\n" . $prompt_content);
-
-    // Inject data-driven target keywords from GSC if available
-    $instruction = aipm_get_description_instruction();
-    if (class_exists('SEOM_Keyword_Researcher')) {
-        $kw_data = SEOM_Keyword_Researcher::get_target_keywords($post_id);
-        if (!empty($kw_data['primary'])) {
-            $instruction .= "\n\nTARGET SEO KEYWORDS (from actual Google search data):\n"
-                . "Primary keyword (use in the opening paragraph + one H2 heading + 3-5 times naturally): " . $kw_data['primary'] . "\n";
-            if (!empty($kw_data['secondary'])) {
-                $instruction .= "LSI/Secondary keywords (use each 1-2 times naturally): " . implode(', ', $kw_data['secondary']) . "\n";
-            }
-            if (!empty($kw_data['rising'])) {
-                $instruction .= "Trending/Rising keywords (incorporate these — they are gaining search volume): " . implode(', ', $kw_data['rising']) . "\n";
-            }
-            $instruction .= "These are real queries people use to find this course. Optimize for them.";
+if (!function_exists('aipm_step_timestamp')) {
+    function aipm_step_timestamp($post_id) {
+        if (!class_exists('SEOM_Blog_Refresher')) {
+            // Fallback: still write the timestamp meta even without SEOM
+            $datetime = current_time('mysql');
+            update_post_meta($post_id, 'last_page_refresh', $datetime);
+            return $datetime;
         }
+        return SEOM_Blog_Refresher::step_timestamp($post_id);
     }
+}
 
-    // Inject SEO performance context and competitive research into the USER PROMPT
-    // (not the system instruction — research in long system prompts gets deprioritized)
-    if (class_exists('SEOM_Blog_Refresher')) {
-        $seo_context = SEOM_Blog_Refresher::get_seo_context($post_id);
-        if ($seo_context) {
-            $prompt .= "\n\n" . $seo_context;
-        }
-    }
 
-    $desc_model = function_exists('itu_ai_model') ? itu_ai_model('product_description') : '';
-    $result = aipm_call_openai($instruction, $prompt, $desc_model);
-    if (is_wp_error($result)) return $result;
-    if (empty(trim($result))) return new WP_Error('empty_result', 'AI returned empty description. The prompt may be too large — try again.');
+// ─── Featured Product Blog Search ────────────────────────────────────────────
+//
+// "Find Blogs" — search published blog posts by keyword that do NOT already
+// have a featured product assigned. Returns matches so the user can pick
+// which blogs to associate with the current product.
 
-    // Fix markdown that slipped through — convert to proper HTML
-    $result = preg_replace('/^####\s+(.+)$/m', '<h4>$1</h4>', $result);
-    $result = preg_replace('/^###\s+(.+)$/m', '<h3>$1</h3>', $result);
-    $result = preg_replace('/^##\s+(.+)$/m', '<h2>$1</h2>', $result);
-    $result = preg_replace('/^#\s+(.+)$/m', '<h1>$1</h1>', $result);
-    $result = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $result);
-    $result = preg_replace('/(?<![<\/\w])\*([^*\n]+)\*(?![>])/', '<em>$1</em>', $result);
+add_action('wp_ajax_aipm_search_blogs', function () {
+    check_ajax_referer('aipm_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
 
-    // Clear old RankMath FAQ/schema meta before replacing content
     global $wpdb;
-    $wpdb->query($wpdb->prepare(
-        "DELETE FROM {$wpdb->postmeta} WHERE post_id = %d AND meta_key LIKE %s",
-        $post_id, 'rank_math_schema_%'
-    ));
+    $keyword    = sanitize_text_field(wp_unslash($_POST['keyword'] ?? ''));
+    $product_id = (int) ($_POST['product_id'] ?? 0);
 
-    // Fully replace post_content (removes any old RankMath FAQ Gutenberg blocks, etc.)
-    wp_update_post(['ID' => $post_id, 'post_content' => $result]);
-    return $result;
-}
-
-function aipm_step_short_description($post_id, $description = '') {
-    $title = get_the_title($post_id);
-    if (empty($description)) {
-        $description = wp_strip_all_tags(get_post_field('post_content', $post_id));
-    }
-    $prompt = $title . "\n\n" . wp_strip_all_tags($description);
-
-    $instruction = aipm_get_short_desc_instruction();
-    // Add CTR context for meta description
-    if (class_exists('SEOM_Blog_Refresher')) {
-        $ctx = get_transient('seom_refresh_context_' . $post_id);
-        if ($ctx && in_array($ctx['category'] ?? '', ['B', 'E'])) {
-            $instruction .= "\n\nIMPORTANT: This course page has a click-through rate problem — people see it in search results but don't click. Make the meta description significantly more compelling with a specific benefit or outcome.";
-        }
-        if ($ctx && !empty($ctx['top_queries'][0]['query'])) {
-            $instruction .= "\nThe #1 search query for this page is: \"" . $ctx['top_queries'][0]['query'] . "\" — address this directly.";
-        }
+    if (empty($keyword) || !$product_id) {
+        wp_send_json_error('Keyword and product ID are required.');
     }
 
-    $short_model = function_exists('itu_ai_model') ? itu_ai_model('product_short_desc') : '';
-    $result = aipm_call_openai($instruction, $prompt, $short_model);
-    if (is_wp_error($result)) return $result;
+    $meta_key = defined('SEOM_FEATURED_PRODUCT_META_KEY')
+        ? SEOM_FEATURED_PRODUCT_META_KEY
+        : '_seom_featured_product_id';
 
-    $clean = wp_strip_all_tags($result);
-    wp_update_post(['ID' => $post_id, 'post_excerpt' => $clean]);
-    return $clean;
-}
+    $like = '%' . $wpdb->esc_like($keyword) . '%';
 
-function aipm_step_faq_html($post_id) {
-    $title   = get_the_title($post_id);
-    $content = wp_strip_all_tags(get_post_field('post_content', $post_id));
-    $prompt  = trim($title . "\n\n" . $content);
+    // Return up to 100 matches — no pagination needed.
+    $rows = $wpdb->get_results($wpdb->prepare("
+        SELECT DISTINCT p.ID, p.post_title, p.post_date, p.post_modified
+        FROM {$wpdb->posts} p
+        LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = %s
+        WHERE p.post_type = 'post'
+        AND p.post_status = 'publish'
+        AND (pm.meta_value IS NULL OR pm.meta_value = '' OR pm.meta_value = '0')
+        AND (p.post_title LIKE %s OR SUBSTRING(p.post_content, 1, 2000) LIKE %s)
+        ORDER BY p.post_modified DESC
+        LIMIT 100
+    ", $meta_key, $like, $like));
+    $total = count($rows);
 
-    $instruction = aipm_get_faq_instruction($post_id);
-    // Use search queries to inform FAQ questions
-    if (class_exists('SEOM_Blog_Refresher')) {
-        $ctx = get_transient('seom_refresh_context_' . $post_id);
-        if ($ctx && !empty($ctx['top_queries'])) {
-            $query_list = array_map(function($q) { return '"' . ($q['query'] ?? '') . '"'; }, array_slice($ctx['top_queries'], 0, 5));
-            $instruction .= "\n\nREAL SEARCH QUERIES from Google for this course page: " . implode(', ', $query_list)
-                . "\nBase at least 2-3 of your FAQ questions on these actual search queries — they represent what real prospective students are searching for.";
-        }
+    $results = [];
+    foreach ($rows as $r) {
+        $results[] = [
+            'id'       => (int) $r->ID,
+            'title'    => $r->post_title,
+            'date'     => date('M j, Y', strtotime($r->post_modified)),
+            'edit_url' => get_edit_post_link((int) $r->ID, ''),
+            'view_url' => get_permalink((int) $r->ID),
+        ];
     }
 
-    $result = aipm_call_openai($instruction, $prompt, function_exists('itu_ai_model') ? itu_ai_model('product_faq') : 'gpt-4o-mini');
-    if (is_wp_error($result)) return $result;
+    wp_send_json_success([
+        'results'    => $results,
+        'total'      => $total,
+        'keyword'    => $keyword,
+        'product_id' => $product_id,
+    ]);
+});
 
-    // Fix FAQ answers missing <p> tags
-    $result = aipm_fix_faq_paragraphs($result);
+// Bulk-assign a featured product to blog posts — processes a batch of
+// post IDs per call and returns progress so the JS can loop until done.
+add_action('wp_ajax_aipm_assign_featured_product', function () {
+    check_ajax_referer('aipm_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
 
-    // Save to ACF field
-    if (function_exists('update_field')) {
-        update_field('field_6816a44480234', $result, $post_id);
+    $product_id = (int) ($_POST['product_id'] ?? 0);
+    $post_ids   = array_filter(array_map('intval', (array) ($_POST['post_ids'] ?? [])));
+
+    if (!$product_id || empty($post_ids)) {
+        wp_send_json_error('Product ID and at least one post ID are required.');
     }
 
-    return $result;
-}
-
-function aipm_step_faq_json($post_id, $faq_html = '') {
-    if (empty($faq_html)) {
-        if (function_exists('get_field')) {
-            $faq_html = get_field('field_6816a44480234', $post_id);
-        }
-    }
-    if (empty($faq_html)) return new WP_Error('no_faq', 'No FAQ HTML to convert.');
-
-    $instruction = "You are an SEO assistant. Convert the following HTML FAQ into a valid JSON-LD FAQPage schema. Return ONLY the raw JSON object — do NOT wrap it in <script> tags. Use \\n\\n and \\n formatting as needed. Input HTML:\n\n" . $faq_html;
-
-    $result = aipm_call_openai($instruction, null, function_exists('itu_ai_model') ? itu_ai_model('product_faq_json') : 'gpt-4o-mini', 0.3);
-    if (is_wp_error($result)) return $result;
-
-    // Strip markdown code fences and script tags if included
-    $result = preg_replace('/^```[a-zA-Z]*\s*/m', '', $result);
-    $result = preg_replace('/\s*```\s*$/m', '', $result);
-    $result = preg_replace('/<script[^>]*>\s*/i', '', $result);
-    $result = preg_replace('/\s*<\/script>/i', '', $result);
-    $result = trim($result);
-
-    if (function_exists('update_field')) {
-        update_field('field_6816d54e3951d', $result, $post_id);
+    $product = get_post($product_id);
+    if (!$product || $product->post_type !== 'product') {
+        wp_send_json_error('Invalid product.');
     }
 
-    return $result;
-}
+    $meta_key = defined('SEOM_FEATURED_PRODUCT_META_KEY')
+        ? SEOM_FEATURED_PRODUCT_META_KEY
+        : '_seom_featured_product_id';
 
-function aipm_step_rankmath($post_id) {
-    $title   = get_the_title($post_id);
-    $content = wp_strip_all_tags(get_post_field('post_content', $post_id));
-    $excerpt = get_post_field('post_excerpt', $post_id);
+    $assigned = 0;
+    $failed   = 0;
 
-    // Try data-driven keyword from GSC first
-    if (class_exists('SEOM_Keyword_Researcher')) {
-        $kw_data = SEOM_Keyword_Researcher::get_target_keywords($post_id);
-        if ($kw_data['source'] === 'gsc' && !empty($kw_data['primary'])) {
-            $keyword = sanitize_text_field($kw_data['primary']);
-            $meta_desc = wp_strip_all_tags($excerpt);
-            update_post_meta($post_id, 'rank_math_focus_keyword', $keyword);
-            update_post_meta($post_id, 'rank_math_description', $meta_desc);
-            return ['keyword' => $keyword, 'meta_description' => $meta_desc];
-        }
-    }
+    foreach ($post_ids as $pid) {
+        $post = get_post($pid);
+        if (!$post || $post->post_type !== 'post') { $failed++; continue; }
 
-    // Fall back to AI keyword extraction
-    $kw_prompt = "Course Title: " . $title . "\n\nCourse Description:\n" . mb_substr($content, 0, 1500);
-    $seo_model = function_exists('itu_ai_model') ? itu_ai_model('product_seo') : '';
-    $keyword = aipm_call_openai(aipm_get_keyword_instruction(), $kw_prompt, $seo_model, 0.3);
+        update_post_meta($pid, $meta_key, $product_id);
 
-    if (is_wp_error($keyword)) {
-        $keyword = sanitize_text_field($title);
-    } else {
-        $keyword = sanitize_text_field(trim($keyword));
-    }
-
-    $meta_desc = wp_strip_all_tags($excerpt);
-    update_post_meta($post_id, 'rank_math_focus_keyword', $keyword);
-    update_post_meta($post_id, 'rank_math_description', $meta_desc);
-
-    return ['keyword' => $keyword, 'meta_description' => $meta_desc];
-}
-
-function aipm_step_seo_title($post_id) {
-    $title   = get_the_title($post_id);
-    $content = wp_strip_all_tags(get_post_field('post_content', $post_id));
-    $snippet = mb_substr($content, 0, 800);
-    $keyword = get_post_meta($post_id, 'rank_math_focus_keyword', true) ?: '';
-
-    $site_name = get_bloginfo('name');
-    $instruction = "You are an SEO expert who specializes in writing click-worthy search result titles for IT training courses. Given the course title, focus keyword, and description below, write an optimized SEO title.\n\n"
-        . "RULES:\n"
-        . "- Maximum 60 characters (Google truncates after this)\n"
-        . "- Include the focus keyword near the beginning\n"
-        . "- End with ' - {$site_name}' (this counts toward the 60 characters)\n"
-        . "- Make it compelling — highlight a benefit, outcome, or what makes this course valuable\n"
-        . "- Do NOT use clickbait or misleading titles\n"
-        . "- Do NOT invent certification names or exam codes not in the content\n"
-        . "- Return ONLY the title, nothing else — no quotes, no explanation\n\n"
-        . "GOOD EXAMPLES:\n"
-        . "- CompTIA A+ Core 1 (220-1101) Training Course - {$site_name}\n"
-        . "- Master IT Asset Management: Complete ITAM Course - {$site_name}\n"
-        . "- AWS Solutions Architect Exam Prep & Training - {$site_name}\n\n"
-        . "BAD EXAMPLES:\n"
-        . "- IT Asset Management Course - {$site_name} (too generic)\n"
-        . "- Learn Everything About ITAM and Become an Expert Today - {$site_name} (too long, salesy)";
-
-    // Add CTR context for title optimization
-    if (class_exists('SEOM_Blog_Refresher')) {
-        $ctx = get_transient('seom_refresh_context_' . $post_id);
-        if ($ctx) {
-            $pos = $ctx['position'] ?? 0;
-            $ctr_val = round($ctx['ctr'] ?? 0, 2);
-            if (in_array($ctx['category'] ?? '', ['B', 'E'])) {
-                $instruction .= "\n\nCRITICAL: This course page has a CTR problem — position " . round($pos, 1) . " with {$ctr_val}% CTR. The current title is not compelling enough.";
-            }
-            if (!empty($ctx['top_queries'][0]['query'])) {
-                $instruction .= "\nTop search query: \"" . $ctx['top_queries'][0]['query'] . "\" — title should resonate with this intent.";
+        if (function_exists('seom_inject_featured_product_shortcode')) {
+            $new_body = seom_inject_featured_product_shortcode($post->post_content, $product_id);
+            if ($new_body !== $post->post_content) {
+                // Preserve the original modified date — injecting a shortcode
+                // is not a content edit and should not bump the post to the
+                // top of date-sorted archives.
+                $orig_modified     = $post->post_modified;
+                $orig_modified_gmt = $post->post_modified_gmt;
+                wp_update_post([
+                    'ID'                => $pid,
+                    'post_content'      => $new_body,
+                    'post_modified'     => $orig_modified,
+                    'post_modified_gmt' => $orig_modified_gmt,
+                ]);
             }
         }
+
+        $assigned++;
     }
 
-    $prompt = "Current Title: {$title}\nFocus Keyword: {$keyword}\n\nDescription:\n{$snippet}";
+    wp_send_json_success([
+        'assigned'   => $assigned,
+        'failed'     => $failed,
+        'product_id' => $product_id,
+    ]);
+});
 
-    $title_model = function_exists('itu_ai_model') ? itu_ai_model('product_seo_title') : '';
-    $result = aipm_call_openai($instruction, $prompt, $title_model, 0.5);
-    if (is_wp_error($result)) return $result;
+// List blogs currently assigned to a product as featured product.
+add_action('wp_ajax_aipm_get_assigned_blogs', function () {
+    check_ajax_referer('aipm_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
 
-    $seo_title = sanitize_text_field(trim($result));
-    if (!empty($seo_title) && mb_strlen($seo_title) <= 70) {
-        update_post_meta($post_id, 'rank_math_title', $seo_title);
+    global $wpdb;
+    $product_id = (int) ($_POST['product_id'] ?? 0);
+    if (!$product_id) wp_send_json_error('Missing product ID.');
+
+    $meta_key = defined('SEOM_FEATURED_PRODUCT_META_KEY') ? SEOM_FEATURED_PRODUCT_META_KEY : '_seom_featured_product_id';
+
+    $rows = $wpdb->get_results($wpdb->prepare("
+        SELECT p.ID, p.post_title, p.post_modified
+        FROM {$wpdb->posts} p
+        JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+        WHERE pm.meta_key = %s AND pm.meta_value = %s
+        AND p.post_type = 'post' AND p.post_status = 'publish'
+        ORDER BY p.post_modified DESC
+    ", $meta_key, (string) $product_id));
+
+    $blogs = [];
+    foreach ($rows as $r) {
+        $blogs[] = [
+            'id'       => (int) $r->ID,
+            'title'    => $r->post_title,
+            'date'     => date('M j, Y', strtotime($r->post_modified)),
+            'edit_url' => get_edit_post_link((int) $r->ID, ''),
+            'view_url' => get_permalink((int) $r->ID),
+        ];
     }
 
-    return $seo_title;
-}
+    wp_send_json_success(['blogs' => $blogs, 'product_id' => $product_id]);
+});
 
-function aipm_step_timestamp($post_id) {
-    $datetime = current_time('mysql');
-    update_post_meta($post_id, 'last_page_refresh', $datetime);
-    return $datetime;
-}
+// Unassign the featured product from a blog post — removes the meta AND
+// strips the shortcode from the post body.
+add_action('wp_ajax_aipm_unassign_featured_product', function () {
+    check_ajax_referer('aipm_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
+
+    $post_ids   = array_filter(array_map('intval', (array) ($_POST['post_ids'] ?? [])));
+    $product_id = (int) ($_POST['product_id'] ?? 0);
+    if (empty($post_ids)) wp_send_json_error('No posts selected.');
+
+    $meta_key = defined('SEOM_FEATURED_PRODUCT_META_KEY') ? SEOM_FEATURED_PRODUCT_META_KEY : '_seom_featured_product_id';
+    $removed = 0;
+
+    foreach ($post_ids as $pid) {
+        $post = get_post($pid);
+        if (!$post) continue;
+
+        // Remove the meta
+        delete_post_meta($pid, $meta_key);
+
+        // Strip the shortcode from the body — preserve original modified date
+        $new_body = preg_replace('/\[itu_featured_product[^\]]*\]\s*/', '', $post->post_content);
+        if ($new_body !== $post->post_content) {
+            wp_update_post([
+                'ID'                => $pid,
+                'post_content'      => $new_body,
+                'post_modified'     => $post->post_modified,
+                'post_modified_gmt' => $post->post_modified_gmt,
+            ]);
+        }
+        $removed++;
+    }
+
+    wp_send_json_success(['removed' => $removed]);
+});
+
+// Reassign blogs from one product to another — updates the meta and swaps
+// the shortcode ID in the post body.
+add_action('wp_ajax_aipm_reassign_featured_product', function () {
+    check_ajax_referer('aipm_nonce', 'nonce');
+    if (!current_user_can('manage_woocommerce')) wp_send_json_error('Permission denied.');
+
+    $post_ids       = array_filter(array_map('intval', (array) ($_POST['post_ids'] ?? [])));
+    $new_product_id = (int) ($_POST['new_product_id'] ?? 0);
+    if (empty($post_ids) || !$new_product_id) wp_send_json_error('Missing required fields.');
+
+    $new_product = get_post($new_product_id);
+    if (!$new_product || $new_product->post_type !== 'product') wp_send_json_error('Invalid new product.');
+
+    $meta_key = defined('SEOM_FEATURED_PRODUCT_META_KEY') ? SEOM_FEATURED_PRODUCT_META_KEY : '_seom_featured_product_id';
+    $reassigned = 0;
+
+    foreach ($post_ids as $pid) {
+        $post = get_post($pid);
+        if (!$post) continue;
+
+        // Update the meta
+        update_post_meta($pid, $meta_key, $new_product_id);
+
+        // Replace any existing shortcode with the new product ID — preserve modified date
+        if (function_exists('seom_inject_featured_product_shortcode')) {
+            $new_body = seom_inject_featured_product_shortcode($post->post_content, $new_product_id);
+            if ($new_body !== $post->post_content) {
+                wp_update_post([
+                    'ID'                => $pid,
+                    'post_content'      => $new_body,
+                    'post_modified'     => $post->post_modified,
+                    'post_modified_gmt' => $post->post_modified_gmt,
+                ]);
+            }
+        }
+        $reassigned++;
+    }
+
+    wp_send_json_success([
+        'reassigned'     => $reassigned,
+        'new_product_id' => $new_product_id,
+        'new_product'    => $new_product->post_title,
+    ]);
+});
 
 // ─── AJAX Handlers ───────────────────────────────────────────────────────────
 
@@ -691,6 +598,7 @@ class AIPM_Product_List_Table extends WP_List_Table {
             'has_image'      => 'Image',
             'has_short_desc' => 'Short Desc',
             'has_faq'        => 'FAQ',
+            'blog_count'     => 'Blogs',
             'actions'        => 'Actions',
         ];
     }
@@ -713,6 +621,7 @@ class AIPM_Product_List_Table extends WP_List_Table {
     }
 
     public function prepare_items() {
+        global $wpdb;
         $per_page     = 20;
         $current_page = $this->get_pagenum();
         $search       = isset($_REQUEST['s']) ? sanitize_text_field($_REQUEST['s']) : '';
@@ -744,6 +653,16 @@ class AIPM_Product_List_Table extends WP_List_Table {
             $thumb_id  = get_post_thumbnail_id($post->ID);
             $thumb_url = $thumb_id ? wp_get_attachment_image_url($thumb_id, 'thumbnail') : '';
 
+            // Count blogs featuring this product
+            $fp_meta_key = defined('SEOM_FEATURED_PRODUCT_META_KEY') ? SEOM_FEATURED_PRODUCT_META_KEY : '_seom_featured_product_id';
+            $blog_count = (int) $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$wpdb->postmeta} pm
+                 JOIN {$wpdb->posts} p ON pm.post_id = p.ID
+                 WHERE pm.meta_key = %s AND pm.meta_value = %s
+                 AND p.post_type = 'post' AND p.post_status = 'publish'",
+                $fp_meta_key, (string) $post->ID
+            ));
+
             $items[] = [
                 'ID'              => $post->ID,
                 'product_name'    => $post->post_title,
@@ -754,6 +673,7 @@ class AIPM_Product_List_Table extends WP_List_Table {
                 'has_faq'         => !empty(trim(strip_tags($faq))),
                 'thumb_url'       => $thumb_url,
                 'thumb_id'        => $thumb_id,
+                'blog_count'      => $blog_count,
             ];
         }
 
@@ -806,10 +726,15 @@ class AIPM_Product_List_Table extends WP_List_Table {
                 return $this->check_icon($item['has_short_desc']);
             case 'has_faq':
                 return $this->check_icon($item['has_faq']);
+            case 'blog_count':
+                $count = (int) $item['blog_count'];
+                if ($count === 0) return '<span style="color:#94a3b8;">0</span>';
+                return '<a href="#" class="aipm-view-blogs-btn" data-id="' . esc_attr($item['ID']) . '" data-title="' . esc_attr($item['product_name']) . '" style="font-weight:600;color:#C026D3;text-decoration:none;">' . $count . '</a>';
             case 'actions':
                 $edit_url = get_edit_post_link($item['ID']);
                 $view_url = get_permalink($item['ID']);
                 return '<button type="button" class="button aipm-process-btn" data-id="' . esc_attr($item['ID']) . '">Process All</button> '
+                     . '<button type="button" class="button aipm-find-blogs-btn" data-id="' . esc_attr($item['ID']) . '" data-title="' . esc_attr($item['product_name']) . '" style="color:#C026D3;">Find Blogs</button> '
                      . '<a href="' . esc_url($edit_url) . '" class="button" target="_blank">Edit</a> '
                      . '<a href="' . esc_url($view_url) . '" class="button" target="_blank">View</a>';
             default:
@@ -821,24 +746,49 @@ class AIPM_Product_List_Table extends WP_List_Table {
 // ─── Admin Menu & Page ───────────────────────────────────────────────────────
 
 add_action('admin_menu', function () {
-    add_menu_page(
-        'AI Product Manager',
-        'AI Products',
-        'manage_woocommerce',
-        'ai-product-manager',
-        'aipm_render_admin_page',
-        'dashicons-products',
-        56
-    );
-    add_submenu_page(
-        'ai-product-manager',
-        'Media Cleanup',
-        'Media Cleanup',
-        'manage_woocommerce',
-        'aipm-media-cleanup',
-        'aipm_render_media_page'
-    );
-});
+    // Register as a submenu under SEO AI AutoPilot when that plugin is active.
+    // Falls back to a top-level menu only if SEO AI AutoPilot isn't around.
+    $parent_slug = (defined('SEOM_PATH')) ? 'seo-ai-autopilot' : null;
+
+    if ($parent_slug) {
+        add_submenu_page(
+            $parent_slug,
+            'AI Product Manager',
+            'AI Products',
+            'manage_woocommerce',
+            'ai-product-manager',
+            'aipm_render_admin_page'
+        );
+        add_submenu_page(
+            $parent_slug,
+            'Media Cleanup',
+            'Media Cleanup',
+            'manage_woocommerce',
+            'aipm-media-cleanup',
+            'aipm_render_media_page'
+        );
+    } else {
+        // Standalone fallback — keep the old top-level menu so this plugin
+        // still works if SEO AI AutoPilot is deactivated
+        add_menu_page(
+            'AI Product Manager',
+            'AI Products',
+            'manage_woocommerce',
+            'ai-product-manager',
+            'aipm_render_admin_page',
+            'dashicons-products',
+            56
+        );
+        add_submenu_page(
+            'ai-product-manager',
+            'Media Cleanup',
+            'Media Cleanup',
+            'manage_woocommerce',
+            'aipm-media-cleanup',
+            'aipm_render_media_page'
+        );
+    }
+}, 11); // priority 11 so SEO AI AutoPilot's menu (default 10) is registered first
 
 function aipm_render_admin_page() {
     wp_enqueue_media(); // Required for the media picker
@@ -897,7 +847,8 @@ function aipm_render_admin_page() {
         .wp-list-table .column-has_short_desc,
         .wp-list-table .column-has_faq      { width: 80px; text-align: center; }
         .wp-list-table .column-last_edited  { width: 140px; }
-        .wp-list-table .column-actions      { width: 260px; }
+        .wp-list-table .column-blog_count   { width: 60px; text-align: center; }
+        .wp-list-table .column-actions      { width: 340px; }
         .aipm-bulk-progress {
             margin: 16px 0;
             padding: 12px 16px;
@@ -1180,6 +1131,369 @@ function aipm_render_admin_page() {
             }
 
             processNext(0);
+        });
+
+        // ── View Assigned Blogs modal ──────────────────────────────────
+        // Opens when user clicks the blog count number. Shows all blogs
+        // assigned to this product with options to unassign or reassign
+        // to a different product.
+
+        $('body').append(
+            '<div id="aipm-assigned-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100000;overflow:auto;">'
+            + '<div style="max-width:800px;margin:60px auto;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden;">'
+            +   '<div style="padding:18px 24px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">'
+            +     '<div>'
+            +       '<h3 style="margin:0;font-size:16px;">Assigned Blogs</h3>'
+            +       '<span style="font-size:12px;color:#64748b;" id="aipm-ab-product-name"></span>'
+            +     '</div>'
+            +     '<button type="button" id="aipm-ab-close" style="border:none;background:none;font-size:22px;cursor:pointer;color:#64748b;padding:0 4px;">&times;</button>'
+            +   '</div>'
+            +   '<div style="padding:20px 24px;">'
+            +     '<div id="aipm-ab-loading" style="color:#64748b;">Loading…</div>'
+            +     '<div id="aipm-ab-results" style="display:none;max-height:400px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;">'
+            +       '<table class="wp-list-table widefat fixed striped" style="font-size:13px;">'
+            +         '<thead><tr><th style="width:30px;"><input type="checkbox" id="aipm-ab-check-all" /></th><th>Blog Post</th><th style="width:120px;">Last Updated</th></tr></thead>'
+            +         '<tbody id="aipm-ab-body"></tbody>'
+            +       '</table>'
+            +     '</div>'
+            +     '<div id="aipm-ab-empty" style="display:none;color:#94a3b8;padding:20px;text-align:center;">No blogs assigned to this product.</div>'
+            +     '<div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">'
+            +       '<span id="aipm-ab-selected-count" style="font-size:12px;color:#64748b;">0 selected</span>'
+            +       '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+            +         '<button type="button" class="button" id="aipm-ab-unassign" disabled style="color:#dc2626;">Unassign Selected</button>'
+            +         '<span style="color:#94a3b8;">or</span>'
+            +         '<select id="aipm-ab-reassign-product" style="max-width:220px;padding:4px 8px;border:1px solid #c3c4c7;border-radius:4px;font-size:13px;"><option value="">Reassign to…</option></select>'
+            +         '<button type="button" class="button button-primary" id="aipm-ab-reassign" disabled>Reassign</button>'
+            +       '</div>'
+            +     '</div>'
+            +     '<div id="aipm-ab-status" style="margin-top:10px;font-size:12px;"></div>'
+            +   '</div>'
+            + '</div></div>'
+        );
+
+        var abModal = $('#aipm-assigned-modal');
+        var abProductId = 0;
+
+        // Open modal
+        $(document).on('click', '.aipm-view-blogs-btn', function(e) {
+            e.preventDefault();
+            abProductId = $(this).data('id');
+            $('#aipm-ab-product-name').text($(this).data('title'));
+            loadAssignedBlogs();
+            loadProductDropdown();
+            abModal.fadeIn(200);
+        });
+
+        // Close
+        $('#aipm-ab-close').click(function() { abModal.fadeOut(200); });
+        abModal.click(function(e) { if (e.target === this) abModal.fadeOut(200); });
+
+        function loadAssignedBlogs() {
+            $('#aipm-ab-loading').show();
+            $('#aipm-ab-results, #aipm-ab-empty').hide();
+            $('#aipm-ab-status').empty();
+
+            $.post(ajaxurl, { action: 'aipm_get_assigned_blogs', nonce: nonce, product_id: abProductId }, function(resp) {
+                $('#aipm-ab-loading').hide();
+                if (!resp.success) return;
+                var blogs = resp.data.blogs;
+                if (!blogs.length) { $('#aipm-ab-empty').show(); return; }
+
+                var tb = $('#aipm-ab-body').empty();
+                blogs.forEach(function(b) {
+                    tb.append('<tr>'
+                        + '<td><input type="checkbox" class="aipm-ab-cb" value="' + b.id + '" /></td>'
+                        + '<td><a href="' + (b.edit_url || '#') + '" target="_blank">' + $('<span>').text(b.title).html() + '</a></td>'
+                        + '<td style="color:#94a3b8;">' + b.date + '</td>'
+                        + '</tr>');
+                });
+                $('#aipm-ab-results').show();
+                $('#aipm-ab-check-all').prop('checked', false);
+                updateAbCount();
+            });
+        }
+
+        // Product dropdown for reassignment — loads all products except the current one
+        var abProductsLoaded = false;
+        function loadProductDropdown() {
+            if (abProductsLoaded) {
+                // Just remove the current product option
+                $('#aipm-ab-reassign-product option[value="' + abProductId + '"]').remove();
+                return;
+            }
+            $.post(ajaxurl, { action: 'seom_search_products', nonce: '<?php echo wp_create_nonce('seom_nonce'); ?>', term: '' }, function(resp) {
+                if (!resp.success) return;
+                var sel = $('#aipm-ab-reassign-product').empty().append('<option value="">Reassign to…</option>');
+                resp.data.products.forEach(function(p) {
+                    if (p.id !== abProductId) {
+                        sel.append('<option value="' + p.id + '">' + $('<span>').text(p.title).html() + '</option>');
+                    }
+                });
+                abProductsLoaded = true;
+            });
+        }
+
+        // Select all / count
+        $(document).on('change', '#aipm-ab-check-all', function() {
+            $('.aipm-ab-cb').prop('checked', this.checked);
+            updateAbCount();
+        });
+        $(document).on('change', '.aipm-ab-cb', function() { updateAbCount(); });
+
+        function updateAbCount() {
+            var n = $('.aipm-ab-cb:checked').length;
+            $('#aipm-ab-selected-count').text(n + ' selected');
+            $('#aipm-ab-unassign').prop('disabled', n === 0);
+            $('#aipm-ab-reassign').prop('disabled', n === 0 || !$('#aipm-ab-reassign-product').val());
+        }
+        $(document).on('change', '#aipm-ab-reassign-product', updateAbCount);
+
+        // Generic batched action runner — splits IDs into chunks of 5,
+        // fires them sequentially, and shows live progress in #aipm-ab-status.
+        function abBatchAction(actionName, allIds, extraData, verb, onDone) {
+            var batchSize = 5;
+            var batches = [];
+            for (var i = 0; i < allIds.length; i += batchSize) {
+                batches.push(allIds.slice(i, i + batchSize));
+            }
+            var totalDone = 0, totalFail = 0;
+
+            function runNext(idx) {
+                if (idx >= batches.length) {
+                    onDone(totalDone, totalFail);
+                    return;
+                }
+                var done = Math.min((idx + 1) * batchSize, allIds.length);
+                $('#aipm-ab-status').html('<span style="color:#b45309;">' + verb + ' ' + done + ' / ' + allIds.length + '…</span>');
+
+                var payload = $.extend({ action: actionName, nonce: nonce, 'post_ids[]': batches[idx] }, extraData);
+                $.post(ajaxurl, payload, function(resp) {
+                    if (resp.success) {
+                        totalDone += (resp.data.removed || resp.data.reassigned || 0);
+                    } else {
+                        totalFail += batches[idx].length;
+                    }
+                    runNext(idx + 1);
+                }).fail(function() {
+                    totalFail += batches[idx].length;
+                    runNext(idx + 1);
+                });
+            }
+            runNext(0);
+        }
+
+        // Unassign — batched
+        $('#aipm-ab-unassign').click(function() {
+            var ids = $('.aipm-ab-cb:checked').map(function() { return parseInt(this.value, 10); }).get();
+            if (!ids.length) return;
+            if (!confirm('Unassign this product from ' + ids.length + ' blog(s)?\n\nThis removes the featured product meta and strips the shortcode from each post body.')) return;
+
+            $(this).prop('disabled', true);
+            abBatchAction('aipm_unassign_featured_product', ids, { product_id: abProductId }, 'Unassigning', function(done, failed) {
+                $('#aipm-ab-unassign').prop('disabled', false);
+                var msg = '<span style="color:#059669;">Removed from ' + done + ' blog(s).</span>';
+                if (failed) msg += ' <span style="color:#dc2626;">' + failed + ' failed.</span>';
+                $('#aipm-ab-status').html(msg);
+                loadAssignedBlogs();
+                var btn = $('.aipm-view-blogs-btn[data-id="' + abProductId + '"]');
+                var newCount = Math.max(0, parseInt(btn.text(), 10) - done);
+                if (newCount > 0) btn.text(newCount);
+                else btn.replaceWith('<span style="color:#94a3b8;">0</span>');
+            });
+        });
+
+        // Reassign — batched
+        $('#aipm-ab-reassign').click(function() {
+            var ids = $('.aipm-ab-cb:checked').map(function() { return parseInt(this.value, 10); }).get();
+            var newPid = $('#aipm-ab-reassign-product').val();
+            var newName = $('#aipm-ab-reassign-product option:selected').text();
+            if (!ids.length || !newPid) return;
+            if (!confirm('Reassign ' + ids.length + ' blog(s) from this product to "' + newName + '"?\n\nThis updates the featured product meta and swaps the shortcode in each post body.')) return;
+
+            $(this).prop('disabled', true);
+            abBatchAction('aipm_reassign_featured_product', ids, { new_product_id: newPid }, 'Reassigning', function(done, failed) {
+                $('#aipm-ab-reassign').prop('disabled', false);
+                var msg = '<span style="color:#059669;">Reassigned ' + done + ' blog(s) to "' + newName + '".</span>';
+                if (failed) msg += ' <span style="color:#dc2626;">' + failed + ' failed.</span>';
+                $('#aipm-ab-status').html(msg);
+                loadAssignedBlogs();
+                var btn = $('.aipm-view-blogs-btn[data-id="' + abProductId + '"]');
+                var oldCount = Math.max(0, parseInt(btn.text(), 10) - done);
+                if (oldCount > 0) btn.text(oldCount);
+                else btn.replaceWith('<span style="color:#94a3b8;">0</span>');
+            });
+        });
+
+        // ── Find Blog Opportunities modal ──────────────────────────────
+        // Opens when user clicks "Find Blogs" on a product row. Searches
+        // published blog posts by keyword that don't already have a
+        // featured product assigned. Lets the user bulk-assign the
+        // current product to selected blogs.
+
+        // Inject the modal HTML into the page
+        $('body').append(
+            '<div id="aipm-find-blogs-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100000;overflow:auto;">'
+            + '<div style="max-width:800px;margin:60px auto;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden;">'
+            +   '<div style="padding:18px 24px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">'
+            +     '<div>'
+            +       '<h3 style="margin:0;font-size:16px;" id="aipm-fb-title">Find Blog Opportunities</h3>'
+            +       '<span style="font-size:12px;color:#64748b;" id="aipm-fb-product-name"></span>'
+            +     '</div>'
+            +     '<button type="button" id="aipm-fb-close" style="border:none;background:none;font-size:22px;cursor:pointer;color:#64748b;padding:0 4px;">&times;</button>'
+            +   '</div>'
+            +   '<div style="padding:20px 24px;">'
+            +     '<p style="margin:0 0 12px;font-size:13px;color:#64748b;">Search for blog posts by keyword. Only posts without a featured product are shown. Select the ones you want and assign this product to them.</p>'
+            +     '<div style="display:flex;gap:8px;margin-bottom:16px;">'
+            +       '<input type="text" id="aipm-fb-keyword" placeholder="Enter keyword (e.g. network+, security, azure)…" style="flex:1;padding:8px 12px;border:1px solid #c3c4c7;border-radius:6px;font-size:14px;" />'
+            +       '<button type="button" class="button button-primary" id="aipm-fb-search">Search</button>'
+            +     '</div>'
+            +     '<input type="hidden" id="aipm-fb-product-id" value="" />'
+            +     '<div id="aipm-fb-status" style="font-size:12px;margin-bottom:8px;"></div>'
+            +     '<div id="aipm-fb-results" style="display:none;max-height:350px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;">'
+            +       '<table class="wp-list-table widefat fixed striped" style="font-size:13px;">'
+            +         '<thead><tr><th style="width:30px;"><input type="checkbox" id="aipm-fb-check-all" /></th><th>Blog Post</th><th style="width:120px;">Last Updated</th></tr></thead>'
+            +         '<tbody id="aipm-fb-body"></tbody>'
+            +       '</table>'
+            +     '</div>'
+            +     '<div id="aipm-fb-pagination" style="margin-top:8px;text-align:center;"></div>'
+            +     '<div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;">'
+            +       '<span id="aipm-fb-selected-count" style="font-size:12px;color:#64748b;">0 selected</span>'
+            +       '<div style="display:flex;gap:8px;">'
+            +         '<button type="button" class="button" id="aipm-fb-cancel">Cancel</button>'
+            +         '<button type="button" class="button button-primary" id="aipm-fb-assign" disabled>Assign Product to Selected</button>'
+            +       '</div>'
+            +     '</div>'
+            +     '<div id="aipm-fb-assign-status" style="margin-top:10px;font-size:12px;"></div>'
+            +   '</div>'
+            + '</div></div>'
+        );
+
+        var fbModal = $('#aipm-find-blogs-modal');
+        var fbProductId = 0;
+
+        // Open modal
+        $(document).on('click', '.aipm-find-blogs-btn', function() {
+            fbProductId = $(this).data('id');
+            var productTitle = $(this).data('title');
+            $('#aipm-fb-product-id').val(fbProductId);
+            $('#aipm-fb-product-name').text(productTitle);
+            $('#aipm-fb-keyword').val('');
+            $('#aipm-fb-body').empty();
+            $('#aipm-fb-results').hide();
+            $('#aipm-fb-pagination').empty();
+            $('#aipm-fb-status').empty();
+            $('#aipm-fb-assign-status').empty();
+            $('#aipm-fb-assign').prop('disabled', true);
+            $('#aipm-fb-selected-count').text('0 selected');
+            fbModal.fadeIn(200);
+            setTimeout(function() { $('#aipm-fb-keyword').focus(); }, 100);
+        });
+
+        // Close modal
+        $('#aipm-fb-close, #aipm-fb-cancel').click(function() { fbModal.fadeOut(200); });
+        fbModal.click(function(e) { if (e.target === this) fbModal.fadeOut(200); });
+
+        // Search — returns up to 100 results, no pagination
+        function fbSearch() {
+            var keyword = $('#aipm-fb-keyword').val().trim();
+            if (!keyword) { alert('Enter a keyword to search.'); return; }
+
+            $('#aipm-fb-status').html('<span style="color:#b45309;">Searching…</span>');
+            $('#aipm-fb-results').hide();
+            $('#aipm-fb-pagination').empty();
+
+            $.post(ajaxurl, {
+                action: 'aipm_search_blogs', nonce: nonce,
+                keyword: keyword, product_id: fbProductId
+            }, function(resp) {
+                if (!resp.success) {
+                    $('#aipm-fb-status').html('<span style="color:#dc2626;">' + (resp.data || 'Error') + '</span>');
+                    return;
+                }
+                var d = resp.data;
+                var cap = d.total >= 100 ? ' (showing first 100)' : '';
+                $('#aipm-fb-status').html('<span style="color:#059669;">' + d.total + ' blog(s) found without a featured product.' + cap + '</span>');
+
+                var tb = $('#aipm-fb-body').empty();
+                if (!d.results.length) {
+                    tb.html('<tr><td colspan="3" style="color:#94a3b8;padding:12px;">No matching posts found.</td></tr>');
+                    $('#aipm-fb-results').show();
+                    return;
+                }
+
+                d.results.forEach(function(r) {
+                    tb.append('<tr>'
+                        + '<td><input type="checkbox" class="aipm-fb-cb" value="' + r.id + '" /></td>'
+                        + '<td><a href="' + (r.edit_url || '#') + '" target="_blank">' + $('<span>').text(r.title).html() + '</a></td>'
+                        + '<td style="color:#94a3b8;">' + r.date + '</td>'
+                        + '</tr>');
+                });
+
+                $('#aipm-fb-results').show();
+                $('#aipm-fb-check-all').prop('checked', false);
+                updateFbCount();
+            });
+        }
+
+        $('#aipm-fb-search').click(fbSearch);
+        $('#aipm-fb-keyword').keydown(function(e) { if (e.key === 'Enter') { e.preventDefault(); fbSearch(); } });
+
+        // Select all / count
+        $(document).on('change', '#aipm-fb-check-all', function() {
+            $('.aipm-fb-cb').prop('checked', this.checked);
+            updateFbCount();
+        });
+        $(document).on('change', '.aipm-fb-cb', function() { updateFbCount(); });
+
+        function updateFbCount() {
+            var n = $('.aipm-fb-cb:checked').length;
+            $('#aipm-fb-selected-count').text(n + ' selected');
+            $('#aipm-fb-assign').prop('disabled', n === 0);
+        }
+
+        // Assign product to selected blogs — batched in chunks of 5 so
+        // we don't timeout on large selections.
+        $('#aipm-fb-assign').click(function() {
+            var allIds = $('.aipm-fb-cb:checked').map(function() { return parseInt(this.value, 10); }).get();
+            if (!allIds.length) return;
+            if (!confirm('Assign this product as the Featured Product on ' + allIds.length + ' blog post(s)?\n\nThis will:\n• Save the product association\n• Inject the [itu_featured_product] shortcode into each post body')) return;
+
+            var btn = $(this).prop('disabled', true);
+            var totalAssigned = 0, totalFailed = 0;
+            var batchSize = 5;
+            var batches = [];
+            for (var i = 0; i < allIds.length; i += batchSize) {
+                batches.push(allIds.slice(i, i + batchSize));
+            }
+
+            function runBatch(index) {
+                if (index >= batches.length) {
+                    btn.prop('disabled', false).text('Assign Product to Selected');
+                    $('#aipm-fb-assign-status').html(
+                        '<span style="color:#059669;">✓ Assigned to ' + totalAssigned + ' post(s).'
+                        + (totalFailed ? ' ' + totalFailed + ' failed.' : '') + '</span>'
+                    );
+                    setTimeout(fbSearch, 1000);
+                    return;
+                }
+                var done = Math.min((index + 1) * batchSize, allIds.length);
+                $('#aipm-fb-assign-status').html('<span style="color:#b45309;">Assigning ' + done + ' / ' + allIds.length + '…</span>');
+
+                $.post(ajaxurl, {
+                    action: 'aipm_assign_featured_product', nonce: nonce,
+                    product_id: fbProductId, 'post_ids[]': batches[index]
+                }, function(resp) {
+                    if (resp.success) {
+                        totalAssigned += resp.data.assigned;
+                        totalFailed += resp.data.failed;
+                    }
+                    runBatch(index + 1);
+                }).fail(function() {
+                    totalFailed += batches[index].length;
+                    runBatch(index + 1);
+                });
+            }
+            runBatch(0);
         });
     });
     </script>

@@ -1095,6 +1095,53 @@ function itu_get_random_promo_html() {
  */
 // ─── Post Dates (Published + Last Updated) ─────────────────────────────────
 
+/**
+ * SEO Intro block — shows the RankMath SEO title and meta description below the
+ * post title, but only when:
+ *   - The SEO title meta is set
+ *   - The SEO title is meaningfully different from the post title
+ *   - A meta description is set
+ *
+ * Strips a trailing " - Site Name" from the SEO title if RankMath's separator
+ * appended one, so the heading reads cleanly without duplicating site branding.
+ */
+add_shortcode('itu_seo_intro', function () {
+    $post = get_post();
+    if (!$post) return '';
+
+    $seo_title = trim((string) get_post_meta($post->ID, 'rank_math_title', true));
+    $meta_desc = trim((string) get_post_meta($post->ID, 'rank_math_description', true));
+
+    // Need at least a meta description to render anything (the title alone isn't useful)
+    if ($meta_desc === '') return '';
+
+    $post_title = get_the_title($post);
+    $site_name  = get_bloginfo('name');
+
+    // Strip a " - Site Name" / " | Site Name" suffix from the SEO title for display
+    $clean_seo_title = $seo_title;
+    if ($clean_seo_title !== '' && $site_name) {
+        $clean_seo_title = preg_replace(
+            '/\s*[-–—|]\s*' . preg_quote($site_name, '/') . '\s*$/u',
+            '',
+            $clean_seo_title
+        );
+        $clean_seo_title = trim($clean_seo_title);
+    }
+
+    // Only show the SEO title heading if it's meaningfully different from the post title
+    $show_seo_heading = ($clean_seo_title !== '' && strcasecmp($clean_seo_title, $post_title) !== 0);
+
+    $html = '<aside class="itu-seo-intro" aria-label="Article overview">';
+    if ($show_seo_heading) {
+        $html .= '<h2 class="itu-seo-intro__title">' . esc_html($clean_seo_title) . '</h2>';
+    }
+    $html .= '<p class="itu-seo-intro__desc">' . esc_html($meta_desc) . '</p>';
+    $html .= '</aside>';
+
+    return $html;
+});
+
 add_shortcode('itu_post_dates', function () {
     $post = get_post();
     if (!$post) return '';
@@ -1238,6 +1285,9 @@ add_shortcode('itu_product_hero', function () {
     $product = wc_get_product($post->ID);
     if (!$product) return '';
 
+    // Free courses use the "Enroll Now" pill (add-to-cart) instead of the hero "View Plans" button
+    $is_free = has_term('free-courses', 'product_cat', $post->ID);
+
     $title = get_the_title();
     $short_desc = $product->get_short_description();
     $sku = $product->get_sku();
@@ -1265,6 +1315,20 @@ add_shortcode('itu_product_hero', function () {
         $image_html = '<div class="itu-product-hero__image"><img src="' . esc_url($image_url) . '" alt="' . esc_attr($title) . '" class="itu-product-avatar-img" /></div>';
     }
 
+    // Primary "Enroll Now — View Plans" button (hidden for free courses, which use the add-to-cart pill)
+    $enroll_btn = $is_free ? '' : '<button type="button" class="itu-hero-enroll-btn" id="itu-hero-enroll-trigger">Enroll Now &mdash; View Plans</button>
+                    <script>document.getElementById("itu-hero-enroll-trigger").addEventListener("click",function(){var t=document.querySelector("[data-tab=\'enroll\']");if(t){t.click();setTimeout(function(){t.scrollIntoView({behavior:"smooth",block:"center"})},100);}});</script>';
+
+    // Secondary "Buy on Udemy" button — only when the product has a Udemy affiliate URL (ACF field)
+    $udemy_url = get_field('field_68168a7d5d0ac', $post->ID);
+    $udemy_btn = !empty($udemy_url)
+        ? '<a href="' . esc_url($udemy_url) . '" target="_blank" rel="noopener" class="itu-hero-udemy-btn">Buy on Udemy</a>'
+        : '';
+
+    $actions = ($enroll_btn || $udemy_btn)
+        ? '<div class="itu-product-hero__actions">' . $enroll_btn . $udemy_btn . '</div>'
+        : '';
+
     return '<section class="itu-section">
         <div class="itu-section__inner">
             <div class="itu-product-hero">
@@ -1272,8 +1336,7 @@ add_shortcode('itu_product_hero', function () {
                     <span class="itu-eyebrow">[ Course ]</span>
                     <h1 class="itu-page-title">' . esc_html($title) . '</h1>
                     ' . ($short_desc ? '<p class="itu-product-hero__desc">' . esc_html(wp_strip_all_tags($short_desc)) . '</p>' : '') . '
-                    <button type="button" class="itu-hero-enroll-btn" id="itu-hero-enroll-trigger">Enroll Now &mdash; View Plans</button>
-                    <script>document.getElementById("itu-hero-enroll-trigger").addEventListener("click",function(){var t=document.querySelector("[data-tab=\'enroll\']");if(t){t.click();setTimeout(function(){t.scrollIntoView({behavior:"smooth",block:"center"})},100);}});</script>
+                    ' . $actions . '
                     <div class="itu-product-stats">' . $badges . '</div>
                 </div>
                 ' . $image_html . '
@@ -1723,6 +1786,16 @@ add_shortcode('itu_course_catalog', function () {
         if (get_term_meta($cat->term_id, 'itu_catalog_hidden', true) === '1') return false;
         return true;
     }));
+
+    // Pin "Free IT Courses" to the front so it renders before every other
+    // category (the array order drives both the sidebar list and the carousels).
+    foreach ($categories as $i => $cat) {
+        if ($cat->slug === 'free-courses') {
+            $free = array_splice($categories, $i, 1);
+            array_unshift($categories, $free[0]);
+            break;
+        }
+    }
 
     ob_start();
     ?>
@@ -3318,7 +3391,8 @@ add_shortcode('it_glossary', function ($atts) {
                 $display_term = $term->term;
                 $display_def  = $term->definition;
             }
-            $output .= render_glossary_term($display_term, $display_def, $term->primary_area);
+            $has_expanded = !empty($term->definition_expanded);
+            $output .= render_glossary_term($display_term, $display_def, $term->primary_area, $has_expanded);
         }
     } else {
         $output .= '<p style="color:#64748b;font-size:1.1rem;padding:20px 0;">No terms found. Try a different letter or search term.</p>';
@@ -3331,18 +3405,52 @@ add_shortcode('it_glossary', function ($atts) {
 
     $output .= '</div>';
 
-    // ── FAQ Schema ──
-    $output .= build_faq_schema($terms);
+    // ── Glossary Schema (DefinedTermSet) ──
+    $output .= build_glossary_schema($terms);
+
+    // ── Anchor auto-open/scroll ──
+    // When a blog (or external link) deep-links to a term via #term-{slug},
+    // expand that accordion and scroll it into view. The script is small,
+    // dependency-free, and idempotent — safe to render once per shortcode
+    // call even if the shortcode is used more than once on a page.
+    static $glossary_anchor_js_emitted = false;
+    if (!$glossary_anchor_js_emitted) {
+        $output .= "<script>(function(){function open(h){if(!h||h.indexOf('term-')!==1)return;var el=document.getElementById(h.slice(1));if(!el)return;if(el.tagName==='DETAILS')el.open=true;setTimeout(function(){el.scrollIntoView({behavior:'smooth',block:'start'});},120);}if(location.hash)open(location.hash);window.addEventListener('hashchange',function(){open(location.hash);});})();</script>";
+        $glossary_anchor_js_emitted = true;
+    }
 
     return $output;
 });
 
-function render_glossary_term($term_name, $definition, $primary_area) {
-    return '<details class="glossary-accordion">'
+function render_glossary_term($term_name, $definition, $primary_area, $has_expanded = false) {
+    // Stable per-term anchor id so blogs (and AI surfaces) can deep-link
+    // to a specific definition. The slug is derived from the raw term name,
+    // not the highlighted/display version, so search-result rendering keeps
+    // the same anchor as the canonical letter view.
+    $raw_term = wp_strip_all_tags($term_name);
+    $slug     = sanitize_title($raw_term);
+    $anchor   = 'term-' . $slug;
+
+    // When a per-term page exists (definition_expanded is populated on
+    // the source row) we surface a "Read more" link. The short definition
+    // stays inline in the accordion so the index page remains skim-friendly;
+    // the link drives readers to the long-form page at /it-glossary/{slug}/
+    // for the full structured content + related blogs.
+    $read_more = '';
+    if ($has_expanded) {
+        $detail_url = home_url('/it-glossary/' . $slug . '/');
+        $read_more  = '<p class="glossary-accordion__read-more">'
+                    . '<a href="' . esc_url($detail_url) . '" class="glossary-accordion__read-more-link">'
+                    . 'Read the full definition'
+                    . '</a></p>';
+    }
+
+    return '<details class="glossary-accordion" id="' . esc_attr($anchor) . '" data-term="' . esc_attr($raw_term) . '">'
         . '<summary class="glossary-accordion__term"><span>' . $term_name . '</span></summary>'
         . '<div class="glossary-accordion__body">'
         . '<p class="glossary-accordion__definition">' . $definition . '</p>'
         . '<p class="glossary-accordion__area">Commonly used in <strong>' . esc_html($primary_area) . '</strong></p>'
+        . $read_more
         . '</div>'
         . '</details>';
 }
@@ -3356,7 +3464,8 @@ function shortcode_terms_by_letter($atts) {
     $pagination = $results['pagination'];
     $output = '<div class="terms-listing">';
     foreach ($terms as $term) {
-        $output .= render_glossary_term($term->term, $term->definition, $term->primary_area);
+        $has_expanded = !empty($term->definition_expanded);
+        $output .= render_glossary_term($term->term, $term->definition, $term->primary_area, $has_expanded);
     }
     $output .= paginate_terms($letter, $pagination['current_page'], $pagination['total_pages']);
     $output .= '</div>';
@@ -3378,7 +3487,8 @@ function shortcode_terms_by_search($atts) {
         foreach ($terms as $term) {
             $highlighted_term = highlight_terms($term->term, $letter);
             $highlighted_definition = highlight_terms($term->definition, $letter);
-            $output .= render_glossary_term($highlighted_term, $highlighted_definition, $term->primary_area);
+            $has_expanded = !empty($term->definition_expanded);
+            $output .= render_glossary_term($highlighted_term, $highlighted_definition, $term->primary_area, $has_expanded);
         }
         $output .= paginate_terms($letter, $pagination['current_page'], $pagination['total_pages']);
     } else {
@@ -3456,34 +3566,75 @@ function search_terms($search, $page = 1) {
     ];
 }
 
-function build_faq_schema($results) {
+/**
+ * Build a DefinedTermSet schema for the displayed glossary terms.
+ *
+ * Replaces the previous FAQPage block. FAQPage is the wrong schema type for
+ * a glossary — Google has been deprecating it for non-Q&A use, and AI
+ * surfaces weight DefinedTerm citations far more heavily than synthetic
+ * "What is X?" FAQ entries. The DefinedTermSet groups every rendered term
+ * into one citable lexicon entity.
+ *
+ * One DefinedTermSet is emitted per rendered page (A-Z letter page or
+ * search results), with `hasDefinedTerm` listing only the terms currently
+ * visible. Each DefinedTerm carries a stable per-term url with the anchor
+ * fragment so AI engines can cite an exact definition.
+ */
+function build_glossary_schema($results) {
     if (empty($results)) return '';
 
-    $faqs = [];
+    $base = trailingslashit(get_permalink());
+    $defined_terms = [];
+    $set_id = $base . '#glossary-set';
+
     foreach ($results as $term) {
         if (empty($term->term) || empty($term->definition)) continue;
-        $faqs[] = [
-            '@type' => 'Question',
-            'name' => wp_strip_all_tags("What is " . $term->term . "?"),
-            'acceptedAnswer' => [
-                '@type' => 'Answer',
-                'text' => wp_strip_all_tags($term->definition),
-            ],
+        $raw_term = wp_strip_all_tags($term->term);
+        $raw_def  = wp_strip_all_tags($term->definition);
+        $slug     = sanitize_title($raw_term);
+        if ($slug === '' || $raw_def === '') continue;
+        $term_url = $base . '#term-' . $slug;
+        $defined = [
+            '@type'       => 'DefinedTerm',
+            '@id'         => $term_url,
+            'name'        => $raw_term,
+            'description' => $raw_def,
+            'url'         => $term_url,
+            'inDefinedTermSet' => ['@id' => $set_id],
         ];
+        if (!empty($term->primary_area)) {
+            $defined['termCode'] = wp_strip_all_tags($term->primary_area);
+        }
+        $defined_terms[] = $defined;
     }
+    if (empty($defined_terms)) return '';
 
-    if (empty($faqs)) return '';
-
-    $jsonLd = [
+    $graph = [
         '@context' => 'https://schema.org',
-        '@type' => 'FAQPage',
-        'mainEntity' => $faqs,
+        '@graph'   => [
+            [
+                '@type'         => 'DefinedTermSet',
+                '@id'           => $set_id,
+                'name'          => 'IT Glossary',
+                'description'   => 'Definitions of information-technology terms used across IT training, certification, and operations.',
+                'url'           => $base,
+                'inLanguage'    => 'en',
+                'hasDefinedTerm'=> $defined_terms,
+                'numberOfItems' => count($defined_terms),
+            ],
+        ],
     ];
 
-    $encoded = wp_json_encode($jsonLd, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $encoded = wp_json_encode($graph, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     if (!$encoded) return '';
 
-    return '<script type="application/ld+json">' . $encoded . '</script>';
+    return '<script type="application/ld+json" data-source="itu-glossary">' . $encoded . '</script>';
+}
+
+// Back-compat: any old call sites that still reference build_faq_schema()
+// keep working — they just render the new DefinedTermSet shape now.
+if (!function_exists('build_faq_schema')) {
+    function build_faq_schema($results) { return build_glossary_schema($results); }
 }
 
 function paginate_terms($letter, $current_page, $total_pages) {
@@ -3613,7 +3764,12 @@ endif;
 add_action('wp_enqueue_scripts', 'child_theme_configurator_css', 15);
 
 add_filter('get_the_archive_title', function($title) {
-    return strpos($title, 'Category:') !== false ? str_replace('Category:', '', $title) : $title;
+    foreach (['Category:', 'Archives:'] as $prefix) {
+        if (strpos($title, $prefix) !== false) {
+            $title = str_replace($prefix, '', $title);
+        }
+    }
+    return trim($title);
 });
 
 defined('CHLD_THM_CFG_IGNORE_PARENT') or define('CHLD_THM_CFG_IGNORE_PARENT', TRUE);
@@ -3624,6 +3780,7 @@ function create_custom_post_type() {
 add_action('init', 'create_custom_post_type');
 
 function update_custom_posts() {
+    if (get_transient("itu_custom_posts_synced")) { return; } set_transient("itu_custom_posts_synced", 1, HOUR_IN_SECONDS);
     $results = execute_stored_procedure();
     if (!empty($results)) {
         foreach ($results as $result) {
@@ -3644,6 +3801,7 @@ function execute_stored_procedure() {
 }
 
 function store_procedure_results() {
+    if (false !== get_transient("procedure_results")) { return; }
     $results = execute_stored_procedure();
     set_transient('procedure_results', $results, 84 * HOUR_IN_SECONDS);
 }
@@ -4356,7 +4514,7 @@ add_shortcode('itu_related_articles', function ($atts) {
 
     // Filter to published posts only and exclude current
     if (empty($scored)) {
-        set_transient($cache_key, [], 7 * DAY_IN_SECONDS);
+        set_transient($cache_key, [], DAY_IN_SECONDS);
         return '';
     }
 
@@ -4384,7 +4542,7 @@ add_shortcode('itu_related_articles', function ($atts) {
         ];
     }
 
-    set_transient($cache_key, $articles, 7 * DAY_IN_SECONDS);
+    set_transient($cache_key, $articles, DAY_IN_SECONDS);
 
     if (empty($articles)) return '';
     return itu_render_related_articles($articles, $atts['heading'], $count);
@@ -4415,6 +4573,352 @@ function itu_render_related_articles($articles, $heading, $count) {
     return $html;
 }
 
+
+// ─── Sticky "Discover More" panel on single blog posts ──────────────────────
+// Slides up from the bottom once the user has scrolled 30% of the page.
+// Shows 6 related blog cards in a horizontal row. Desktop only (hidden
+// below 1024px). Dismissible — stays hidden for the rest of the page
+// session via sessionStorage.
+add_action('wp_footer', function () {
+    if (!is_singular('post')) return;
+
+    $post_id = get_the_ID();
+    if (!$post_id) return;
+
+    // Reuse the same related articles the shortcode computes (cached).
+    $cache_key = 'itu_related_' . $post_id;
+    $articles = get_transient($cache_key);
+
+    // If the cache is cold (user hasn't scrolled to the related section
+    // yet so the shortcode hasn't fired), compute on the fly.
+    if ($articles === false) {
+        // Trigger the shortcode silently to populate the cache.
+        do_shortcode('[itu_related_articles count="10"]');
+        $articles = get_transient($cache_key);
+    }
+
+    if (empty($articles) || !is_array($articles)) return;
+
+    // Take the top 6 for the sticky panel.
+    $articles = array_slice($articles, 0, 6);
+    ?>
+
+    <!-- Tab lives OUTSIDE the panel so it's always visible and clickable
+         regardless of the panel's transform/pointer-events state -->
+    <div id="itu-discover-tab" style="
+        position:fixed; bottom:0; left:50%; transform:translateX(-50%); z-index:99999;
+        background:#86198f; color:#fff; padding:8px 24px; border-radius:8px 8px 0 0;
+        font-family:'Fira Code',Menlo,Consolas,monospace; font-size:0.75rem;
+        font-weight:600; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer;
+        user-select:none;
+    ">Discover More, Learn More</div>
+
+    <div id="itu-discover-panel" style="
+        position:fixed; bottom:0; left:0; right:0; z-index:99998;
+        transform:translateY(100%); transition:transform 0.4s cubic-bezier(0.16,1,0.3,1);
+        pointer-events:none;
+    ">
+
+        <!-- Main panel -->
+        <div style="
+            background:#86198f; max-height:200px; box-sizing:border-box;
+            padding:20px 24px; position:relative;
+        ">
+            <!-- Close button -->
+            <button id="itu-discover-close" style="
+                position:absolute; top:12px; right:20px; background:rgba(255,255,255,0.15);
+                border:2px solid rgba(255,255,255,0.4); color:#fff; width:32px; height:32px;
+                border-radius:50%; font-size:18px; line-height:1; cursor:pointer;
+                display:flex; align-items:center; justify-content:center;
+                transition:all 0.15s; z-index:2;
+            " aria-label="Close">&times;</button>
+
+            <!-- Card row -->
+            <div style="
+                display:grid; grid-template-columns:repeat(6, 1fr); gap:12px;
+                max-width:1200px; margin:0 auto;
+            ">
+                <?php foreach ($articles as $a) :
+                    $excerpt = '';
+                    $p = get_post($a['id']);
+                    if ($p) {
+                        $excerpt = wp_strip_all_tags($p->post_excerpt ?: '');
+                        if (!$excerpt) $excerpt = wp_trim_words(wp_strip_all_tags($p->post_content), 12, '…');
+                        else $excerpt = wp_trim_words($excerpt, 12, '…');
+                    }
+                ?>
+                <a href="<?php echo esc_url($a['url']); ?>" class="itu-discover-card" style="
+                    display:block; padding:14px 16px; border-radius:8px; text-decoration:none;
+                    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);
+                    transition:all 0.15s; overflow:hidden;
+                ">
+                    <strong style="
+                        display:block; font-size:12px; line-height:1.4; color:#fff;
+                        margin-bottom:6px; font-weight:600;
+                        display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+                    "><?php echo esc_html($a['title']); ?></strong>
+                    <span style="
+                        display:block; font-size:11px; line-height:1.35; color:rgba(255,255,255,0.65);
+                        display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+                    "><?php echo esc_html($excerpt); ?></span>
+                </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    /* Desktop only — hidden below 1024px */
+    @media (max-width:1024px) {
+        #itu-discover-panel, #itu-discover-tab { display:none !important; }
+    }
+    /* Extra space inside the footer so the sticky panel never covers
+       footer links. Targets the .itu-footer div so the 200px inherits
+       the dark background instead of showing white space. */
+    @media (min-width:1025px) {
+        body.single-post .itu-footer {
+            padding-bottom:200px !important;
+        }
+    }
+    /* Triggered = tab visible peeking from bottom, panel body still off-screen.
+       The panel starts at translateY(100%) with margin-bottom:-36px which
+       pushes the tab up by 36px. Triggered state keeps the same position. */
+    #itu-discover-panel.itu-discover--triggered {
+        transform:translateY(100%) !important;
+    }
+    /* Visible = full panel slid up. Tab rides on top of the panel. */
+    #itu-discover-panel.itu-discover--visible {
+        transform:translateY(0) !important;
+        pointer-events:auto !important;
+    }
+    #itu-discover-tab.itu-tab--raised {
+        transition:bottom 0.4s cubic-bezier(0.16,1,0.3,1);
+    }
+    #itu-discover-close:hover {
+        background:rgba(255,255,255,0.3);
+        border-color:#fff;
+    }
+    .itu-discover-card:hover {
+        background:#fff !important;
+        border-color:#fff !important;
+    }
+    .itu-discover-card:hover strong {
+        color:#1e293b !important;
+    }
+    .itu-discover-card:hover span {
+        color:#475569 !important;
+    }
+    </style>
+
+    <script>
+    (function() {
+        var panel = document.getElementById('itu-discover-panel');
+        var tab = document.getElementById('itu-discover-tab');
+        if (!panel || !tab) return;
+
+        function raiseTab() {
+            // Move the tab up so it sits on top of the panel
+            var panelHeight = panel.querySelector('div').offsetHeight || 200;
+            tab.style.bottom = panelHeight + 'px';
+            tab.classList.add('itu-tab--raised');
+        }
+        function lowerTab() {
+            tab.style.bottom = '0px';
+            tab.classList.remove('itu-tab--raised');
+        }
+        // Skip entirely on mobile (CSS hides it but no point running the JS)
+        if (window.innerWidth < 1024) return;
+
+        var KEY = 'itu_discover_dismissed_<?php echo (int) $post_id; ?>';
+        var shown = false;
+        var dismissed = false;
+
+        // If previously dismissed, prevent auto-show but keep JS running
+        // so the tab click can reopen.
+        if (sessionStorage.getItem(KEY)) {
+            dismissed = true;
+            shown = true;
+        }
+
+        // Trigger: show the panel when the user has been on the page for
+        // at least 15 seconds OR has scrolled past the first <h2>.
+        // Either condition alone is enough — waiting for both means the
+        // panel sometimes never shows (e.g. short posts where the user
+        // reaches the bottom in 5 seconds, or long posts where the user
+        // reads slowly and hits 15s before scrolling past the first H2).
+        var triggered = false;
+
+        function triggerPanel() {
+            if (triggered) return;
+            triggered = true;
+            panel.classList.add('itu-discover--triggered');
+            if (!dismissed && !shown) {
+                panel.classList.add('itu-discover--visible');
+                raiseTab();
+                shown = true;
+            }
+        }
+
+        // Time trigger: 15 seconds on page
+        setTimeout(triggerPanel, 15000);
+
+        // Scroll trigger: past the first H2 in the article
+        var firstH2 = document.querySelector('h2');
+        var scrollThreshold = firstH2
+            ? firstH2.getBoundingClientRect().top + window.scrollY + firstH2.offsetHeight
+            : 400;
+
+        function checkScroll() {
+            if (triggered) return;
+            if (window.scrollY >= scrollThreshold) {
+                triggerPanel();
+            }
+        }
+
+        window.addEventListener('scroll', checkScroll, { passive: true });
+        checkScroll(); // in case page loaded already scrolled
+
+        document.getElementById('itu-discover-close').addEventListener('click', function() {
+            panel.classList.remove('itu-discover--visible');
+            lowerTab();
+            dismissed = true;
+            sessionStorage.setItem(KEY, '1');
+        });
+
+        // Tab toggles the panel open/closed — even after dismissing.
+        // This lets the user reopen it if they change their mind.
+        tab.addEventListener('click', function() {
+            if (panel.classList.contains('itu-discover--visible')) {
+                panel.classList.remove('itu-discover--visible');
+                lowerTab();
+                dismissed = true;
+                sessionStorage.setItem(KEY, '1');
+            } else {
+                panel.classList.add('itu-discover--visible');
+                raiseTab();
+                dismissed = false;
+                sessionStorage.removeItem(KEY);
+            }
+        });
+    })();
+    </script>
+
+    <?php
+}, 99);
+
+// ─── Cybersecurity Free Trial — slide-out side tab ──────────────────────────
+// Fixed vertical tab anchored to the right edge, vertically centered. Links to
+// the 10-day free trial course. Desktop only (hidden below 1024px). Hidden on
+// cart & checkout. Dismissible via the small X — stays hidden for the session.
+add_action('wp_footer', function () {
+    // Don't show on cart or checkout
+    if (function_exists('is_cart') && (is_cart() || is_checkout())) return;
+
+    // Settings are managed in SEO AI AutoPilot → Settings → Cybersecurity Promo Tab.
+    // Read them directly so the tab still works (with defaults) if the plugin is inactive.
+    $opts    = get_option('seom_settings', []);
+    $enabled = array_key_exists('cyber_tab_enabled', $opts) ? !empty($opts['cyber_tab_enabled']) : true;
+    if (!$enabled) return;
+
+    $title = !empty($opts['cyber_tab_title']) ? $opts['cyber_tab_title'] : 'Cybersecurity In Focus - Free Trial';
+    $url   = !empty($opts['cyber_tab_url'])   ? $opts['cyber_tab_url']   : 'https://www.ituonline.com/courses/free-courses/cybersecurity-focus-training-10-day-free-trial/';
+    ?>
+    <div id="itu-cyber-tab" class="itu-cyber-tab">
+        <button type="button" class="itu-cyber-tab__close" aria-label="Hide this tab">&times;</button>
+        <a href="<?php echo esc_url($url); ?>" class="itu-cyber-tab__link">
+            <span class="itu-cyber-tab__text"><?php echo esc_html($title); ?></span>
+        </a>
+    </div>
+
+    <style>
+    .itu-cyber-tab {
+        position: fixed;
+        top: 50%;
+        right: 0;
+        transform: translateY(-50%);
+        z-index: 2000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 14px 8px 16px;
+        background: #059669;
+        color: #fff;
+        border-radius: 10px 0 0 10px;
+        box-shadow: -4px 4px 22px rgba(0,0,0,0.28);
+        transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), background 0.2s ease;
+    }
+    .itu-cyber-tab:hover {
+        background: #047857;
+        transform: translateY(-50%) translateX(-5px);
+    }
+    .itu-cyber-tab.itu-cyber-tab--hidden {
+        display: none !important;
+    }
+    .itu-cyber-tab__close {
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.4);
+        color: #fff;
+        width: 22px;
+        height: 22px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        font-size: 15px;
+        line-height: 1;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .itu-cyber-tab__close:hover {
+        background: rgba(255,255,255,0.3);
+        border-color: #fff;
+    }
+    .itu-cyber-tab__link {
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        text-decoration: none;
+        color: #fff;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        padding: 4px 2px;
+    }
+    .itu-cyber-tab__text {
+        font-size: 0.9rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    /* Desktop only — hidden below 1024px */
+    @media (max-width: 1024px) {
+        .itu-cyber-tab { display: none !important; }
+    }
+    </style>
+
+    <script>
+    (function() {
+        if (window.innerWidth < 1024) return;
+        var tab = document.getElementById('itu-cyber-tab');
+        if (!tab) return;
+
+        var KEY = 'itu_cyber_tab_dismissed';
+        if (sessionStorage.getItem(KEY)) {
+            tab.classList.add('itu-cyber-tab--hidden');
+        }
+
+        tab.querySelector('.itu-cyber-tab__close').addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            tab.classList.add('itu-cyber-tab--hidden');
+            sessionStorage.setItem(KEY, '1');
+        });
+    })();
+    </script>
+    <?php
+}, 99);
 
 add_action('rest_api_init', function () {
     register_rest_route('custom/v1', '/submit-form', array(
@@ -5131,132 +5635,8 @@ function itu_date_sync_admin_page() {
 
 // ─── Admin Bar: AI Refresh Button ───────────────────────────────────────────
 
-add_action('admin_bar_menu', function ($wp_admin_bar) {
-    if (!is_singular() || !current_user_can('manage_options')) return;
-
-    $post_id = get_queried_object_id();
-    $post_type = get_post_type($post_id);
-    if (!in_array($post_type, ['post', 'product'])) return;
-
-    $label = $post_type === 'product' ? 'AI Refresh Product' : 'AI Refresh Blog';
-
-    $wp_admin_bar->add_node([
-        'id'    => 'itu-ai-refresh',
-        'title' => '<span class="ab-icon dashicons dashicons-update" style="margin-top:2px;"></span> ' . $label,
-        'href'  => '#',
-        'meta'  => [
-            'class' => 'itu-ai-refresh-node',
-            'title' => 'Run a full AI refresh on this page',
-        ],
-    ]);
-
-    // Add sub-items for refresh types
-    $wp_admin_bar->add_node([
-        'id'     => 'itu-ai-refresh-full',
-        'parent' => 'itu-ai-refresh',
-        'title'  => 'Full Refresh (Rewrite All)',
-        'href'   => '#',
-        'meta'   => ['class' => 'itu-ai-refresh-trigger', 'data-type' => 'full'],
-    ]);
-
-    if ($post_type === 'post') {
-        $wp_admin_bar->add_node([
-            'id'     => 'itu-ai-refresh-seo',
-            'parent' => 'itu-ai-refresh',
-            'title'  => 'SEO Refresh (FAQ, Schema, Meta)',
-            'href'   => '#',
-            'meta'   => ['class' => 'itu-ai-refresh-trigger', 'data-type' => 'seo'],
-        ]);
-    }
-
-    $wp_admin_bar->add_node([
-        'id'     => 'itu-ai-refresh-meta',
-        'parent' => 'itu-ai-refresh',
-        'title'  => 'CTR Fix (Meta, Keyword, Title)',
-        'href'   => '#',
-        'meta'   => ['class' => 'itu-ai-refresh-trigger', 'data-type' => 'meta'],
-    ]);
-}, 999);
-
-add_action('wp_footer', function () {
-    if (!is_singular() || !current_user_can('manage_options')) return;
-
-    $post_id = get_queried_object_id();
-    $post_type = get_post_type($post_id);
-    if (!in_array($post_type, ['post', 'product'])) return;
-
-    $nonce = $post_type === 'product'
-        ? wp_create_nonce('seom_nonce')
-        : wp_create_nonce('bq_nonce');
-    ?>
-    <script>
-    (function() {
-        var postId = <?php echo $post_id; ?>;
-        var postType = '<?php echo $post_type; ?>';
-        var nonce = '<?php echo $nonce; ?>';
-        var running = false;
-
-        document.addEventListener('click', function(e) {
-            var link = e.target.closest('.itu-ai-refresh-trigger a, #wp-admin-bar-itu-ai-refresh-full a, #wp-admin-bar-itu-ai-refresh-seo a, #wp-admin-bar-itu-ai-refresh-meta a');
-            if (!link) return;
-            e.preventDefault();
-
-            if (running) { alert('Refresh already running...'); return; }
-
-            var menuId = link.closest('li').id;
-            var type = 'full';
-            if (menuId.indexOf('seo') !== -1) type = 'seo';
-            else if (menuId.indexOf('meta') !== -1) type = 'meta';
-
-            var labels = {full: 'Full Refresh', seo: 'SEO Refresh', meta: 'CTR Fix'};
-            if (!confirm('Run ' + labels[type] + ' on this page? This may take 1-2 minutes.')) return;
-
-            running = true;
-            var parentLink = document.querySelector('#wp-admin-bar-itu-ai-refresh > a');
-            var origText = parentLink.innerHTML;
-            parentLink.innerHTML = '<span class="ab-icon dashicons dashicons-update" style="margin-top:2px;animation:rotation 1s linear infinite;"></span> Processing...';
-
-            var action, data;
-            if (postType === 'product') {
-                action = 'seom_process_one';
-                data = 'action=' + action + '&nonce=' + nonce + '&post_id=' + postId;
-            } else {
-                action = 'bq_refresh_blog';
-                data = 'action=' + action + '&nonce=' + nonce + '&post_id=' + postId + '&type=' + type;
-            }
-
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', '<?php echo admin_url('admin-ajax.php'); ?>', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.timeout = 600000;
-            xhr.onload = function() {
-                running = false;
-                try {
-                    var resp = JSON.parse(xhr.responseText);
-                    if (resp.success) {
-                        parentLink.innerHTML = '<span class="ab-icon dashicons dashicons-yes-alt" style="margin-top:2px;color:#16a34a;"></span> Done!';
-                        setTimeout(function() { location.reload(); }, 1500);
-                    } else {
-                        parentLink.innerHTML = origText;
-                        alert('Failed: ' + (resp.data || 'Unknown error'));
-                    }
-                } catch(e) {
-                    parentLink.innerHTML = origText;
-                    alert('Server error');
-                }
-            };
-            xhr.onerror = xhr.ontimeout = function() {
-                running = false;
-                parentLink.innerHTML = origText;
-                alert('Request failed or timed out.');
-            };
-            xhr.send(data);
-        });
-    })();
-    </script>
-    <style>
-    @keyframes rotation { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    </style>
-    <?php
-}, 999);
+// NOTE: The "AI Refresh Blog/Product/Page" admin bar item used to live here.
+// It's been moved to the SEO AI AutoPilot plugin (seo-ai-autopilot.php) so it
+// travels with the plugin instead of depending on this site-specific theme.
+// The plugin now registers the menu and the front-end JS itself.
 

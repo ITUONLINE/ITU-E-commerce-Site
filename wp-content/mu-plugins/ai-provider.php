@@ -77,8 +77,12 @@ function _itu_ai_call_openai($api_key, $model, $instruction, $user_prompt, $temp
         $messages[] = ['role' => 'user', 'content' => $user_prompt];
     }
 
-    // Detect GPT-5.x and reasoning models (o3, o4) which don't support temperature
-    $is_reasoning = str_starts_with($model, 'gpt-5') || str_starts_with($model, 'o3') || str_starts_with($model, 'o4');
+    // Detect GPT-5.x and reasoning models (o1, o3, o4) which don't support
+    // the temperature parameter on the chat completions endpoint.
+    $is_reasoning = str_starts_with($model, 'gpt-5')
+                 || str_starts_with($model, 'o1')
+                 || str_starts_with($model, 'o3')
+                 || str_starts_with($model, 'o4');
 
     $body = [
         'model'    => $model,
@@ -86,11 +90,22 @@ function _itu_ai_call_openai($api_key, $model, $instruction, $user_prompt, $temp
     ];
 
     if ($is_reasoning) {
-        // GPT-5.x: temperature is not supported. Do NOT send reasoning_effort
-        // unless specifically needed — omitting it lets the model use its default behavior,
-        // which produces the best content for creative/writing tasks.
-        // Only set low reasoning for trivial tasks (JSON conversion, keyword extraction).
-        if ($temperature <= 0.2) $body['reasoning'] = ['effort' => 'low'];
+        // Reasoning models on /v1/chat/completions:
+        //   - 'temperature' is NOT supported (omit it).
+        //   - 'reasoning_effort' (flat string) IS supported. Accepted values
+        //     vary by model: every reasoning model supports 'low|medium|high';
+        //     newer GPT-5 variants also accept 'none|xhigh|minimal' but the
+        //     base GPT-5 model rejects 'minimal'.
+        //   - 'reasoning' (object with 'effort' key) is the /v1/responses
+        //     parameter shape — sending it to chat completions returns
+        //     "Unknown parameter: 'reasoning'".
+        //
+        // We map low temperature → low effort. 'low' is the cheapest tier
+        // every reasoning model accepts, so this works on GPT-5 / o1 / o3 / o4
+        // without per-model branching.
+        if ($temperature <= 0.2) {
+            $body['reasoning_effort'] = 'low';
+        }
     } else {
         $body['temperature'] = $temperature;
     }

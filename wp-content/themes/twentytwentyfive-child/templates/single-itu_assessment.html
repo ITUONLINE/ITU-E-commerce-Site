@@ -1,0 +1,59 @@
+<!-- wp:template-part {"slug":"header","area":"header"} /-->
+
+<!-- wp:group {"tagName":"main","layout":{"type":"default"}} -->
+<main class="wp-block-group">
+
+	<!-- wp:shortcode -->
+	[itu_breadcrumbs]
+	<!-- /wp:shortcode -->
+
+	<!-- wp:html -->
+	<section class="itu-section">
+		<div class="itu-section__inner">
+			<span class="itu-eyebrow">[ Skills Assessment ]</span>
+	<!-- /wp:html -->
+
+	<!-- wp:post-title {"level":1,"className":"itu-page-title"} /-->
+
+	<!-- wp:html -->
+		</div>
+	</section>
+	<!-- /wp:html -->
+
+	<!-- wp:html -->
+	<section class="itu-section itu-section--gray">
+		<div class="itu-section__inner">
+			<div id="itu-assessment-app"></div>
+		</div>
+	</section>
+	<!-- /wp:html -->
+
+	<!-- wp:html -->
+	<section class="itu-section">
+		<div class="itu-section__inner itu-assessment-layout">
+			<div class="itu-assessment-layout__main">
+	<!-- /wp:html -->
+
+	<!-- wp:shortcode -->
+	[itu_assessment_description]
+	<!-- /wp:shortcode -->
+
+	<!-- wp:html -->
+			</div>
+			<div class="itu-assessment-layout__sidebar">
+	<!-- /wp:html -->
+
+	<!-- wp:shortcode -->
+	[itu_assessments_sidebar limit="5"]
+	<!-- /wp:shortcode -->
+
+	<!-- wp:html -->
+			</div>
+		</div>
+	</section>
+	<!-- /wp:html -->
+
+</main>
+<!-- /wp:group -->
+
+<!-- wp:template-part {"slug":"footer","area":"footer"} /-->
